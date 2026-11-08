@@ -30,7 +30,7 @@ public sealed partial class Dashboard : Window
         Title = "ARX · Aion 2 Companion";
         Width = 1260;
         Height = 830;
-        MinWidth = 850;
+        MinWidth = 975;
         MinHeight = 610;
         WindowStyle = WindowStyle.None;
         WindowChrome.SetWindowChrome(this, new WindowChrome
@@ -40,16 +40,20 @@ public sealed partial class Dashboard : Window
         });
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         var shell = new Grid { Background = Ui.Brush("Base") };
+        shell.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(184) });
+        shell.ColumnDefinitions.Add(new ColumnDefinition());
         shell.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });
-        shell.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         shell.RowDefinitions.Add(new RowDefinition());
         shell.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
 
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        var badge = new Border { Background = Ui.Brush("Mint"), CornerRadius = new CornerRadius(8), Padding = new Thickness(8, 4, 8, 4),
-            Child = Text("ARX", 17, "Base", true), Margin = new Thickness(0, 0, 14, 0) };
-        brand.Children.Add(badge);
-        brand.Children.Add(new TextBlock { Text = "Aion 2 Global", Foreground = Ui.Brush("Text"), VerticalAlignment = VerticalAlignment.Center });
+        brand.Children.Add(new Border { Background = Ui.Brush("Mint"), CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(7, 2, 7, 4), Child = Text("◇", 21, "Base", true), Margin = new Thickness(0, 0, 10, 0) });
+        brand.Children.Add(Text("A R X", 16, bold: true));
+        var product = Label("AION 2 GLOBAL");
+        product.Margin = new Thickness(16, 2, 0, 0);
+        product.VerticalAlignment = VerticalAlignment.Center;
+        brand.Children.Add(product);
         _status = Text("", 12, "Mint", true);
         _status.VerticalAlignment = VerticalAlignment.Center;
         _status.Margin = new Thickness(22, 0, 0, 0);
@@ -71,32 +75,43 @@ public sealed partial class Dashboard : Window
         top.Children.Add(chrome);
         top.Children.Add(brand);
         top.Children.Add(_status);
-        Place(shell, top, 0, 0);
+        var topFrame = new Border { Background = Ui.Brush("Surface"), Child = top,
+            BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 0, 1) };
+        Grid.SetColumnSpan(topFrame, 2);
+        Place(shell, topFrame, 0, 0);
 
-        var nav = new WrapPanel();
-        AddNav(nav, "combat", "Монитор");
-        AddNav(nav, "analysis", "Отчёты");
-        AddNav(nav, "expeditions", "Забеги");
-        AddNav(nav, "atlas", "Карта");
-        AddNav(nav, "events", "События");
-        AddNav(nav, "session", "Сессия");
-        AddNav(nav, "progress", "Прогресс");
-        AddNav(nav, "codex", "Билды");
-        AddNav(nav, "craft", "Крафт");
-        AddNav(nav, "hotkeys", "Горячие клавиши");
-        AddNav(nav, "settings", "Настройки");
-        Place(shell, new Border { Background = Ui.Brush("Surface"), Child = nav,
-            Padding = new Thickness(16, 7, 8, 5), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 1) }, 1, 0);
+        var nav = new StackPanel();
+        NavHeading("БОЕВОЙ ЖУРНАЛ");
+        AddNav(nav, "combat", "◇", "Монитор");
+        AddNav(nav, "analysis", "≋", "Отчёты");
+        AddNav(nav, "expeditions", "▤", "Забеги");
+        NavHeading("МИР И СЕССИЯ");
+        AddNav(nav, "atlas", "⌖", "Атлас");
+        AddNav(nav, "events", "◷", "События");
+        AddNav(nav, "session", "☰", "Сессия");
+        AddNav(nav, "progress", "✓", "Прогресс");
+        AddNav(nav, "codex", "✧", "Билды");
+        AddNav(nav, "craft", "⬡", "Крафт");
+        NavHeading("УПРАВЛЕНИЕ");
+        AddNav(nav, "hotkeys", "⌨", "Горячие клавиши");
+        AddNav(nav, "settings", "⚙", "Настройки");
+        var sidebar = new Border { Background = Ui.Brush("Surface"), Padding = new Thickness(12, 8, 11, 5),
+            BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 1, 0),
+            Child = new ScrollViewer { Content = nav, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
+        Place(shell, sidebar, 1, 0);
 
         _scroll = new ScrollViewer
         {
             Padding = new Thickness(24, 17, 23, 12), VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false
         };
-        Place(shell, _scroll, 2, 0);
-        var footer = Label("0.2.1 BETA     /     GLOBAL     /     ALT+F8 HUD УРОНА");
-        footer.Margin = new Thickness(21, 6, 0, 0);
-        Place(shell, footer, 3, 0);
+        Place(shell, _scroll, 1, 1);
+        var footer = Label("ARX 0.2.2 BETA     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD");
+        var footerFrame = new Border { Child = footer, Padding = new Thickness(18, 7, 0, 0),
+            Background = Ui.Brush("Surface"), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 0) };
+        Grid.SetColumnSpan(footerFrame, 2);
+        Place(shell, footerFrame, 2, 0);
         Content = shell;
         Navigate("combat");
         _store.Changed += OnStoreChanged;
@@ -110,12 +125,25 @@ public sealed partial class Dashboard : Window
             _store.Changed -= OnStoreChanged;
             _store.LiveChanged -= OnLiveChanged;
         };
+        void NavHeading(string text)
+        {
+            var heading = Label(text);
+            heading.Margin = new Thickness(9, 11, 0, 5);
+            nav.Children.Add(heading);
+        }
     }
 
-    private void AddNav(Panel parent, string key, string title)
+    private void AddNav(Panel parent, string key, string icon, string title)
     {
         var button = Button(title, () => Navigate(key));
-        button.Margin = new Thickness(0, 0, 4, 3);
+        var content = new StackPanel { Orientation = Orientation.Horizontal };
+        var glyph = Text(icon, 15, "Mint");
+        glyph.Width = 25;
+        content.Children.Add(glyph);
+        content.Children.Add(Text(title, 13, bold: true));
+        button.Content = content;
+        button.Margin = new Thickness(0, 0, 0, 3);
+        button.Padding = new Thickness(8, 4, 5, 4);
         button.HorizontalContentAlignment = HorizontalAlignment.Left;
         button.MinHeight = 34;
         parent.Children.Add(button);
@@ -192,91 +220,146 @@ public sealed partial class Dashboard : Window
 
     private UIElement CombatPage()
     {
-        var page = Heading("Боевой монитор", "Aion 2 Global  /  живой поток и локальные отчёты");
+        var page = Stack(Space(Label("БОЕВОЙ ЖУРНАЛ    /    01"), 4), Space(Text("Монитор боя", 29, bold: true), 13));
         var capture = Button("Начать захват", () => _ = App.CurrentApp.ToggleCapture(), true);
-        var identity = Text("", 12, "Muted");
-        var controls = Actions(capture, Button("К живому бою", () => _store.SetFollowLive(true)),
-            Button("HUD урона", () => Hud(HudKind.Combat)), Button("HUD событий", () => Hud(HudKind.Events)),
-            Button("HUD задач", () => Hud(HudKind.Tasks)), Button("Демо", () => _store.SetFight(FightImport.Sample(), false)));
-        page.Children.Add(controls);
-        page.Children.Add(Space(identity, 13));
+        var controls = Actions(capture, Button("Живой бой", () => _store.SetFollowLive(true)),
+            Button("Боевой HUD", () => Hud(HudKind.Combat)), Button("Демо", () => _store.SetFight(FightImport.Sample(), false)));
 
-        var title = Text("", 33, bold: true);
-        var source = Text("", 11, "Coral", true);
+        var title = Text("", 30, bold: true);
+        var source = Text("", 11, "Mint", true);
         var sub = Hint("");
-        var analysis = _store.DisplayAnalysis;
-        var chart = new BattleChart(analysis) { Height = 240 };
-        var report = Button("Разобрать текущий бой", () =>
+        var art = new CombatSigil
+        {
+            Width = 400, HorizontalAlignment = HorizontalAlignment.Right, IsHitTestVisible = false,
+            OpacityMask = new LinearGradientBrush(Colors.Transparent, Colors.Black, 0)
+        };
+        var hero = new Grid { MinHeight = 183, ClipToBounds = true };
+        hero.Children.Add(art);
+        hero.Children.Add(new Border
+        {
+            Child = Stack(Space(source, 7), Space(title, 5), Space(sub, 13), controls),
+            Padding = new Thickness(21, 16, 17, 10)
+        });
+        var banner = Card(hero, 0);
+        banner.Background = new LinearGradientBrush(Color.FromRgb(20, 41, 44), Color.FromRgb(23, 53, 55), 0);
+        page.Children.Add(Space(banner, 12));
+
+        var personal = Text("—", 26, "Coral", true);
+        var numbers = Text("—", 26, "Mint", true);
+        var damage = Text("—", 26, bold: true);
+        var burst = Text("—", 26, "Gold", true);
+        var identity = Label("");
+        var context = Label("");
+        var metrics = new UniformGrid { Columns = 4 };
+        AddMetric("ВАШ DPS", personal, identity);
+        AddMetric("СУММА DPS", numbers, context);
+        AddMetric("УРОН", damage, Label("За боевой сегмент"));
+        AddMetric("БУРСТ", burst, Label("Пиковые 5 секунд"));
+        page.Children.Add(Space(metrics, 12));
+
+        var chart = new BattleChart(_store.DisplayAnalysis) { Height = 213 };
+        var report = Button("Открыть отчёт", () =>
         {
             var fight = _store.DisplayAnalysis.Fight;
-            if (fight.Id == Guid.Empty) { Navigate("analysis"); return; }
-            _actor = null;
-            _player = null;
-            _store.SetFight(fight, false);
+            if (fight.Id != Guid.Empty)
+            {
+                _actor = null;
+                _player = null;
+                _store.SetFight(fight, false);
+            }
             Navigate("analysis");
         });
-        var panel = Stack(Space(source, 6), Space(title, 4), Space(sub, 18),
-            Space(Label("ТЕМП БОЯ   ·   ОБЩИЙ УРОН / ВАШ ПЕРСОНАЖ"), 9), Space(chart, 12), Actions(report));
-        var battle = Card(panel, 22);
-        battle.Margin = new Thickness(0, 0, 13, 0);
+        var battle = Card(Stack(Space(Text("Темп боя", 18, bold: true), 4),
+            Space(Actions(Text("●  Сумма", 12, "Mint"), Text("●  Вы", 12, "Coral")), 6),
+            Space(chart, 12), Actions(report)), 15);
+        battle.Margin = new Thickness(0, 0, 11, 0);
 
-        var numbers = Text("", 40, "Mint", true);
-        var damage = Text("", 15, bold: true);
-        var burst = Text("", 15, "Coral", true);
-        var healing = Text("", 15, "Gold", true);
         var party = new StackPanel();
-        var stats = Card(Stack(Space(Label("DPS УЧАСТНИКОВ"), 5), Space(numbers, 10), Space(damage, 6),
-            Space(burst, 6), Space(healing, 15), Space(Label("РАСПРЕДЕЛЕНИЕ УРОНА"), 7), party));
+        var partyStatus = Label("");
+        var stats = Card(Stack(Space(Text("Участники", 18, bold: true), 4), Space(partyStatus, 11), party), 15);
         var split = new Grid();
-        split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2.15, GridUnitType.Star) });
-        split.ColumnDefinitions.Add(new ColumnDefinition { MinWidth = 235 });
+        split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.5, GridUnitType.Star) });
+        split.ColumnDefinitions.Add(new ColumnDefinition { MinWidth = 268 });
         split.Children.Add(battle);
         Place(split, stats, 0, 1);
-        page.Children.Add(Space(split, 14));
+        page.Children.Add(Space(split, 12));
 
         var runInfo = Hint("");
-        page.Children.Add(Card(Stack(Space(Label("ЗАБЕГ И ПРОГРЕСС"), 7), Space(runInfo, 9),
-            Actions(Button("Забеги и сравнение", () => Navigate("expeditions")),
-                Button("Открыть карту", () => Navigate("atlas")), Button("Активности", () => Navigate("progress"))))));
+        page.Children.Add(Card(Stack(Space(Label("ЗАБЕГ И АТЛАС"), 6), Space(runInfo, 8),
+            Actions(Button("Забеги", () => Navigate("expeditions")), Button("Атлас", () => Navigate("atlas")),
+                Button("HUD событий", () => Hud(HudKind.Events)), Button("HUD задач", () => Hud(HudKind.Tasks)))), 15));
         _refreshLive = Refresh;
         Refresh();
         return page;
+
+        void AddMetric(string caption, TextBlock number, TextBlock note)
+        {
+            var card = Card(Stack(Space(Label(caption), 5), Space(number, 4), note), 13);
+            card.Margin = new Thickness(0, 0, metrics.Children.Count < 3 ? 9 : 0, 0);
+            note.TextWrapping = TextWrapping.NoWrap;
+            note.TextTrimming = TextTrimming.CharacterEllipsis;
+            metrics.Children.Add(card);
+        }
 
         void Refresh()
         {
             var current = _store.DisplayAnalysis;
             var fight = current.Fight;
             var snapshot = fight.Captured?.Summary;
+            var roster = _store.FollowLive ? _store.LiveRoster : null;
+            var character = _store.FollowLive ? _store.LiveCharacter : null;
+            var rows = PartyCombat.Rows(current, character, roster);
+            var own = rows.FirstOrDefault(r => r.IsSelf);
             capture.Content = App.CurrentApp.Live?.IsRunning == true ? "Остановить захват" : "Начать захват";
             capture.IsEnabled = App.CurrentApp.Live?.IsStopping != true;
-            identity.Text = _store.LiveIdentity is { } self ? $"Персонаж: {self}" : _store.CaptureLabel;
-            source.Text = fight.Demo ? "ДЕМОНСТРАЦИЯ" : fight.Captured is not null
-                ? snapshot!.IsActive && _store.FollowLive ? "В БОЮ · NPCAP" : "ЗАПИСЬ БОЯ · NPCAP"
-                : fight.Id == Guid.Empty ? "ОЖИДАНИЕ БОЯ" : "ЛОКАЛЬНЫЙ ОТЧЁТ";
+            source.Text = fight.Demo ? "01   /   ДЕМОНСТРАЦИЯ" : snapshot is not null
+                ? snapshot.IsActive && _store.FollowLive ? "01   /   В БОЮ" : "01   /   ЗАПИСЬ БОЯ"
+                : fight.Id == Guid.Empty ? "01   /   ОЖИДАНИЕ БОЯ" : "01   /   ЛОКАЛЬНЫЙ ОТЧЁТ";
             title.Text = fight.Id == Guid.Empty ? "Оперативный обзор" : fight.Name;
-            sub.Text = snapshot?.MostDamageUnsent == true ? "Сервер прислал только часть урона участников." :
-                snapshot?.Boss is { MaxHpKnown: true } boss ? $"Цель: {boss.HpFraction:P0} HP  ·  {Clock(TimeSpan.FromSeconds(fight.Duration))}"
-                : fight.Id == Guid.Empty ? "Запустите захват или откройте отчёт в соседней вкладке."
-                : $"{current.Players.Length} участников  ·  {Clock(TimeSpan.FromSeconds(fight.Duration))}";
-            numbers.Text = fight.Id == Guid.Empty ? "—" : Compact(current.Dps);
-            damage.Text = $"Урон   {Compact(current.Damage)}";
-            healing.Text = $"Лечение   {Compact(current.Healing)} · {Compact(current.Rate(current.Healing))} HPS";
-            burst.Text = $"Пик за 5 с   {(current.Burst is { } peak ? Compact(peak) : "—")}";
+            sub.Text = snapshot?.MostDamageUnsent == true ? "Сервер прислал только часть урона участников."
+                : snapshot?.Boss is { MaxHpKnown: true } boss ? $"Цель: {boss.HpFraction:P0} HP   ·   {Clock(TimeSpan.FromSeconds(fight.Duration))}"
+                : fight.Id == Guid.Empty ? "Запустите захват, чтобы увидеть свой DPS и состав группы."
+                : $"{Clock(TimeSpan.FromSeconds(fight.Duration))}    /    {rows.Count} участников";
+            var self = _store.FollowLive ? _store.LiveIdentity : own?.Name;
+            identity.Text = self is null ? "Персонаж ещё не определён" : self + (character?.Confirmed == false ? " · по имени" : "");
+            identity.ToolTip = identity.Text;
+            personal.Text = own?.Stats is { } ownStats ? Compact(current.Rate(ownStats.Damage)) : "—";
+            context.Text = _store.FollowLive && roster is null ? "Наблюдаемые игроки"
+                : roster?.Members.Count == 0 ? "Одиночный бой" : "За боевой сегмент";
+            numbers.Text = rows.Any(r => r.Stats is not null) ? Compact(current.Dps) : "—";
+            damage.Text = rows.Any(r => r.Stats is not null) ? Compact(current.Damage) : "—";
+            burst.Text = current.Burst is { } peak ? Compact(peak) : "—";
             chart.Update(current);
-            party.Children.Clear();
-            foreach (var member in current.Players.Take(7))
+
+            partyStatus.Text = roster switch
             {
-                var share = current.Damage == 0 ? 0 : (double)member.Damage / current.Damage;
+                { Members.Count: > 0 } => $"СОСТАВ ГРУППЫ  ·  {rows.Count}   /   DPS",
+                { Members.Count: 0 } => "ВНЕ ГРУППЫ   /   DPS",
+                _ => _store.FollowLive ? "СОСТАВ ОЖИДАЕТСЯ   /   DPS" : "ОТЧЁТ   /   DPS"
+            };
+            party.Children.Clear();
+            foreach (var member in rows)
+            {
+                var measured = member.Stats;
+                var share = measured is null || current.Damage == 0 ? 0 : (double)measured.Damage / current.Damage;
                 var row = new DockPanel();
-                var value = Text($"{Compact(current.Rate(member.Damage))} DPS", 12, "Muted");
+                var value = Text(measured is null ? "—" : Compact(current.Rate(measured.Damage)), 13, bold: true);
+                value.Foreground = member.Color;
+                value.Margin = new Thickness(10, 0, 0, 0);
                 DockPanel.SetDock(value, Dock.Right);
                 row.Children.Add(value);
-                row.Children.Add(Text(member.Player, 13, "Text", true));
-                party.Children.Add(row);
-                party.Children.Add(Space(new ProgressBar { Value = share * 100, Height = 3,
-                    Foreground = Ui.Brush("Mint"), Background = Ui.Brush("Raised"), BorderThickness = new Thickness(0) }, 9));
+                var name = Text(PartyCombat.Label(rows, member), 13, bold: true);
+                name.TextWrapping = TextWrapping.NoWrap;
+                name.TextTrimming = TextTrimming.CharacterEllipsis;
+                name.ToolTip = name.Text;
+                name.Foreground = member.Color;
+                row.Children.Add(name);
+                var meter = new ProgressBar { Value = share * 100, Height = 3, Foreground = member.Color,
+                    Background = Ui.Brush("Raised"), BorderThickness = new Thickness(0) };
+                party.Children.Add(Space(new Border { Child = Stack(Space(row, 6), meter), Padding = new Thickness(8, 5, 8, 7),
+                    CornerRadius = new CornerRadius(5), Background = Ui.Brush(member.IsSelf ? "Raised" : "Surface") }, 3));
             }
-            if (current.Players.Length == 0) party.Children.Add(Hint("Пока нет данных о попаданиях."));
+            if (rows.Count == 0) party.Children.Add(Hint("Имена и DPS появятся после получения данных игры."));
             var pins = _store.AllPins.ToArray();
             runInfo.Text = (_store.Profile.CurrentExpedition is { } expedition
                 ? $"Активный забег: {expedition.Name} · {expedition.Segments.Count} завершённых боёв" : "Активный забег не начат") +

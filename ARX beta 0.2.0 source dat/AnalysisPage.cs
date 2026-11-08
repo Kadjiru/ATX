@@ -58,7 +58,7 @@ public sealed partial class Dashboard
             page.Children.Add(Space(Card(header), 12));
 
             var selected = result.Players.FirstOrDefault(p => _actor is { } id ? p.ActorId == id : string.Equals(p.Player, _player, StringComparison.OrdinalIgnoreCase))
-                ?? result.Players.FirstOrDefault(p => string.Equals(p.Player, current.Self, StringComparison.OrdinalIgnoreCase))
+                ?? result.Players.FirstOrDefault(p => p.IsSelf)
                 ?? result.Players[0];
             var damageShare = result.Damage == 0 ? 0 : (double)selected.Damage / result.Damage;
             var detail = Stack(Space(Text($"Навыки · {selected.Player}", 19, bold: true), 6),
@@ -151,7 +151,7 @@ public sealed partial class Dashboard
 
     private static string[] StatCells(FightAnalysis result, PlayerStats player, bool skill = false) =>
     [
-        player.Player, Compact(player.Damage), Compact(result.Rate(player.Damage)),
+        player.IsSelf ? $"ВЫ · {player.Player}" : player.Player, Compact(player.Damage), Compact(result.Rate(player.Damage)),
         Compact(player.Healing), Compact(result.Rate(player.Healing)),
         player.CritRate is { } crit ? $"{crit:P0}" : "—", player.Burst is { } peak ? Compact(peak) : "—",
         (skill ? player.MaxHit : player.CombatPower) is > 0 and var value ? Compact(value) : "—"

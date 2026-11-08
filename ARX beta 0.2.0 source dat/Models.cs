@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using Microsoft.VisualBasic.FileIO;
 using AionMeter.Core.Combat;
+using AionMeter.Core.Events;
 
 namespace ArxBeta;
 
@@ -15,7 +16,8 @@ public sealed record Fight(Guid Id, string Name, DateTimeOffset Date, double Dur
 }
 
 public sealed record PlayerStats(string Player, long Damage, long Healing, int? Hits, int? Crits, double? Burst,
-    uint? ActorId = null, long CombatPower = 0, long MaxHit = 0, double? ObservedCrit = null)
+    uint? ActorId = null, long CombatPower = 0, long MaxHit = 0, double? ObservedCrit = null,
+    int ServerId = 0, bool IsSelf = false)
 {
     public double? CritRate => ObservedCrit ?? (Hits is > 0 && Crits is { } count ? (double)count / Hits.Value : null);
 }
@@ -38,7 +40,7 @@ public sealed class FightAnalysis
         {
             Players = captured.Summary.Combatants.Select(c => new PlayerStats(c.Name, c.Damage, c.Healing ?? 0,
                 c.Hits, c.Hits > 0 ? (int)Math.Round(c.CritRate * c.Hits) : null, c.BurstDps,
-                c.ActorId, c.CombatPower, c.MaxHit, c.Hits > 0 ? c.CritRate : null)).ToArray();
+                c.ActorId, c.CombatPower, c.MaxHit, c.Hits > 0 ? c.CritRate : null, c.ServerId, c.IsSelf)).ToArray();
             Damage = Players.Sum(p => p.Damage);
             Healing = Players.Sum(p => p.Healing);
             var width = Math.Max(1, captured.Details.Select(d => d.PerSecond.Count).DefaultIfEmpty().Max());
@@ -57,6 +59,7 @@ public sealed class FightAnalysis
         }
         Players = fight.Entered.Select(t => new PlayerStats(t.Player, t.Damage, t.Healing, null, null, null))
             .Concat(fight.Hits.GroupBy(h => h.Player, StringComparer.OrdinalIgnoreCase).Select(g => Summarize(g.Key, g)))
+            .Select(p => p with { IsSelf = string.Equals(p.Player, fight.Self, StringComparison.OrdinalIgnoreCase) })
             .OrderByDescending(p => p.Damage).ToArray();
         Damage = Players.Sum(p => p.Damage);
         Healing = Players.Sum(p => p.Healing);
@@ -231,6 +234,10 @@ public sealed class Profile
     public HudDensity CombatHudDensity { get; set; } = HudDensity.Medium;
     public double? CombatHudOpacity { get; set; }
     public bool CombatHudLocked { get; set; }
+    public int CombatHudTextSize { get; set; } = 15;
+    public bool CombatHudSelfFirst { get; set; } = true;
+    public Dictionary<HudDensity, double> CombatHudHeights { get; set; } = [];
+    public string CombatCharacterHint { get; set; } = "";
     public Expedition? CurrentExpedition { get; set; }
     public List<Expedition> Expeditions { get; set; } = [];
     public string ProgressCharacter { get; set; } = "";
@@ -266,6 +273,8 @@ public sealed class LegionStore
     public FightAnalysis DisplayAnalysis => FollowLive ? LiveAnalysis ?? NoFight : Analysis;
     public string CaptureLabel { get; private set; } = "Захват выключен";
     public string? LiveIdentity { get; private set; }
+    internal CharacterIdentity? LiveCharacter { get; private set; }
+    internal PartyRosterEvent? LiveRoster { get; private set; }
     public IReadOnlyList<ObservedBoss> LiveBosses { get; private set; } = [];
     public string? BossNotice { get; private set; }
     public event Action? LiveChanged;
@@ -310,10 +319,16 @@ public sealed class LegionStore
     }
 
     public void UpdateLive(FightAnalysis? analysis, string label, string? identity, IReadOnlyList<ObservedBoss> bosses)
+        => UpdateLive(analysis, label, identity, bosses, null, null);
+
+    internal void UpdateLive(FightAnalysis? analysis, string label, string? identity, IReadOnlyList<ObservedBoss> bosses,
+        CharacterIdentity? character, PartyRosterEvent? roster)
     {
         LiveAnalysis = analysis;
         CaptureLabel = label;
         LiveIdentity = identity;
+        LiveCharacter = character;
+        LiveRoster = roster;
         LiveBosses = bosses;
         LiveChanged?.Invoke();
     }

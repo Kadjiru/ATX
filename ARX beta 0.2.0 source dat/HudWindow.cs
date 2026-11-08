@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using static ArxBeta.Ui;
 
@@ -20,6 +21,8 @@ public sealed class HudWindow : Window
     private TaskPanel? _tasks;
     private readonly ScrollViewer _scroll;
     private readonly TextBlock _handle;
+    private readonly Border _frame;
+    private readonly StackPanel _buttons;
     private bool _clickThrough;
     private HudDensity _density;
 
@@ -40,7 +43,7 @@ public sealed class HudWindow : Window
         WindowStartupLocation = WindowStartupLocation.Manual;
         var area = SystemParameters.WorkArea;
         var defaultLayout = new HudLayout(area.Right - 425, area.Top + 56 + (int)kind * 200,
-            kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 244 : 193, 0.94);
+            kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 282 : 193, 0.94);
         var layout = store.Profile.HudLayouts.GetValueOrDefault(kind.ToString(), defaultLayout);
         Width = Math.Clamp(layout.Width, MinWidth, Math.Max(MinWidth, area.Width));
         Height = Math.Clamp(layout.Height, MinHeight, Math.Max(MinHeight, area.Height));
@@ -49,7 +52,7 @@ public sealed class HudWindow : Window
         Opacity = Math.Clamp(layout.Opacity, .42, 1);
 
         var bar = new DockPanel { Margin = new Thickness(0, 0, 0, 9) };
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+        _buttons = new StackPanel { Orientation = Orientation.Horizontal };
         var actions = new List<Button> { Button("ARX", App.CurrentApp.ShowDashboard), Button("◐", ChangeOpacity) };
         if (kind == HudKind.Combat)
         {
@@ -66,10 +69,10 @@ public sealed class HudWindow : Window
             button.MinHeight = 26;
             button.Padding = new Thickness(7, 3, 7, 3);
             button.Margin = new Thickness(4, 0, 0, 0);
-            buttons.Children.Add(button);
+            _buttons.Children.Add(button);
         }
-        DockPanel.SetDock(buttons, Dock.Right);
-        bar.Children.Add(buttons);
+        DockPanel.SetDock(_buttons, Dock.Right);
+        bar.Children.Add(_buttons);
         _handle = Text(Title, 14, "Mint", true);
         _handle.VerticalAlignment = VerticalAlignment.Center;
         _handle.Cursor = Cursors.SizeAll;
@@ -80,7 +83,8 @@ public sealed class HudWindow : Window
         panel.Children.Add(bar);
         _scroll = new ScrollViewer { Content = _body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
         panel.Children.Add(_scroll);
-        Content = Card(panel, 12);
+        _frame = Card(panel, 12);
+        Content = _frame;
 
         if (kind == HudKind.Combat)
         {
@@ -122,6 +126,8 @@ public sealed class HudWindow : Window
 
     private void Persist()
     {
+        if (_kind == HudKind.Combat && _density != HudDensity.Minimal)
+            _store.Profile.CombatHudHeights[_density] = Height;
         _store.Profile.HudLayouts[_kind.ToString()] = new HudLayout(Left, Top, ActualWidth, ActualHeight, Opacity,
             _kind == HudKind.Combat ? _density : null);
         _store.Save();
@@ -129,12 +135,24 @@ public sealed class HudWindow : Window
 
     private void SetDensity(HudDensity density, bool restoreHeight)
     {
+        if (_density != density && _density != HudDensity.Minimal)
+            _store.Profile.CombatHudHeights[_density] = Height;
         _density = density;
-        MinHeight = density == HudDensity.Minimal ? 106 : 145;
+        var minimal = density == HudDensity.Minimal;
+        _frame.Background = minimal ? Brushes.Transparent : Brush("Surface");
+        _frame.BorderThickness = minimal ? new Thickness(0) : new Thickness(1);
+        _frame.Padding = new Thickness(minimal ? 8 : 12);
+        _buttons.Visibility = minimal ? Visibility.Collapsed : Visibility.Visible;
+        _handle.Effect = minimal ? TextShadow() : null;
+        _scroll.VerticalScrollBarVisibility = minimal ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
+        ResizeMode = minimal ? ResizeMode.NoResize : ResizeMode.CanResizeWithGrip;
+        MinHeight = minimal ? 65 : 145;
         if (!restoreHeight || Height < MinHeight)
         {
-            Height = density switch { HudDensity.Minimal => 115, HudDensity.Detailed => 363, _ => 244 };
             var area = SystemParameters.WorkArea;
+            var defaultHeight = density switch { HudDensity.Minimal => 90, HudDensity.Detailed => 406, _ => 282 };
+            Height = Math.Clamp(_store.Profile.CombatHudHeights.GetValueOrDefault(density, defaultHeight),
+                MinHeight, Math.Max(MinHeight, area.Height));
             Top = Math.Clamp(Top, area.Top, Math.Max(area.Top, area.Bottom - Height));
         }
     }
@@ -175,33 +193,96 @@ public sealed class HudWindow : Window
             return;
         }
 
+        var tracking = _store.FollowLive || _store.LiveAnalysis is not null;
         var current = _store.LiveAnalysis ?? _store.DisplayAnalysis;
-        var liveIdle = ReferenceEquals(_store.LiveAnalysis, current) && current.Fight.Captured?.Summary is { } live &&
-            (!live.IsActive || DateTimeOffset.UtcNow - live.StartedAt.ToUniversalTime() > TimeSpan.FromMilliseconds(live.CombatMs + 2000));
-        _handle.Text = _clickThrough ? "Закреплён · Ctrl+Alt+L" : Title;
-        if (_density != HudDensity.Minimal)
-            _body.Children.Add(Space(Hint(current.Fight.Demo ? "ДЕМО · учебные данные" : current.Fight.Name), 5));
-        _body.Children.Add(Space(Text($"{Compact(liveIdle ? 0 : current.Dps)} DPS    ·    {Compact(current.Damage)} урона", 16, "Mint", true), 9));
-        if (_density == HudDensity.Minimal) return;
-        if (_density == HudDensity.Detailed)
+        var character = tracking ? _store.LiveCharacter : null;
+        var roster = tracking ? _store.LiveRoster : null;
+        var rows = PartyCombat.Rows(current, character, roster, _store.Profile.CombatHudSelfFirst);
+        var minimal = _density == HudDensity.Minimal;
+        var detailed = _density == HudDensity.Detailed;
+        var font = Math.Clamp(_store.Profile.CombatHudTextSize, 12, 22);
+        var mode = current.Fight.Demo ? "ДЕМО" : !tracking ? "ОТЧЁТ" : roster switch
         {
-            _body.Children.Add(Space(Hint($"Лечение {Compact(current.Healing)} · {Compact(current.Rate(current.Healing))} HPS  /  " +
-                $"Бурст {(current.Burst is { } peak ? Compact(peak) : "—")}"), 7));
-            if (current.Fight.Captured?.Summary.Boss is { MaxHpKnown: true } boss)
-                _body.Children.Add(Space(Hint($"Цель: {boss.Name} · {boss.HpFraction:P0} HP"), 5));
+            null => "СОСТАВ ОЖИДАЕТСЯ",
+            { Members.Count: 0 } => "СОЛО",
+            _ => $"ГРУППА · {rows.Count}"
+        };
+        _handle.Text = minimal ? $"ARX / DPS · {mode}" : _clickThrough ? "DPS · закреплён" : "ARX / DPS";
+        _handle.FontSize = minimal ? 11 : 14;
+        _handle.Foreground = Brush(minimal ? "Text" : "Mint");
+        if (!minimal)
+        {
+            var context = current.Fight.Id == Guid.Empty ? mode : $"{mode}   /   {current.Fight.Name}";
+            _body.Children.Add(Space(Label(context), 8));
         }
-        foreach (var member in current.Players)
+        if (detailed)
         {
-            var self = string.Equals(member.Player, current.Fight.Self, StringComparison.OrdinalIgnoreCase);
-            _body.Children.Add(Space(Text($"{member.Player}{(self ? " · вы" : "")}    {Compact(liveIdle ? 0 : current.Rate(member.Damage))} DPS    {Compact(current.Rate(member.Healing))} HPS",
-                12, self ? "Gold" : "Text"), 5));
-            if (_density == HudDensity.Detailed)
+            var own = rows.FirstOrDefault(r => r.IsSelf);
+            var total = rows.Any(r => r.Stats is not null) ? Compact(current.Dps) : "—";
+            var personal = own?.Stats is { } stats ? Compact(current.Rate(stats.Damage)) : "—";
+            _body.Children.Add(Space(Hint($"Сумма {total} DPS  /  Вы {personal} DPS  /  {Clock(TimeSpan.FromSeconds(current.Fight.Duration))}"), 7));
+            if (current.Healing > 0)
+                _body.Children.Add(Space(Hint($"Лечение {Compact(current.Healing)} · {Compact(current.Rate(current.Healing))} HPS"), 7));
+            if (current.Fight.Captured?.Summary.Boss is { MaxHpKnown: true } boss)
+                _body.Children.Add(Space(Hint($"{boss.Name} · {boss.HpFraction:P0} HP"), 7));
+        }
+        foreach (var member in rows)
+            _body.Children.Add(Space(CombatRow(current, rows, member, minimal, detailed, font), minimal ? 2 : 5));
+        if (rows.Count == 0)
+        {
+            var empty = Text("Ожидание данных боя", font, "Text", true);
+            if (minimal) empty.Effect = TextShadow();
+            _body.Children.Add(empty);
+        }
+        if (minimal)
+        {
+            var area = SystemParameters.WorkArea;
+            var height = Math.Clamp(43 + (font * 1.35 + 3) * Math.Max(1, rows.Count), MinHeight, Math.Max(MinHeight, area.Height));
+            if (Height != height)
             {
-                var share = current.Damage > 0 ? $"{(double)member.Damage / current.Damage:P0}" : "—";
-                var crit = member.CritRate is { } value ? $"{value:P0}" : "—";
-                _body.Children.Add(Space(Text($"{Compact(member.Damage)} урона · {share} · крит {crit} · " +
-                    $"пик {(member.Burst is { } peak ? Compact(peak) : "—")} · сила {(member.CombatPower > 0 ? Compact(member.CombatPower) : "—")}", 11, "Muted"), 7));
+                Height = height;
+                Top = Math.Clamp(Top, area.Top, Math.Max(area.Top, area.Bottom - Height));
             }
         }
     }
+
+    private static FrameworkElement CombatRow(FightAnalysis current, IReadOnlyList<PartyCombatRow> rows,
+        PartyCombatRow member, bool minimal, bool detailed, int font)
+    {
+        var memberName = PartyCombat.Label(rows, member);
+        var name = Text(memberName, font, bold: true);
+        name.Foreground = member.Color;
+        name.TextWrapping = TextWrapping.NoWrap;
+        name.TextTrimming = TextTrimming.CharacterEllipsis;
+        name.ToolTip = memberName;
+        var dps = member.Stats is { } stats ? Compact(current.Rate(stats.Damage)) : "—";
+        var hps = member.Stats is { } healing ? Compact(current.Rate(healing.Healing)) : "—";
+        var rate = Text(minimal ? dps : $"{dps} DPS  ·  {hps} HPS", font, bold: true);
+        rate.Foreground = member.Color;
+        rate.Margin = new Thickness(9, 0, 0, 0);
+        rate.TextWrapping = TextWrapping.NoWrap;
+        var line = new DockPanel();
+        DockPanel.SetDock(rate, Dock.Right);
+        line.Children.Add(rate);
+        line.Children.Add(name);
+        if (minimal)
+        {
+            name.Effect = TextShadow();
+            rate.Effect = TextShadow();
+            return line;
+        }
+        var content = Stack(line);
+        if (detailed && member.Stats is { } player)
+        {
+            var share = current.Damage > 0 ? $"{(double)player.Damage / current.Damage:P0}" : "—";
+            var crit = player.CritRate is { } value ? $"{value:P0}" : "—";
+            content.Children.Add(Hint($"{Compact(player.Damage)} урона · {share} · крит {crit} · пик " +
+                (player.Burst is { } peak ? Compact(peak) : "—") +
+                (player.CombatPower > 0 ? $" · сила {Compact(player.CombatPower)}" : "")));
+        }
+        return new Border { Background = Brush("Raised"), BorderBrush = member.Color, BorderThickness = new Thickness(2, 0, 0, 0),
+            CornerRadius = new CornerRadius(5), Padding = new Thickness(8, 4, 8, 4), Child = content };
+    }
+
+    private static DropShadowEffect TextShadow() => new() { Color = Colors.Black, BlurRadius = 4, ShadowDepth = 0, Opacity = 1 };
 }

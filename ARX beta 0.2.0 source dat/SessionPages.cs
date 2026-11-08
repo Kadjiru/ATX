@@ -184,16 +184,28 @@ public sealed partial class Dashboard
         var adapter = Choice(new[] { "Автоматически" }.Concat(devices.Select(d => d.Description)), 270);
         adapter.SelectedIndex = Math.Max(0, Array.FindIndex(devices, d => d.Name == _store.Profile.CaptureAdapter) + 1);
         var captureButton = Button("Начать захват", () => _ = App.CurrentApp.ToggleCapture(), true);
+        var character = Input(_store.Profile.CombatCharacterHint, 235, 40);
+        var detection = Text("", 13, "Coral", true);
+        var identityFeedback = Hint("");
         page.Children.Add(Space(Card(Stack(Space(Text("Подключение Aion 2", 20, bold: true), 7),
             Space(Hint("Режим читает локальные сетевые пакеты через Npcap. Игра может присылать неполный состав и урон. Запустите захват перед входом в локацию."), 8),
             Space(captureStatus, 7), Actions(Field("Сетевой адаптер", adapter)),
             Actions(captureButton, Button("Применить адаптер", () => _ = ApplyAdapter()),
                 Button("Экспорт диагностики", () => ExportJson(new
                 {
-                    Version = "0.2.1-beta", Windows = Environment.OSVersion.VersionString,
+                    Version = "0.2.2-beta", Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
-            Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."))), 12));
+            Space(Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."), 10),
+            Space(detection, 6),
+            Actions(Field("Точное имя для резервного поиска", character), Button("Сохранить имя", () =>
+            {
+                _store.Profile.CombatCharacterHint = character.Text.Trim();
+                _store.Save();
+                identityFeedback.Text = "Сохранено в локальном профиле.";
+            })),
+            Hint("Имя используется, если собственный персонаж ещё не определён по данным игры и среди участников найдено ровно одно совпадение."),
+            identityFeedback)), 12));
         _refreshLive = RefreshCapture;
         RefreshCapture();
         var app = App.CurrentApp;
@@ -206,6 +218,11 @@ public sealed partial class Dashboard
         };
         var percent = Hint($"{opacity.Value:0}%");
         opacity.ValueChanged += (_, _) => percent.Text = $"{opacity.Value:0}%";
+        var font = new Slider { Width = 152, Minimum = 12, Maximum = 22, TickFrequency = 1,
+            IsSnapToTickEnabled = true, Value = Math.Clamp(_store.Profile.CombatHudTextSize, 12, 22) };
+        var size = Hint($"{font.Value:0} пт");
+        font.ValueChanged += (_, _) => size.Text = $"{font.Value:0} пт";
+        var selfFirst = new CheckBox { Content = "Мой персонаж сверху", IsChecked = _store.Profile.CombatHudSelfFirst };
         var lockHud = new CheckBox
         {
             Content = "Закрепить и пропускать щелчки",
@@ -214,10 +231,15 @@ public sealed partial class Dashboard
         };
         var hotkeys = Hint(app.HotkeyStatus);
         var activeHud = Hint("");
-        page.Children.Add(Space(Card(Stack(Space(Text("Боевой HUD", 20, bold: true), 7),
-            Actions(Field("Плотность", density), Field("Непрозрачность", opacity), percent, lockHud),
+        page.Children.Insert(2, Space(Card(Stack(Space(Label("ОКНО ПОВЕРХ ИГРЫ"), 4),
+            Space(Text("Боевой HUD", 22, bold: true), 7),
+            Space(Hint("Минимальный оставляет цветные имена и DPS без фона. Средний добавляет HPS, подробный показывает долю, крит, бурст и доступное HP цели."), 9),
+            Actions(Field("Режим", density), Field("Непрозрачность", opacity), percent, Field("Размер текста", font), size),
+            Actions(selfFirst, lockHud),
             Actions(Button("Применить HUD", () =>
             {
+                _store.Profile.CombatHudTextSize = (int)font.Value;
+                _store.Profile.CombatHudSelfFirst = selfFirst.IsChecked == true;
                 app.SetCombatDensity((HudDensity)density.SelectedIndex);
                 app.SetCombatOpacity(opacity.Value / 100);
                 app.SetCombatLock(lockHud.IsChecked == true);
@@ -247,7 +269,7 @@ public sealed partial class Dashboard
         {
             var mode = _store.Profile.CombatHudDensity switch { HudDensity.Minimal => "минимальный",
                 HudDensity.Detailed => "подробный", _ => "средний" };
-            activeHud.Text = $"Применено: {mode} · {app.CombatOpacity:P0}" +
+            activeHud.Text = $"Применено: {mode} · {app.CombatOpacity:P0} · текст {_store.Profile.CombatHudTextSize}" +
                 (_store.Profile.CombatHudLocked ? " · закреплён" : "");
         }
 
@@ -257,6 +279,9 @@ public sealed partial class Dashboard
             captureStatus.Text = live?.Diagnostic ?? "Предпросмотр";
             captureButton.Content = live?.IsRunning == true ? "Остановить захват" : "Начать захват";
             captureButton.IsEnabled = live?.IsStopping != true;
+            detection.Text = _store.LiveIdentity is { } identity
+                ? $"ВЫ · {identity}" + (_store.LiveCharacter?.Confirmed == false ? " · совпадение по имени" : " · данные игры")
+                : "Ваш персонаж ещё не определён";
         }
 
         async Task ApplyAdapter()

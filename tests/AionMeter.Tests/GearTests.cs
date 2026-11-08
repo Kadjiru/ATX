@@ -80,6 +80,33 @@ public class GearTests
         Assert.Empty(Parse(Opcodes.PartyRoster, Enumerable.Range(0, 64).Select(i => (byte)(i * 37)).ToArray()));
     }
 
+    [Theory]
+    [InlineData(Opcodes.OpenWorldPartyLeft)]
+    [InlineData(Opcodes.InstancePartyLeft)]
+    public void Only_the_empty_party_left_record_clears_the_roster(ushort opcode)
+    {
+        var roster = Assert.IsType<PartyRosterEvent>(Assert.Single(Parse(opcode, [0, 0])));
+        Assert.Empty(roster.Members);
+        Assert.Empty(Parse(opcode, [0, 0, 0]));
+        Assert.Empty(Parse(opcode, [0, 1]));
+    }
+
+    [Fact]
+    public void Players_with_the_same_name_on_different_servers_keep_their_actor_ids()
+    {
+        var tracker = new CombatTracker(GameData.Empty, new MeterOptions { TargetMode = TargetMode.All });
+        tracker.Process(new SelfIdentifiedEvent(1000, 100, "Aster", 2305, GameClass.Gladiator));
+        tracker.Process(new PlayerSeenEvent(1000, 101, "Aster", 2306, GameClass.Gladiator));
+        tracker.Process(new DamageEvent(2000, 100, 500, 11020000, 1000, HitFlags.None));
+        tracker.Process(new DamageEvent(3000, 101, 500, 11020000, 2000, HitFlags.None));
+
+        Assert.Equal((100u, "Aster", 2305), tracker.LocalCharacter);
+        var players = tracker.Snapshot(null, 3000)!.Combatants.OrderBy(p => p.ActorId).ToArray();
+        Assert.Collection(players,
+            own => Assert.Equal(("Aster", 2305, true, 1000L), (own.Name, own.ServerId, own.IsSelf, own.Damage)),
+            mate => Assert.Equal(("Aster", 2306, false, 2000L), (mate.Name, mate.ServerId, mate.IsSelf, mate.Damage)));
+    }
+
     [Fact]
     public void Own_record_ends_with_the_combat_power_pair()
     {

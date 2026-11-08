@@ -38,6 +38,11 @@ public sealed class CombatTracker
         get { lock (_gate) return _entities.Self?.Name; }
     }
 
+    public (uint ActorId, string Name, int ServerId)? LocalCharacter
+    {
+        get { lock (_gate) return _entities.Self is { } player ? (player.ActorId, player.Name, player.ServerId) : null; }
+    }
+
     public string? ZoneName
     {
         get { lock (_gate) return _entities.ZoneName; }

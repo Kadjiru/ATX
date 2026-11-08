@@ -68,6 +68,11 @@ public sealed class PacketParser
             case Opcodes.PartyRoster:
                 ParsePartyRoster(body);
                 break;
+            case Opcodes.OpenWorldPartyLeft:
+            case Opcodes.InstancePartyLeft:
+                // The exact empty party record (A2Tools Global packet notes).
+                if (body is [0, 0]) Emit(new PartyRosterEvent(TimeMs, []));
+                break;
             case Opcodes.PlayerInfo:
             case Opcodes.PlayerInfoOld:
                 ParseIdentity(body, 0, isSelf: false);

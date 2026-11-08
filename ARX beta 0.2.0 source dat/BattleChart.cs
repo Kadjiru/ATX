@@ -31,7 +31,7 @@ public sealed class BattleChart(FightAnalysis analysis) : FrameworkElement
         }
         if (data.Length == 0)
         {
-            Caption(dc, "Точный график доступен для CSV с событиями боя.", new Point(left + 10, top + height / 2));
+            Caption(dc, "Ожидание событий боя", new Point(left + 10, top + height / 2));
             return;
         }
         DrawCurve(dc, data, "Mint", left, top, width, height, max);
@@ -44,11 +44,17 @@ public sealed class BattleChart(FightAnalysis analysis) : FrameworkElement
     private static void DrawCurve(DrawingContext dc, double[] values, string tint,
         double left, double top, double width, double height, double max)
     {
+        if (values.Length == 0) return;
+        Point Coordinate(int i) => new(left + width * i / Math.Max(1, values.Length - 1),
+            top + height * (1 - values[i] / max));
+        if (values.Length == 1)
+        {
+            dc.DrawEllipse(Ui.Brush(tint), null, Coordinate(0), 3, 3);
+            return;
+        }
         var geometry = new StreamGeometry();
         using (var ctx = geometry.Open())
         {
-            Point Coordinate(int i) => new(left + width * i / Math.Max(1, values.Length - 1),
-                top + height * (1 - values[i] / max));
             ctx.BeginFigure(Coordinate(0), false, false);
             for (var i = 1; i < values.Length; i++) ctx.LineTo(Coordinate(i), true, false);
         }
