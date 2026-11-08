@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using AionMeter.App.Services;
@@ -53,6 +54,14 @@ public partial class SettingsWindow : Window
         AutoShow.IsChecked = s.AutoShow;
         AutoHideSeconds.Text = s.AutoHideSeconds.ToString();
         ShowOnStart.IsChecked = s.ShowOnStart;
+        var ru = T.Code == "ru";
+        DashboardOnStart.Content = ru ? "Открывать главное окно при запуске" : "Open dashboard on startup";
+        DashboardOnStart.IsChecked = s.DashboardOnStart;
+        PaletteLabel.Text = ru ? "Цвет HUD" : "HUD color";
+        PaletteBox.ItemsSource = ru ? new[] { "Полночь", "Аметист", "Хвоя" } : new[] { "Midnight", "Amethyst", "Pine" };
+        PaletteBox.SelectedIndex = Math.Clamp(s.OverlayPalette, 0, 2);
+        ExportProfileButton.Content = ru ? "Сохранить профиль HUD" : "Save HUD profile";
+        ImportProfileButton.Content = ru ? "Загрузить профиль HUD" : "Load HUD profile";
         foreach (var n in new[] { 5, 8, 10, 12, 15, 20 }) MaxRows.Items.Add(n);
         MaxRows.SelectedItem = MaxRows.Items.Cast<int>().OrderBy(n => Math.Abs(n - s.MaxRows)).First();
         OpacityValue.Value = s.BackgroundOpacity;
@@ -113,6 +122,8 @@ public partial class SettingsWindow : Window
         s.AutoShow = AutoShow.IsChecked == true;
         if (int.TryParse(AutoHideSeconds.Text, out var autoHide)) s.AutoHideSeconds = Math.Clamp(autoHide, 0, 3600);
         s.ShowOnStart = ShowOnStart.IsChecked == true;
+        s.DashboardOnStart = DashboardOnStart.IsChecked == true;
+        s.OverlayPalette = Math.Max(0, PaletteBox.SelectedIndex);
         s.MaxRows = MaxRows.SelectedItem is int rows ? rows : 10;
         s.BackgroundOpacity = Math.Round(OpacityValue.Value, 2);
         s.RowSize = (int)Math.Round(RowSizeValue.Value);
@@ -150,6 +161,55 @@ public partial class SettingsWindow : Window
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+
+    private sealed record HudProfile(int Palette, double Opacity, int RowSize, bool ShowGear, bool TwoLineRows);
+
+    private void ExportProfile(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "ATX HUD profile (*.json)|*.json", FileName = "ATX-HUD.json" };
+        if (dialog.ShowDialog(this) != true) return;
+        var profile = new HudProfile(PaletteBox.SelectedIndex, OpacityValue.Value, (int)RowSizeValue.Value,
+            ShowGear.IsChecked == true, TwoLineRows.IsChecked == true);
+        try
+        {
+            File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true }));
+            ProfileStatus.Text = T.Code == "ru" ? "Профиль сохранён." : "Profile saved.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ProfileError(ex);
+        }
+    }
+
+    private void ImportProfile(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "ATX HUD profile (*.json)|*.json" };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            if (new FileInfo(dialog.FileName).Length > 16_384) throw new InvalidDataException("Profile exceeds 16 KB");
+            var profile = JsonSerializer.Deserialize<HudProfile>(File.ReadAllText(dialog.FileName));
+            if (profile is null || profile.Palette is < 0 or > 2 || profile.Opacity is < 0.15 or > 1 ||
+                profile.RowSize is < AppSettings.MinRowSize or > AppSettings.MaxRowSize)
+                throw new InvalidDataException("Invalid HUD profile");
+            PaletteBox.SelectedIndex = profile.Palette;
+            OpacityValue.Value = profile.Opacity;
+            RowSizeValue.Value = profile.RowSize;
+            ShowGear.IsChecked = profile.ShowGear;
+            TwoLineRows.IsChecked = profile.TwoLineRows;
+            ProfileStatus.Text = T.Code == "ru" ? "Профиль загружен. Нажмите «Сохранить»." : "Profile loaded. Click Save to apply.";
+        }
+        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException)
+        {
+            ProfileError(ex);
+        }
+    }
+
+    private void ProfileError(Exception ex)
+    {
+        Log.Error("HUD profile error", ex);
+        ProfileStatus.Text = T.Code == "ru" ? "Не удалось обработать файл профиля." : "Could not read or write the profile.";
+    }
 
     /// <summary>The overlay follows the slider at once, so the size can be judged on the real rows.</summary>
     private void RowSize_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)

@@ -285,7 +285,8 @@ public sealed class CombatTracker
     {
         if (_current is not { IsActive: true } enc) return;
         var source = _entities.ResolveOwner(h.SourceId);
-        if (enc.Combatants.TryGetValue(source, out var c)) c.Healing += h.Amount;
+        if (source == 0 || !_entities.IsPlayerLike(source)) return;
+        GetCombatant(enc, source).Healing += h.Amount;
     }
 
     private void OnNpcHp(NpcHpEvent e)
@@ -758,6 +759,21 @@ public sealed class CombatTracker
 
     private static DateTimeOffset ToTime(long unixMs) => DateTimeOffset.FromUnixTimeMilliseconds(unixMs).ToLocalTime();
 
+    private static double? PeakBurst(IReadOnlyList<long> seconds, long combatMs)
+    {
+        const int window = 5;
+        if (combatMs < window * 1000) return null;
+        if (seconds.Count < window) return (double)seconds.Sum() / window;
+        long sum = 0, peak = 0;
+        for (var i = 0; i < seconds.Count; i++)
+        {
+            sum += seconds[i];
+            if (i >= window) sum -= seconds[i - window];
+            if (i >= window - 1) peak = Math.Max(peak, sum);
+        }
+        return (double)peak / window;
+    }
+
     private EncounterSnapshot BuildSnapshot(Encounter enc, long nowMs)
     {
         var combatMs = enc.CombatMs;
@@ -772,7 +788,7 @@ public sealed class CombatTracker
                 c.ActorId, c.Name, c.Class, c.IsSelf,
                 t.Damage, t.Damage / seconds, (double)t.Damage / total,
                 t.Hits, t.Hits > 0 ? (double)t.Crits / t.Hits : 0,
-                t.Max, c.DamageTaken, c.ServerId, c.GearScore, c.CombatPower));
+                t.Max, c.DamageTaken, c.ServerId, c.GearScore, c.CombatPower, c.Healing, PeakBurst(c.PerSecond, combatMs)));
         }
         rows.Sort((a, b) => b.Damage.CompareTo(a.Damage));
         // Pets without a known owner are not a player: list them last so they never take a place in the ranking.

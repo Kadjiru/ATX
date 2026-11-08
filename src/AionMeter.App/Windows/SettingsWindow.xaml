@@ -108,6 +108,11 @@
                             </StackPanel>
                             <CheckBox x:Name="ShowOnStart" Style="{StaticResource DarkCheck}" Margin="0,6,0,0"
                                       Content="{Binding ShowOnStart, Source={x:Static s:UiText.Current}}" />
+                            <CheckBox x:Name="DashboardOnStart" Style="{StaticResource DarkCheck}" Margin="0,6,0,0" />
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock x:Name="PaletteLabel" Style="{StaticResource Label}" />
+                                <ComboBox x:Name="PaletteBox" />
+                            </StackPanel>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                                 <TextBlock Text="{Binding RowsShown, Source={x:Static s:UiText.Current}}" Style="{StaticResource Label}" />
                                 <ComboBox x:Name="MaxRows" MinWidth="80" />
@@ -125,6 +130,11 @@
                             </StackPanel>
                             <TextBlock Style="{StaticResource Hint}" Margin="190,2,0,0"
                                        Text="{Binding RowSizeHint, Source={x:Static s:UiText.Current}}" />
+                            <WrapPanel Margin="0,8,0,0">
+                                <Button x:Name="ExportProfileButton" Style="{StaticResource GhostButton}" Click="ExportProfile" Margin="0,0,8,0" />
+                                <Button x:Name="ImportProfileButton" Style="{StaticResource GhostButton}" Click="ImportProfile" />
+                            </WrapPanel>
+                            <TextBlock x:Name="ProfileStatus" Style="{StaticResource Hint}" Margin="0,6,0,0" />
                         </StackPanel>
                     </Border>
 

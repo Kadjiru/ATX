@@ -44,6 +44,7 @@ public sealed class MeterService : IDisposable
         Tracker.RosterReceived += roster =>
         {
             if (_replaying) return;
+            _recentRoster = roster;
             var gear = roster.Members.Where(m => m.GearScore > 0).Select(m => m.GearScore).DefaultIfEmpty().ToList();
             var power = roster.Members.Where(m => m.CombatPower > 0).Select(m => m.CombatPower).DefaultIfEmpty().ToList();
             var line = $"Party roster: {roster.Members.Count} members, GS {gear.Min()}-{gear.Max()}, CP {power.Min()}-{power.Max()}";
@@ -89,6 +90,12 @@ public sealed class MeterService : IDisposable
         : _capture?.Status ?? new CaptureStatus(CaptureState.Stopped, "Capture not available");
 
     public bool DemoRunning => _demo?.IsRunning == true;
+
+    private volatile Core.Events.PartyRosterEvent? _recentRoster;
+    public Core.Events.PartyRosterEvent? RecentRoster =>
+        !DemoRunning && !_replaying && CaptureStatus.State == CaptureState.Capturing &&
+        _recentRoster is { } roster && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - roster.TimeMs <= 45_000
+            ? roster : null;
 
     /// <summary>Raised (on a worker thread) after a fight was written to disk.</summary>
     public event Action<string>? FightSaved;
@@ -148,6 +155,7 @@ public sealed class MeterService : IDisposable
         lock (_captureGate)
         {
             _restarting = true;
+            _recentRoster = null;
             try
             {
                 _capture?.Dispose();

@@ -9,6 +9,7 @@ public sealed class TrayIcon : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly ToolStripMenuItem _toggle;
+    private readonly ToolStripMenuItem _dashboard;
     private readonly ToolStripMenuItem _clickThrough;
     private readonly ToolStripMenuItem _reset;
     private readonly ToolStripMenuItem _history;
@@ -34,6 +35,7 @@ public sealed class TrayIcon : IDisposable
         _update.Font = new Font(_update.Font, System.Drawing.FontStyle.Bold);
         _updateSeparator = new ToolStripSeparator { Visible = false };
         _checkUpdates = new ToolStripMenuItem("", null, (_, _) => actions.CheckUpdates());
+        _dashboard = new ToolStripMenuItem("", null, (_, _) => actions.Dashboard());
         _toggle = new ToolStripMenuItem("", null, (_, _) => actions.ToggleOverlay());
         _clickThrough = new ToolStripMenuItem("", null, (_, _) => actions.ToggleClickThrough());
         _reset = new ToolStripMenuItem("", null, (_, _) => actions.Reset());
@@ -46,7 +48,7 @@ public sealed class TrayIcon : IDisposable
         _exit = new ToolStripMenuItem("", null, (_, _) => actions.Exit());
         menu.Items.AddRange([
             _update, _updateSeparator,
-            _toggle, _clickThrough, _reset, new ToolStripSeparator(),
+            _dashboard, _toggle, _clickThrough, _reset, new ToolStripSeparator(),
             _history, _timers, _settings, _language, _demo, _replay, _checkUpdates, new ToolStripSeparator(),
             _exit,
         ]);
@@ -61,7 +63,7 @@ public sealed class TrayIcon : IDisposable
         };
         _icon.MouseClick += (_, e) =>
         {
-            if (e.Button == MouseButtons.Left) actions.ToggleOverlay();
+            if (e.Button == MouseButtons.Left) actions.Dashboard();
         };
         _icon.BalloonTipClicked += (_, _) =>
         {
@@ -76,6 +78,7 @@ public sealed class TrayIcon : IDisposable
     public void ApplyTexts()
     {
         var t = UiText.Current;
+        _dashboard.Text = t.Code == "ru" ? "Открыть ATX" : "Open ATX";
         _toggle.Text = _overlayVisible ? t.TrayHide : t.TrayShow;
         _clickThrough.Text = t.HkClick;
         _reset.Text = t.HkReset;
@@ -143,6 +146,7 @@ public sealed class TrayIcon : IDisposable
 }
 
 public sealed record TrayActions(
+    Action Dashboard,
     Action ToggleOverlay,
     Action ToggleClickThrough,
     Action Reset,

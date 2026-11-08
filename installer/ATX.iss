@@ -1,8 +1,8 @@
-﻿; AION2 DPS Meter — Windows installer (Inno Setup 7, https://jrsoftware.org).
+; ATX — Windows installer (Inno Setup 7, https://jrsoftware.org).
 ; Built by build-release.ps1:
-;   ISCC /DAppVer=<x.y.z> /DPayloadDir=<self-contained publish folder> /O<output folder> AION2DpsMeter.iss
-; Installs for the current user only (no administrator prompt) into %LocalAppData%\Programs\AION2 DPS Meter.
-; Settings, fight history and boss timers stay in %AppData%\AionMeter; uninstall asks before deleting them.
+;   ISCC /DAppVer=<x.y.z> /DPayloadDir=<self-contained publish folder> /O<output folder> ATX.iss
+; Installs for the current user only (no administrator prompt) into %LocalAppData%\Programs\ATX.
+; Settings, fight history and boss timers stay in %AppData%\ATX; uninstall asks before deleting them.
 
 #ifndef AppVer
   #define AppVer "0.0.0"
@@ -10,19 +10,19 @@
 #ifndef PayloadDir
   #error Pass /DPayloadDir=<folder with the published program>
 #endif
-#define AppName "AION2 DPS Meter"
-#define AppExe "AION2DpsMeter.exe"
+#define AppName "ATX"
+#define AppExe "ATX.exe"
 
 [Setup]
 ; Identifies the program for upgrades and uninstall: never change it.
-AppId={{AE1B2590-0A93-4500-9CB1-0F543771957A}
+AppId={{5C926FF6-EA58-4745-83F3-862C8F91FD70}
 AppName={#AppName}
 AppVersion={#AppVer}
 AppVerName={#AppName} {#AppVer}
 AppPublisher={#AppName}
-AppPublisherURL=https://github.com/cyberbadger6969/aion2-dps-meter
-AppSupportURL=https://github.com/cyberbadger6969/aion2-dps-meter/issues
-AppUpdatesURL=https://github.com/cyberbadger6969/aion2-dps-meter/releases
+AppPublisherURL=https://github.com/Kadjiru/ATX
+AppSupportURL=https://github.com/Kadjiru/ATX/issues
+AppUpdatesURL=https://github.com/Kadjiru/ATX/releases
 VersionInfoDescription={#AppName} Setup
 DefaultDirName={autopf}\{#AppName}
 DisableProgramGroupPage=yes
@@ -30,7 +30,7 @@ DisableReadyPage=yes
 PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0
-OutputBaseFilename=AION2DpsMeter-Setup-v{#AppVer}
+OutputBaseFilename=ATX-Setup-v{#AppVer}
 SetupIconFile=..\src\AionMeter.App\Assets\app.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
@@ -59,7 +59,7 @@ en.NpcapRecheck=Check again
 en.NpcapFound=✔  Npcap found, you are all set.
 en.NpcapMissing=✖  Npcap not found yet.
 en.NpcapContinue=Npcap is still not installed. Install the meter anyway?%n%nThe meter will remind you about Npcap when it starts.
-en.CloseRunning=AION2 DPS Meter is running. Close it and continue?
+en.CloseRunning=ATX is running. Close it and continue?
 en.RemoveUserData=Also delete your settings, fight history and boss timers?%n%n%1
 ru.NpcapTitle=Нужен Npcap
 ru.NpcapSubtitle=Бесплатный драйвер захвата трафика: через него метр видит игру.
@@ -69,7 +69,7 @@ ru.NpcapRecheck=Проверить снова
 ru.NpcapFound=✔  Npcap найден, всё готово.
 ru.NpcapMissing=✖  Npcap пока не найден.
 ru.NpcapContinue=Npcap всё ещё не установлен. Установить метр без него?%n%nМетр напомнит про Npcap при запуске.
-ru.CloseRunning=AION2 DPS Meter запущен. Закрыть его и продолжить?
+ru.CloseRunning=ATX запущен. Закрыть его и продолжить?
 ru.RemoveUserData=Удалить также настройки, историю боёв и таймеры боссов?%n%n%1
 
 [Files]
@@ -179,7 +179,7 @@ end;
 // deleted is not put back. (The key is AppId's uninstall entry.)
 function DesktopShortcutWanted: Boolean;
 begin
-  Result := not RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{AE1B2590-0A93-4500-9CB1-0F543771957A}_is1', 'UninstallString')
+  Result := not RegValueExists(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{5C926FF6-EA58-4745-83F3-862C8F91FD70}_is1', 'UninstallString')
             or FileExists(ExpandConstant('{autodesktop}\{#AppName}.lnk'));
 end;
 
@@ -262,7 +262,7 @@ var
 begin
   if (CurUninstallStep = usPostUninstall) and not UninstallSilent then
   begin
-    Data := ExpandConstant('{userappdata}\AionMeter');
+    Data := ExpandConstant('{userappdata}\ATX');
     if DirExists(Data) and
        (MsgBox(FmtMessage(CustomMessage('RemoveUserData'), [Data]), mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES) then
       DelTree(Data, True, True, True);

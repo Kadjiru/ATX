@@ -1,4 +1,4 @@
-﻿# Builds site-kit\ (and dist\AION2DpsMeter-site-kit.zip): everything a download page needs.
+# Builds site-kit\ (and dist\ATX-site-kit.zip): everything a download page needs.
 #   docs\site\*            the page brief for Claude Code and a static preview page (copied as they are)
 #   images\                screenshots in English and Russian, a transparent overlay, icon, installer art, social preview
 #   video\                 the overlay through a scripted boss fight: MP4 (web), GIF (chats, READMEs), poster frame
@@ -16,7 +16,7 @@ Add-Type -AssemblyName System.Drawing, System.IO.Compression, System.IO.Compress
 
 dotnet build (Join-Path $root "src\AionMeter.App\AionMeter.App.csproj") -c Release --nologo -v q
 if ($LASTEXITCODE -ne 0) { throw "build failed" }
-$exe = Join-Path $root "src\AionMeter.App\bin\Release\net10.0-windows\AION2DpsMeter.exe"
+$exe = Join-Path $root "src\AionMeter.App\bin\Release\net10.0-windows\ATX.exe"
 
 foreach ($d in $kit, $work) { if (Test-Path $d) { Remove-Item $d -Recurse -Force } }
 New-Item -ItemType Directory -Force $images, $video, $work | Out-Null
@@ -87,7 +87,7 @@ $gold = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(2
 $text = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 0xF1, 0xE9, 0xD8))
 $dim = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(255, 0xA3, 0xAC, 0xBF))
 $px = [System.Drawing.GraphicsUnit]::Pixel
-$g.DrawString("AION2 DPS Meter", (New-Object System.Drawing.Font 'Palatino Linotype', 66, ([System.Drawing.FontStyle]::Bold), $px), $gold, 64, 238)
+$g.DrawString("ATX", (New-Object System.Drawing.Font 'Palatino Linotype', 66, ([System.Drawing.FontStyle]::Bold), $px), $gold, 64, 238)
 $g.DrawString("Live DPS overlay for AION 2", (New-Object System.Drawing.Font 'Segoe UI Semibold', 34, ([System.Drawing.FontStyle]::Regular), $px), $text, 70, 336)
 $g.DrawString("Party DPS · boss HP · skill breakdown · boss timers", (New-Object System.Drawing.Font 'Segoe UI', 24, ([System.Drawing.FontStyle]::Regular), $px), $dim, 72, 392)
 $g.DrawString("Free · Open source · Windows 10/11 · Global EU / NA", (New-Object System.Drawing.Font 'Segoe UI Semibold', 22, ([System.Drawing.FontStyle]::Regular), $px), $gold, 72, 470)
@@ -132,7 +132,7 @@ New-Item -ItemType Directory -Force $readme | Out-Null
     ForEach-Object { if (Test-Path (Join-Path $kit $_.Key)) { Copy-Item (Join-Path $kit $_.Key) (Join-Path $readme $_.Value) -Force } }
 
 Copy-Item (Join-Path $root "docs\site\*") $kit -Recurse
-$zip = Join-Path $root "dist\AION2DpsMeter-site-kit.zip"
+$zip = Join-Path $root "dist\ATX-site-kit.zip"
 New-Item -ItemType Directory -Force (Split-Path $zip) | Out-Null
 if (Test-Path $zip) { Remove-Item $zip -Force }
 $archive = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)

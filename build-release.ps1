@@ -1,8 +1,8 @@
 # Builds the downloads for players:
-#   dist\AION2DpsMeter-Setup-v<version>.exe    - installer: shortcuts, uninstall, Npcap check (needs Inno Setup 7)
-#   dist\AION2DpsMeter-v<version>-win-x64.zip  - the same program without installation (no .NET install needed)
-#   dist\AION2DpsMeter-v<version>-source.zip   - the source code (GPL-3.0: hand it out alongside the program)
-#   dist\AION2DpsMeter-Setup.exe, dist\AION2DpsMeter-win-x64.zip - copies under names that never change, for links
+#   dist\ATX-Setup-v<version>.exe    - installer: shortcuts, uninstall, Npcap check (needs Inno Setup 7)
+#   dist\ATX-v<version>-win-x64.zip  - the same program without installation (no .NET install needed)
+#   dist\ATX-v<version>-source.zip   - the source code (GPL-3.0: hand it out alongside the program)
+#   dist\ATX-Setup.exe, dist\ATX-win-x64.zip - copies under names that never change, for links
 #   that always give the newest version (releases/latest/download/<name>)
 # Packet recordings (captures\) and build output never go into any of them.
 param([string]$Version = "")
@@ -34,7 +34,7 @@ function Find-Iscc {
         ForEach-Object { Join-Path $_ "ISCC.exe" } | Where-Object { Test-Path $_ } | Select-Object -First 1
 }
 
-# Inno Setup writes an installer's version strings in place and pads them with spaces ("AION2 DPS Meter        …").
+# Inno Setup writes an installer's version strings in place and pads them with spaces ("ATX        …").
 # Meters 0.2.0–0.2.3 compare the installer's ProductName exactly before they run it as an update, so the padding is
 # turned into NULs: every string then reads back exactly, and the resource keeps its size and layout. A string that
 # is nothing but padding stays: .NET only trusts a version block whose FileVersion string is not empty.
@@ -70,8 +70,9 @@ $project = Join-Path $root "src\AionMeter.App\AionMeter.App.csproj"
 if (-not $Version) {
     $Version = (Select-Xml -Path $project -XPath "//Version").Node.InnerText | Select-Object -First 1
 }
+if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw 'Expected a version in x.y.z format.' }
 $dist = Join-Path $root "dist"
-$name = "AION2DpsMeter-v$Version-win-x64"
+$name = "ATX-v$Version-win-x64"
 $stage = Join-Path $dist $name
 New-Item -ItemType Directory -Force $dist | Out-Null
 if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
@@ -91,7 +92,7 @@ if (-not (Test-Path (Join-Path $stage "data\npcs\en.json"))) { throw "data folde
 
 $programZip = Join-Path $dist "$name.zip"
 New-Zip $stage $programZip
-$stableZip = Join-Path $dist "AION2DpsMeter-win-x64.zip" # the never-changing name, as for the installer below
+$stableZip = Join-Path $dist "ATX-win-x64.zip" # the never-changing name, as for the installer below
 Copy-Item $programZip $stableZip -Force
 $outputs = @($programZip, $stableZip)
 
@@ -106,14 +107,14 @@ if ($iscc) {
     Copy-Item (Join-Path $root "LICENSE"), (Join-Path $root "INSTALL.txt") $setupStage
     if (-not (Test-Path (Join-Path $setupStage "data\npcs\en.json"))) { throw "data folder missing from the installer publish" }
 
-    & $iscc /Qp "/DAppVer=$Version" "/DPayloadDir=$setupStage" "/O$dist" (Join-Path $root "installer\AION2DpsMeter.iss")
+    & $iscc /Qp "/DAppVer=$Version" "/DPayloadDir=$setupStage" "/O$dist" (Join-Path $root "installer\ATX.iss")
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
     Remove-Item $setupStage -Recurse -Force
-    $setupExe = Join-Path $dist "AION2DpsMeter-Setup-v$Version.exe"
-    Repair-VersionStrings $setupExe "AION2 DPS Meter"
+    $setupExe = Join-Path $dist "ATX-Setup-v$Version.exe"
+    Repair-VersionStrings $setupExe "ATX"
     # Same file under a name that never changes: the download page links to
-    # releases/latest/download/AION2DpsMeter-Setup.exe and always gets the newest version.
-    $stableSetup = Join-Path $dist "AION2DpsMeter-Setup.exe"
+    # releases/latest/download/ATX-Setup.exe and always gets the newest version.
+    $stableSetup = Join-Path $dist "ATX-Setup.exe"
     Copy-Item $setupExe $stableSetup -Force
     $outputs = @($setupExe, $stableSetup) + $outputs
 }
@@ -122,7 +123,7 @@ else {
 }
 
 # Source: everything tracked by the project, without recordings, build output or local tooling.
-$sourceStage = Join-Path $dist "AION2DpsMeter-v$Version-source"
+$sourceStage = Join-Path $dist "ATX-v$Version-source"
 if (Test-Path $sourceStage) { Remove-Item $sourceStage -Recurse -Force }
 $skip = '\\(bin|obj|captures|dist|site-kit|\.git|\.vs|\.claude|TestResults)(\\|$)'
 Get-ChildItem $root -Recurse -File |

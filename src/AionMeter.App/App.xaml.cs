@@ -34,7 +34,7 @@ public static class AppHost
 
 public partial class App : Application
 {
-    private const string ShowRequestName = "AionMeter.ShowOverlay"; // set by a second start of the app
+    private const string ShowRequestName = "ATX.ShowDashboard"; // set by a second start of the app
     private Mutex? _singleInstance;
     private EventWaitHandle? _showRequest;
     private RegisteredWaitHandle? _showWait;
@@ -48,6 +48,8 @@ public partial class App : Application
     private HistoryWindow? _history;
     private SettingsWindow? _settingsWindow;
     private BossTimersWindow? _timersWindow;
+    private DashboardWindow? _dashboard;
+    private ActivityHudWindow? _activityHud;
     private readonly Dictionary<object, BreakdownWindow> _breakdowns = new();
     private int _ticks;
 
@@ -78,7 +80,7 @@ public partial class App : Application
             Shutdown();
             return;
         }
-        _singleInstance = new Mutex(true, "AionMeter.SingleInstance", out var first);
+        _singleInstance = new Mutex(true, "ATX.SingleInstance", out var first);
         if (!first)
         {
             // Started again (the shortcut clicked twice): the running meter shows its overlay, this copy leaves quietly.
@@ -119,13 +121,14 @@ public partial class App : Application
         {
             new WindowInteropHelper(_overlay).EnsureHandle();
             // Hidden by choice: still up for a moment, so it is plain that the meter started.
-            if (settings.ShowOnStart) ShowByItself();
+            if (settings.ShowOnStart && !settings.DashboardOnStart) ShowByItself();
         }
 
         _hotkeys = new HotkeyManager(new WindowInteropHelper(_overlay).Handle);
         RegisterHotkeys();
 
         _tray = new TrayIcon(new TrayActions(
+            Dashboard: ShowDashboard,
             ToggleOverlay: () => SetOverlayVisible(!_overlay.IsVisible),
             ToggleClickThrough: ToggleClickThrough,
             Reset: RestartMeter,
@@ -145,13 +148,13 @@ public partial class App : Application
         SessionEnding += (_, end) => Log.Info($"Windows {end.ReasonSessionEnding}: closing");
 
         // A new player's first start: without Npcap nothing can be measured — say so and offer the download.
-        if (!LiveCapture.IsNpcapInstalled())
+        if (!noCapture && !LiveCapture.IsNpcapInstalled())
             Dispatcher.BeginInvoke(ShowNpcapHelp, DispatcherPriority.ApplicationIdle);
 
         // Another start of the app asks this one to show the overlay.
         _showRequest = new EventWaitHandle(false, EventResetMode.AutoReset, ShowRequestName);
         _showWait = ThreadPool.RegisterWaitForSingleObject(_showRequest,
-            (_, _) => Dispatcher.BeginInvoke(() => SetOverlayVisible(true)), null, Timeout.Infinite, executeOnlyOnce: false);
+            (_, _) => Dispatcher.BeginInvoke(ShowDashboard), null, Timeout.Infinite, executeOnlyOnce: false);
 
         // New versions on GitHub: tray item, the overlay's update button and one notification per version.
         _meter.Updates.Changed += OnUpdatesChanged;
@@ -164,6 +167,7 @@ public partial class App : Application
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(200) };
         _timer.Tick += (_, _) => OnTick();
         _timer.Start();
+        if (settings.DashboardOnStart && !e.Args.Contains("--show")) ShowDashboard();
 
         // Developer switches: --demo, --replay <file.pcap> (instant), --open-last (breakdown of the newest fight).
         if (e.Args.Contains("--demo")) _meter.StartDemo();
@@ -220,6 +224,8 @@ public partial class App : Application
         {
             _tray?.Update(_overlay.IsVisible, _meter.Settings.ClickThrough, _meter.DemoRunning ? "demo" : _meter.CaptureStatus.Message);
             CheckBossAlerts();
+            CheckActivityTimers();
+            _dashboard?.Refresh();
             CheckGameStart();
             CheckPendingUpdate();
         }
@@ -300,6 +306,7 @@ public partial class App : Application
         _overlay.ApplyHotkeyTips();
         _hotkeys.Register(s.HotkeyClickThrough, ToggleClickThrough);
         _hotkeys.Register(s.HotkeyTimers, ToggleBossTimers);
+        _hotkeys.Register("Ctrl+Alt+T", ToggleActivityHud);
     }
 
     /// <summary>
@@ -372,9 +379,60 @@ public partial class App : Application
         _updateWindow?.Close();
         _tray?.ApplyTexts();
         _overlay.OnLanguageChanged();
+        _dashboard?.ApplyLanguage();
     }
 
     public void ToggleLanguage() => SetLanguage(UiText.Current.Code == "ru" ? "en" : "ru");
+
+    public void ShowDashboard()
+    {
+        if (_dashboard is { } open)
+        {
+            Activate(open);
+            return;
+        }
+        _dashboard = new DashboardWindow(_meter);
+        _dashboard.Closed += (_, _) => _dashboard = null;
+        _dashboard.Show();
+    }
+
+    public void ToggleCombatHud() => SetOverlayVisible(!_overlay.IsVisible);
+
+    public void ToggleActivityHud()
+    {
+        if (_activityHud is { } open)
+        {
+            open.Close();
+            return;
+        }
+        _activityHud = new ActivityHudWindow { Topmost = !_meter.Settings.SafeMode };
+        _activityHud.Closed += (_, _) => _activityHud = null;
+        _activityHud.Show();
+        CheckActivityTimers();
+    }
+
+    private void CheckActivityTimers()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var timers = _meter.Settings.Activities;
+        var due = new List<string>();
+        for (var i = 0; i < timers.Count; i++)
+        {
+            var timer = timers[i];
+            if (timer.Notified || timer.DueUtc > now) continue;
+            timers[i] = timer with { Notified = true };
+            due.Add(timer.Name);
+        }
+        if (due.Count > 0)
+        {
+            _meter.Settings.Save();
+            _tray?.ShowBalloon(UiText.Current.Code == "ru" ? "ATX · Активность" : "ATX · Activity",
+                string.Join(", ", due));
+            System.Media.SystemSounds.Asterisk.Play();
+        }
+        if (_activityHud is { } hud)
+            hud.Refresh(timers.Where(t => t.DueUtc > now).MinBy(t => t.DueUtc), now);
+    }
 
     public void ShowSavedInOverlay(Core.Storage.HistoryEntry entry)
     {

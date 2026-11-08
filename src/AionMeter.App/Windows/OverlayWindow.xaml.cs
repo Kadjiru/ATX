@@ -47,6 +47,7 @@ public partial class OverlayWindow : Window
 
         OpacitySlider.Value = _settings.BackgroundOpacity;
         FrameBackground.Opacity = _settings.BackgroundOpacity;
+        ApplyPalette();
         ApplyLock();
         ApplyRowLayout();
         ApplyRowSize(_settings.RowSize);
@@ -202,10 +203,18 @@ public partial class OverlayWindow : Window
     private void Language_Click(object sender, RoutedEventArgs e) => AppHost.Current.ToggleLanguage();
 
     /// <summary>Re-reads appearance settings changed in the Settings window.</summary>
+    private void ApplyPalette() => FrameBackground.Color = _settings.OverlayPalette switch
+    {
+        1 => Color.FromRgb(38, 27, 51),
+        2 => Color.FromRgb(15, 37, 36),
+        _ => Color.FromRgb(11, 15, 23),
+    };
+
     public void ApplyAppearance()
     {
         OpacitySlider.Value = _settings.BackgroundOpacity;
         FrameBackground.Opacity = _settings.BackgroundOpacity;
+        ApplyPalette();
         ApplyRowLayout();
         ApplyRowSize(_settings.RowSize);
         UpdateModeLabel();

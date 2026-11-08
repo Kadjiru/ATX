@@ -69,6 +69,23 @@ public class EngineTests
     }
 
     [Fact]
+    public void Snapshots_include_healing_only_players_and_five_second_burst()
+    {
+        var tracker = Tracker(TargetMode.All);
+        Setup(tracker);
+        tracker.Process(new DamageEvent(1_000, Me, Add, 16040000, 1_000, HitFlags.None));
+        tracker.Process(new HealEvent(2_000, Mate, Me, 17000000, 600, HitFlags.None));
+        tracker.Process(new DamageEvent(3_000, Me, Add, 16040000, 2_000, HitFlags.None));
+        tracker.Process(new DamageEvent(6_000, Me, Add, 16040000, 100, HitFlags.None));
+
+        var snapshot = Assert.IsType<EncounterSnapshot>(tracker.Snapshot(null, 6_000));
+        var healer = Assert.Single(snapshot.Combatants, c => c.ActorId == Mate);
+        Assert.Equal(600L, healer.Healing);
+        Assert.Equal(0, healer.Damage);
+        Assert.Equal(600d, snapshot.Combatants.Single(c => c.ActorId == Me).BurstDps);
+    }
+
+    [Fact]
     public void Trailing_dot_after_kill_does_not_open_new_segment()
     {
         var t = Tracker();

@@ -15,7 +15,7 @@ public enum HistoryMode
 public sealed class AppSettings
 {
     public static string AppDataDir { get; } =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "AionMeter");
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ATX");
 
     private static string FilePath => Path.Combine(AppDataDir, "settings.json");
 
@@ -31,15 +31,18 @@ public sealed class AppSettings
     public double OverlayWidth { get; set; } = 460;
     public double OverlayHeight { get; set; } = 330;
     public double BackgroundOpacity { get; set; } = 0.9;
+    public int OverlayPalette { get; set; }
     public bool Locked { get; set; }
     public bool ClickThrough { get; set; }
-    public bool OverlayVisible { get; set; } = true;
+    public bool OverlayVisible { get; set; }
     /// <summary>Bring the overlay up by itself when a boss is fought nearby or you hit anything.</summary>
     public bool AutoShow { get; set; } = true;
     /// <summary>An overlay that came up by itself hides again after this long out of combat; 0 = stays up.</summary>
     public int AutoHideSeconds { get; set; } = 60;
     /// <summary>Bring the overlay up when the meter starts and when it finds the game, so a player sees it is running.</summary>
     public bool ShowOnStart { get; set; } = true;
+    public bool DashboardOnStart { get; set; } = true;
+    public List<ActivityTimer> Activities { get; set; } = new();
 
     // Boss respawn timers
     /// <summary>Tray notification this many minutes before a tracked boss respawns; 0 = off.</summary>
@@ -98,7 +101,8 @@ public sealed class AppSettings
     public int BossIdleTimeoutSec { get; set; } = 30;
 
     /// <summary>Interface and skill / NPC name language: "en" (default) or "ru".</summary>
-    public string Language { get; set; } = "en";
+    public string Language { get; set; } =
+        System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "ru" ? "ru" : "en";
 
     /// <summary>Fetch skill icons from the official AION 2 game-data CDN (cached locally).</summary>
     public bool DownloadIcons { get; set; } = true;
@@ -107,7 +111,7 @@ public sealed class AppSettings
     /// <summary>Ask GitHub for a newer version shortly after start and every few hours.</summary>
     public bool CheckUpdates { get; set; } = true;
     /// <summary>Installed copies download a new version by themselves and install it at a quiet moment.</summary>
-    public bool AutoInstallUpdates { get; set; } = true;
+    public bool AutoInstallUpdates { get; set; }
     /// <summary>A version the user chose to skip ("0.2.0"): not announced again, a newer one is.</summary>
     public string? SkippedUpdate { get; set; }
 
@@ -149,6 +153,7 @@ public sealed class AppSettings
                     s.Language = "en";
                 }
                 s.Language = UiText.Normalize(s.Language);
+                s.Activities ??= new();
                 s.LayoutVersion = CurrentLayout;
                 return s;
             }

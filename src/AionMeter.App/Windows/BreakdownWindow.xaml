@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:c="clr-namespace:AionMeter.App.Controls"
         xmlns:s="clr-namespace:AionMeter.App.Services"
-        Title="Breakdown — AION2 DPS Meter" Width="900" Height="680" MinWidth="640" MinHeight="420"
+        Title="Breakdown — ATX" Width="900" Height="680" MinWidth="640" MinHeight="420"
         WindowStyle="None" WindowStartupLocation="CenterScreen" ResizeMode="CanResize" Background="{StaticResource Bg0}"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Display"
         FontFamily="{StaticResource UiFont}" Foreground="{StaticResource Text}">
@@ -74,7 +74,7 @@
             <Border Background="{StaticResource Bg1}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Top" Margin="14,14,14,8">
-                        <TextBlock Text="AION2 DPS Meter" FontFamily="{StaticResource TitleFont}" FontSize="15" Foreground="{StaticResource Gold}" />
+                        <TextBlock Text="ATX" FontFamily="{StaticResource TitleFont}" FontSize="15" Foreground="{StaticResource Gold}" />
                         <Grid Margin="0,10,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />

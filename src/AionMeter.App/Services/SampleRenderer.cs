@@ -45,6 +45,11 @@ public static class SampleRenderer
         Action refresh;
         switch (o.Window)
         {
+            case "dashboard":
+                var dashboard = new DashboardWindow(meter) { Width = o.Width ?? 1120, Height = o.Height ?? 730 };
+                host = dashboard;
+                refresh = dashboard.Refresh;
+                break;
             case "breakdown":
                 var segment = meter.Tracker.Segments()[0].Id;
                 var breakdown = new BreakdownWindow(new ViewModels.LiveFightView(meter.Tracker, segment), 2, meter.Data, meter.Icons, meter.Portraits)
@@ -293,8 +298,8 @@ public static class SampleRenderer
         - **Update check**: the meter tells you about a new version and updates itself in one click.
         """,
         DateTimeOffset.UtcNow.AddDays(-1),
-        new Core.Updates.ReleaseAsset($"AION2DpsMeter-Setup-v{next.ToString(3)}.exe", 52_000_000, "https://example.invalid/setup.exe", null),
-        new Core.Updates.ReleaseAsset($"AION2DpsMeter-v{next.ToString(3)}-win-x64.zip", 65_000_000, "https://example.invalid/app.zip", null));
+        new Core.Updates.ReleaseAsset($"ATX-Setup-v{next.ToString(3)}.exe", 52_000_000, "https://example.invalid/setup.exe", null),
+        new Core.Updates.ReleaseAsset($"ATX-v{next.ToString(3)}-win-x64.zip", 65_000_000, "https://example.invalid/app.zip", null));
 
     // Altgard's field boss list from a real capture (00:30:07 on 2026-10-06, UTC+3) — the in-game map's timers.
     private const string AltgardList =
