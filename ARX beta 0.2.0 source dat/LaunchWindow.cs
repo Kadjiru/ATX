@@ -39,7 +39,7 @@ internal sealed class LaunchWindow : Window
         _progress.Background = Ui.Brush("Raised");
         _progress.BorderThickness = new Thickness(0);
         var pane = Stack(
-            Space(Label("ЛЕГИОН ARX  /  AION 2 GLOBAL"), 11),
+            Space(Label("ARX  /  AION 2 GLOBAL"), 11),
             Space(Text("◈  ARX", 55, "Mint", true), 4),
             Space(Text("Врата Атреи", 22, "Text", true), 29),
             Space(_progress, 10), _message);

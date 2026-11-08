@@ -286,7 +286,7 @@ public sealed class CombatTracker
         if (_current is not { IsActive: true } enc) return;
         var source = _entities.ResolveOwner(h.SourceId);
         if (source == 0 || !_entities.IsPlayerLike(source)) return;
-        GetCombatant(enc, source).Healing += h.Amount;
+        GetCombatant(enc, source).AddHealing(h.SkillCode, h.Amount);
     }
 
     private void OnNpcHp(NpcHpEvent e)
@@ -716,12 +716,12 @@ public sealed class CombatTracker
         }
     }
 
-    public FightRecord? Record(Guid? segmentId)
+    public FightRecord? Record(Guid? segmentId, bool includeCasts = true)
     {
         lock (_gate)
         {
             var enc = Find(segmentId);
-            return enc is null ? null : BuildRecord(enc);
+            return enc is null ? null : BuildRecord(enc, includeCasts);
         }
     }
 
@@ -843,17 +843,19 @@ public sealed class CombatTracker
             t.Max, c.MaxHitSkill != 0 ? _data.SkillName(c.MaxHitSkill) : null);
 
         var casts = c.Casts.Count <= maxCasts ? c.Casts.ToArray() : c.Casts.GetRange(0, maxCasts).ToArray();
+        var heals = c.Heals.Select(pair => new HealingSkillRow(pair.Key, _data.SkillName(pair.Key), pair.Value.Events, pair.Value.Total))
+            .OrderByDescending(row => row.Total).ToArray();
         return new CombatantDetail(
             c.ActorId, c.Name, c.Class, c.IsSelf, t.Damage, t.Damage / seconds, (double)t.Damage / Math.Max(1, enc.TotalDamage),
-            enc.CombatMs, c.DamageTaken, c.HitsTaken, quality, skills, c.PerSecond.ToArray(), casts, c.ServerId, c.GearScore, c.CombatPower);
+            enc.CombatMs, c.DamageTaken, c.HitsTaken, quality, skills, c.PerSecond.ToArray(), casts, c.ServerId, c.GearScore, c.CombatPower, heals);
     }
 
-    private FightRecord BuildRecord(Encounter enc)
+    private FightRecord BuildRecord(Encounter enc, bool includeCasts = true)
     {
         var snapshot = BuildSnapshot(enc, enc.EndMs > 0 ? enc.EndMs : enc.LastDamageMs);
         var details = enc.Combatants.Values
             .OrderByDescending(c => c.Total.Damage)
-            .Select(c => BuildDetail(enc, c, 5_000))
+            .Select(c => BuildDetail(enc, c, includeCasts ? 5_000 : 0))
             .ToList();
         return new FightRecord(1, snapshot, details);
     }

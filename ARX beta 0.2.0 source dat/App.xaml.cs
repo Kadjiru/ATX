@@ -9,10 +9,16 @@ public partial class App : Application
 {
     private LegionStore _store = null!;
     private CatalogSync _catalog = null!;
+    private LiveCombat? _live;
+    private Hotkeys? _hotkeys;
     private Dashboard? _dashboard;
     private readonly Dictionary<HudKind, HudWindow> _huds = [];
     private Mutex? _instance;
     public static App CurrentApp => (App)Current;
+    internal LiveCombat? Live => _live;
+    internal bool ClickThroughAvailable => _hotkeys?.ClickThroughRegistered == true;
+    internal string HotkeyStatus => _hotkeys?.Unavailable is { Count: > 0 } keys
+        ? "Заняты сочетания: " + string.Join(", ", keys) : "Глобальные сочетания готовы";
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -39,6 +45,15 @@ public partial class App : Application
                 splashPreview.Stage(76, "Сверка версии базы с репозиторием ARX", false);
                 Render(splashPreview, e.Args[1], new Size(720, 360));
             }
+            else if (section is "hud-minimal" or "hud-medium" or "hud-detailed")
+            {
+                _store.Profile.CombatHudDensity = section switch
+                {
+                    "hud-minimal" => HudDensity.Minimal, "hud-detailed" => HudDensity.Detailed, _ => HudDensity.Medium
+                };
+                var hudPreview = new HudWindow(_store, HudKind.Combat);
+                Render(hudPreview, e.Args[1], new Size(hudPreview.Width, hudPreview.Height));
+            }
             else
             {
                 var preview = new Dashboard(_store, _catalog);
@@ -57,6 +72,8 @@ public partial class App : Application
             _store = await Task.Run(() => new LegionStore(false));
             splash.Stage(48, "Проверка базы Aion 2 Global");
             _catalog = await Task.Run(() => CatalogSync.Open(false));
+            _live = new LiveCombat(_store);
+            _store.LiveChanged += CheckBossAlerts;
             splash.Stage(76, "Сверка версии базы с репозиторием ARX");
             await Task.WhenAll(_catalog.RefreshAsync(), Task.Delay(620));
             if (_store.NewProfile) _store.Profile.Events = [.. _catalog.Reference.Presets];
@@ -66,6 +83,20 @@ public partial class App : Application
             splash.Close();
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             BeginTeamSync();
+            _hotkeys = new Hotkeys(() => ToggleHud(HudKind.Combat),
+                () => SetCombatLock(!_store.Profile.CombatHudLocked), () => _live?.FinishSegment(),
+                mode =>
+                {
+                    SetCombatDensity(mode);
+                    if (!_huds.ContainsKey(HudKind.Combat)) ToggleHud(HudKind.Combat);
+                },
+                delta => SetCombatOpacity(CombatOpacity + delta));
+            if (!ClickThroughAvailable && _store.Profile.CombatHudLocked)
+            {
+                _store.Profile.CombatHudLocked = false;
+                _store.Save();
+            }
+            if (_store.Profile.CaptureEnabled || e.Args.Contains("--live")) _live.Start();
         }
         catch (Exception ex)
         {
@@ -102,9 +133,52 @@ public partial class App : Application
         hud.Show();
     }
 
+    public async Task ToggleCapture()
+    {
+        if (_live is null || _live.IsStopping) return;
+        if (_live.IsRunning)
+        {
+            _store.Profile.CaptureEnabled = false;
+            _store.Save();
+            await _live.StopAsync();
+        }
+        else
+        {
+            _store.Profile.CaptureEnabled = _live.Start();
+            _store.Save();
+        }
+    }
+
+    internal double CombatOpacity => _store.Profile.CombatHudOpacity ??
+        _store.Profile.HudLayouts.GetValueOrDefault(HudKind.Combat.ToString())?.Opacity ?? .94;
+
+    internal void SetCombatDensity(HudDensity density)
+    {
+        _store.Profile.CombatHudDensity = density;
+        if (_huds.TryGetValue(HudKind.Combat, out var hud)) hud.ApplyCombatPreferences();
+        _store.Save();
+    }
+
+    internal void SetCombatOpacity(double opacity)
+    {
+        _store.Profile.CombatHudOpacity = Math.Clamp(Math.Round(opacity, 2), .35, 1);
+        if (_huds.TryGetValue(HudKind.Combat, out var hud)) hud.ApplyCombatPreferences();
+        _store.Save();
+    }
+
+    internal void SetCombatLock(bool value)
+    {
+        _store.Profile.CombatHudLocked = value && ClickThroughAvailable;
+        if (_huds.TryGetValue(HudKind.Combat, out var hud)) hud.ApplyCombatPreferences();
+        _store.Save();
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
         _teamPoll?.Stop();
+        if (_store is not null) _store.LiveChanged -= CheckBossAlerts;
+        _hotkeys?.Dispose();
+        _live?.Dispose();
         _instance?.Dispose();
         base.OnExit(e);
     }

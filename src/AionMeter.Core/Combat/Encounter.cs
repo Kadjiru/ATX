@@ -87,6 +87,14 @@ public sealed class Combatant
     public long DamageTaken { get; set; }
     public int HitsTaken { get; set; }
     public long Healing { get; set; }
+    public Dictionary<int, (int Events, long Total)> Heals { get; } = new();
+
+    public void AddHealing(int skillCode, long amount)
+    {
+        Healing += amount;
+        var previous = Heals.GetValueOrDefault(skillCode);
+        Heals[skillCode] = (previous.Events + 1, previous.Total + amount);
+    }
 
     public long FirstHitMs { get; set; }
     public long LastHitMs { get; set; }
@@ -118,6 +126,11 @@ public sealed class Combatant
         DamageTaken += other.DamageTaken;
         HitsTaken += other.HitsTaken;
         Healing += other.Healing;
+        foreach (var (skill, aggregate) in other.Heals)
+        {
+            var previous = Heals.GetValueOrDefault(skill);
+            Heals[skill] = (previous.Events + aggregate.Events, previous.Total + aggregate.Total);
+        }
         if (FirstHitMs == 0 || (other.FirstHitMs != 0 && other.FirstHitMs < FirstHitMs)) FirstHitMs = other.FirstHitMs;
         LastHitMs = Math.Max(LastHitMs, other.LastHitMs);
     }

@@ -21,7 +21,7 @@ public static class TeamShare
             data.Events.Any(e => e is null || e.Id == Guid.Empty || e.Name is null || e.Name.Length is 0 or > 120 ||
                 e.RepeatMinutes is < 0 or > 44640 || e.AnchorUtc.Year is < 1970 or > 2100) ||
             data.Pins.Any(p => p is null || p.Id == Guid.Empty || p.Name is null || p.Name.Length is 0 or > 120 ||
-                p.Category is null || p.Category.Length > 32 || !double.IsFinite(p.X) || !double.IsFinite(p.Y) ||
+                p.Category is null || p.Category.Length > 32 || p.Layer is not null || !double.IsFinite(p.X) || !double.IsFinite(p.Y) ||
                 p.X is < 0 or > 1000 || p.Y is < 0 or > 600 || !AtlasZone.All.Any(z => z.Id == p.Zone)) ||
             data.Events.Select(e => e.Id).Distinct().Count() != data.Events.Length ||
             data.Pins.Select(p => p.Id).Distinct().Count() != data.Pins.Length)
@@ -32,7 +32,7 @@ public static class TeamShare
     public static TeamSnapshot Prepare(Profile profile)
     {
         var events = profile.Events.ToArray();
-        var pins = profile.Pins.Select(p => p with { Found = false }).ToArray();
+        var pins = profile.Pins.Where(p => p.Layer is null).Select(p => p with { Found = false }).ToArray();
         if (events.Length > 250 || pins.Length > 5000) throw new InvalidDataException("Слишком много общих меток или таймеров.");
         return new TeamSnapshot(1, Guid.NewGuid(), profile.TeamClientId, DateTimeOffset.UtcNow, events, pins);
     }

@@ -36,6 +36,8 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     public AtlasZone? Zone { get; private set; }
     public bool Placing { get; set; }
+    public bool ShowRoute { get; set; }
+    public ImageSource? Backdrop { get; set; }
     public Guid? Selected { get; set; }
     public event Action<AtlasZone>? ZoneSelected;
     public event Action<MapPin>? PinSelected;
@@ -61,6 +63,14 @@ internal sealed class AtlasCanvas : FrameworkElement
     {
         _zoom = 1;
         _pan = default;
+        InvalidateVisual();
+    }
+
+    public void FocusPin(MapPin pin)
+    {
+        _zoom = Math.Max(2, _zoom);
+        _pan = new Vector((W / 2 - pin.X) * Scale, (H / 2 - pin.Y) * Scale);
+        KeepInView();
         InvalidateVisual();
     }
 
@@ -100,7 +110,12 @@ internal sealed class AtlasCanvas : FrameworkElement
         dc.PushTransform(new MatrixTransform(matrix));
         DrawGrid(dc);
         if (Zone is null) DrawWorld(dc);
-        else DrawZone(dc, Zone);
+        else
+        {
+            if (Backdrop is not null) dc.DrawImage(Backdrop, new Rect(0, 0, W, H));
+            else DrawZone(dc, Zone);
+            DrawPins(dc, Zone);
+        }
         Compass(dc);
         dc.Pop();
     }
@@ -161,13 +176,25 @@ internal sealed class AtlasCanvas : FrameworkElement
         dc.Pop();
         Caption(dc, zone.Region, new Point(38, 38), 14, Ui.Brush("Muted"));
         Caption(dc, zone.Name.ToUpperInvariant(), new Point(38, 59), 27, Ui.Brush("Text"));
-        foreach (var pin in _pins(zone))
+    }
+
+    private void DrawPins(DrawingContext dc, AtlasZone zone)
+    {
+        var pins = _pins(zone).ToArray();
+        if (ShowRoute && pins.Length > 1)
         {
+            var route = new Pen(Ui.Brush("Mint"), 2.8) { DashStyle = DashStyles.Dash };
+            for (var i = 1; i < pins.Length; i++)
+                dc.DrawLine(route, new Point(pins[i - 1].X, pins[i - 1].Y), new Point(pins[i].X, pins[i].Y));
+        }
+        for (var i = 0; i < pins.Length; i++)
+        {
+            var pin = pins[i];
             var point = new Point(pin.X, pin.Y);
             var color = Ui.Brush(pin.Found ? "Mint" : pin.Category == "Босс" ? "Coral" : "Gold");
             if (pin.Id == Selected) dc.DrawEllipse(null, new Pen(Ui.Brush("Text"), 2), point, 15, 15);
             dc.DrawEllipse(color, new Pen(AtlasBrushes[0], 2), point, 8, 8);
-            Caption(dc, pin.Name, point + new Vector(12, -9), 13, Ui.Brush("Text"));
+            Caption(dc, ShowRoute ? $"{i + 1}. {pin.Name}" : pin.Name, point + new Vector(12, -9), 13, Ui.Brush("Text"));
         }
     }
 

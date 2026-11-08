@@ -125,6 +125,8 @@ public sealed record HitQuality(
     long MaxHit,
     string? MaxHitSkill);
 
+public sealed record HealingSkillRow(int SkillCode, string Name, int Events, long Total);
+
 public sealed record CombatantDetail(
     uint ActorId,
     string Name,
@@ -142,7 +144,8 @@ public sealed record CombatantDetail(
     IReadOnlyList<CastRecord> Casts,
     int ServerId = 0,
     int GearScore = 0,
-    long CombatPower = 0);
+    long CombatPower = 0,
+    IReadOnlyList<HealingSkillRow>? Heals = null);
 
 public sealed record SegmentInfo(Guid Id, string Title, DateTimeOffset StartedAt, long CombatMs, bool IsActive, EncounterEndReason Reason, long TotalDamage);
 

@@ -83,6 +83,11 @@ public class EngineTests
         Assert.Equal(600L, healer.Healing);
         Assert.Equal(0, healer.Damage);
         Assert.Equal(600d, snapshot.Combatants.Single(c => c.ActorId == Me).BurstDps);
+        var compact = Assert.IsType<FightRecord>(tracker.Record(null, includeCasts: false));
+        var support = Assert.Single(compact.Details.Single(c => c.ActorId == Mate).Heals!);
+        Assert.Equal(600, support.Total);
+        Assert.Equal(1, support.Events);
+        Assert.All(compact.Details, detail => Assert.Empty(detail.Casts));
     }
 
     [Fact]

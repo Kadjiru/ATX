@@ -13,7 +13,7 @@ public sealed record CatalogManifest(int Schema, int Revision, string CraftingSh
 
 public sealed class CatalogSync
 {
-    private const string Remote = "https://raw.githubusercontent.com/Kadjiru/ATX/beta/0.1.0/ARX%20beta%200.1.0%20source%20dat/Data/";
+    private const string Remote = "https://raw.githubusercontent.com/Kadjiru/ATX/beta/0.2.0/ARX%20beta%200.2.0%20source%20dat/Data/";
     private const int Maximum = 3 * 1024 * 1024;
     private static string CachePath => Path.Combine(LegionStore.Folder, "catalog.json");
     private sealed record Bundle(CatalogManifest Manifest, string Crafting, string Reference);

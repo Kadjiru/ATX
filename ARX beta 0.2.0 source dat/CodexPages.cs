@@ -35,7 +35,7 @@ public sealed partial class Dashboard
     private UIElement CodexPage()
     {
         var reference = _catalog.Reference;
-        var page = Heading("Мета и билды", $"Памятки легиона ARX · {reference.GameBuild} · сводка {reference.ReferenceDate}");
+        var page = Heading("Мета и билды", $"Памятки ARX · {reference.GameBuild} · сводка {reference.ReferenceDate}");
         page.Children.Add(Space(Card(Stack(
             Space(Label("СОСТАВ ГРУППЫ · " + reference.MetaWindow.ToUpperInvariant()), 5),
             Space(Text(reference.Composition, 19, "Mint", true), 7),
@@ -51,7 +51,7 @@ public sealed partial class Dashboard
         foreach (var item in reference.Gear) gear.Children.Add(Space(Text(item, 14), 6));
         page.Children.Add(Space(Card(gear), 12));
         page.Children.Add(Card(Stack(
-            Space(Label("ГАЙД ЛЕГИОНА"), 6),
+            Space(Label("ГАЙД ГРУППЫ"), 6),
             Space(Text(reference.Raid.Title, 20, bold: true), 6),
             Space(Hint(reference.Raid.Entry), 7),
             Space(Text(reference.Raid.Tactics, 14), 6),

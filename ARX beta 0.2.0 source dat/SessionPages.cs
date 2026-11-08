@@ -17,6 +17,7 @@ public sealed partial class Dashboard
             Space(Text("Ближайшие активности", 20, bold: true), 7),
             Space(Hint("Стартовые пресеты Global основаны на расписаниях сообщества. Сверьте якорь UTC с вашим сервером."), 10),
             Actions(Button("Открыть отдельный HUD", () => Hud(HudKind.Events), true)), rows)), 12));
+        page.Children.Add(Space(ObservedBossPanel(), 12));
         var name = Input();
         var anchor = Input(DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm"), 155);
         var minutes = Input("60", 92, 6);
@@ -161,7 +162,7 @@ public sealed partial class Dashboard
 
     private UIElement SettingsPage()
     {
-        var page = Heading("Настройки", "Профиль легиона ARX");
+        var page = Heading("Настройки", "Профиль ARX");
         var name = Input(_store.Profile.Character, 200, 80);
         var server = Input(_store.Profile.Server, 200, 80);
         var saved = Text("", 12, "Mint");
@@ -178,21 +179,96 @@ public sealed partial class Dashboard
             Space(Hint($"Профиль, карты и отчёты сохраняются на этом компьютере. Папка: {LegionStore.Folder}"), 10),
             Hint(_store.LoadError is null ? "Положение и прозрачность каждого HUD сохраняются отдельно."
                 : "Файл профиля повреждён или недоступен. Сделайте копию исходного файла и исправьте его перед следующим запуском."))), 12));
+        var captureStatus = Hint("");
+        var devices = App.CurrentApp.Live?.Adapters().ToArray() ?? [];
+        var adapter = Choice(new[] { "Автоматически" }.Concat(devices.Select(d => d.Description)), 270);
+        adapter.SelectedIndex = Math.Max(0, Array.FindIndex(devices, d => d.Name == _store.Profile.CaptureAdapter) + 1);
+        var captureButton = Button("Начать захват", () => _ = App.CurrentApp.ToggleCapture(), true);
+        page.Children.Add(Space(Card(Stack(Space(Text("Подключение Aion 2", 20, bold: true), 7),
+            Space(Hint("Режим читает локальные сетевые пакеты через Npcap. Игра может присылать неполный состав и урон. Запустите захват перед входом в локацию."), 8),
+            Space(captureStatus, 7), Actions(Field("Сетевой адаптер", adapter)),
+            Actions(captureButton, Button("Применить адаптер", () => _ = ApplyAdapter()),
+                Button("Экспорт диагностики", () => ExportJson(new
+                {
+                    Version = "0.2.0-beta", Windows = Environment.OSVersion.VersionString,
+                    Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
+                }, "arx-diagnostics.json"))),
+            Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."))), 12));
+        _refreshLive = RefreshCapture;
+        RefreshCapture();
+        var app = App.CurrentApp;
+        var density = Choice(["Минимальный", "Средний", "Подробный"], 166);
+        density.SelectedIndex = Math.Clamp((int)_store.Profile.CombatHudDensity, 0, 2);
+        var opacity = new Slider
+        {
+            Width = 172, Minimum = 35, Maximum = 100, Value = Math.Clamp(app.CombatOpacity * 100, 35, 100),
+            TickFrequency = 5, SmallChange = 1, LargeChange = 5
+        };
+        var percent = Hint($"{opacity.Value:0}%");
+        opacity.ValueChanged += (_, _) => percent.Text = $"{opacity.Value:0}%";
+        var lockHud = new CheckBox
+        {
+            Content = "Закрепить и пропускать щелчки",
+            IsChecked = _store.Profile.CombatHudLocked,
+            IsEnabled = app.ClickThroughAvailable
+        };
+        var hotkeys = Hint(app.HotkeyStatus);
+        var activeHud = Hint("");
+        page.Children.Add(Space(Card(Stack(Space(Text("Боевой HUD", 20, bold: true), 7),
+            Actions(Field("Плотность", density), Field("Непрозрачность", opacity), percent, lockHud),
+            Actions(Button("Применить HUD", () =>
+            {
+                app.SetCombatDensity((HudDensity)density.SelectedIndex);
+                app.SetCombatOpacity(opacity.Value / 100);
+                app.SetCombatLock(lockHud.IsChecked == true);
+                RefreshHudStatus();
+            }, true), Button("Показать / скрыть HUD", () => Hud(HudKind.Combat))),
+            Space(activeHud, 6),
+            Space(Hint("Alt+F8 — показ. Ctrl+Alt+1/2/3 — режим. Ctrl+Alt+PgUp/PgDn — прозрачность. Ctrl+Alt+L — закрепление."), 6),
+            hotkeys)), 12));
+        RefreshHudStatus();
         var syncStatus = Text("", 13, "Mint", true);
         var folderLabel = Hint("");
         var feedback = Hint("");
         var publishing = false;
         var publish = new Button { Content = "Опубликовать мои метки и таймеры", Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
         publish.Click += (_, _) => _ = Publish();
-        page.Children.Add(Card(Stack(Space(Text("Синхронизация легиона", 20, bold: true), 7),
+        page.Children.Add(Card(Stack(Space(Text("Синхронизация группы", 20, bold: true), 7),
             Space(Hint("Выберите папку, к которой участники уже имеют доступ. Один редактор публикует общий набор. У остальных ARX проверяет его каждые 15 секунд."), 8),
             Space(Hint("При публикации в папку попадут названия и позиции ваших меток и настройки таймеров. Отметки о находках и остальные данные профиля остаются локальными."), 8),
             Space(folderLabel, 4), Space(syncStatus, 8),
             Actions(Button("Выбрать общую папку", PickFolder), publish, Button("Отключить", Disconnect)),
             feedback, Hint($"{_catalog.Status} · ревизия {_catalog.Revision}"))));
-        _refreshTime = UpdateTeam;
+        _refreshTime = () => { UpdateTeam(); RefreshHudStatus(); };
         UpdateTeam();
         return page;
+
+        void RefreshHudStatus()
+        {
+            var mode = _store.Profile.CombatHudDensity switch { HudDensity.Minimal => "минимальный",
+                HudDensity.Detailed => "подробный", _ => "средний" };
+            activeHud.Text = $"Применено: {mode} · {app.CombatOpacity:P0}" +
+                (_store.Profile.CombatHudLocked ? " · закреплён" : "");
+        }
+
+        void RefreshCapture()
+        {
+            var live = App.CurrentApp.Live;
+            captureStatus.Text = live?.Diagnostic ?? "Предпросмотр";
+            captureButton.Content = live?.IsRunning == true ? "Остановить захват" : "Начать захват";
+            captureButton.IsEnabled = live?.IsStopping != true;
+        }
+
+        async Task ApplyAdapter()
+        {
+            var live = App.CurrentApp.Live;
+            if (live is null || live.IsStopping) return;
+            _store.Profile.CaptureAdapter = adapter.SelectedIndex > 0 ? devices[adapter.SelectedIndex - 1].Name : null;
+            _store.Save();
+            if (!live.IsRunning) return;
+            await live.StopAsync();
+            live.Start();
+        }
 
         void UpdateTeam()
         {
@@ -203,11 +279,11 @@ public sealed partial class Dashboard
 
         void PickFolder()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Общая папка легиона ARX" };
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Общая папка ARX" };
             if (dialog.ShowDialog(this) != true || dialog.FolderName == _store.Profile.TeamFolder) return;
             _store.Profile.TeamFolder = dialog.FolderName;
             _store.Profile.Team = null;
-            _store.TeamStatus = "Поиск набора легиона…";
+            _store.TeamStatus = "Поиск набора группы…";
             _store.Commit();
             UpdateTeam();
             App.CurrentApp.PollTeam();

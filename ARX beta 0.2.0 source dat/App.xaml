@@ -3,15 +3,15 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnLastWindowClose">
     <Application.Resources>
-        <SolidColorBrush x:Key="Base" Color="#0B1519"/>
-        <SolidColorBrush x:Key="Surface" Color="#122126"/>
-        <SolidColorBrush x:Key="Raised" Color="#192D32"/>
-        <SolidColorBrush x:Key="Line" Color="#2D474D"/>
-        <SolidColorBrush x:Key="Text" Color="#EEF8F4"/>
-        <SolidColorBrush x:Key="Muted" Color="#A3BCB9"/>
-        <SolidColorBrush x:Key="Mint" Color="#93EDCD"/>
-        <SolidColorBrush x:Key="Coral" Color="#FFAE9D"/>
-        <SolidColorBrush x:Key="Gold" Color="#E5CE93"/>
+        <SolidColorBrush x:Key="Base" Color="#141418"/>
+        <SolidColorBrush x:Key="Surface" Color="#1C1C22"/>
+        <SolidColorBrush x:Key="Raised" Color="#292830"/>
+        <SolidColorBrush x:Key="Line" Color="#3C3945"/>
+        <SolidColorBrush x:Key="Text" Color="#F7F4ED"/>
+        <SolidColorBrush x:Key="Muted" Color="#B9B4C2"/>
+        <SolidColorBrush x:Key="Mint" Color="#FFCB76"/>
+        <SolidColorBrush x:Key="Coral" Color="#B9ADFF"/>
+        <SolidColorBrush x:Key="Gold" Color="#A6DEC1"/>
         <Style TargetType="Window">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="13"/>

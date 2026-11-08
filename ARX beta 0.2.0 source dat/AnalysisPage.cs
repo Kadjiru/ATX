@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using Microsoft.Win32;
@@ -12,7 +13,11 @@ public sealed partial class Dashboard
     private UIElement AnalysisPage()
     {
         var result = _store.Analysis;
-        var page = Heading("Разбор и история", "Локальные отчёты легиона с боевым графиком, вкладом группы и навыками");
+        var page = Heading("Разбор и история", "Локальные отчёты группы с боевым графиком, вкладом группы и навыками");
+        page.Children.Add(Actions(Button("Снимок живого боя", () =>
+        {
+            if (_store.LiveAnalysis is { } live) _store.SetFight(live.Fight, false);
+        }), Button("Экспорт отчёта", () => ExportFight(result.Fight))));
         var input = new Expander { Header = "Добавить отчёт", Foreground = Ui.Brush("Mint"), IsExpanded = result.Players.Length == 0 };
         var title = Input("", 218, 80);
         var self = Input(_store.Profile.Character, 180, 80);
@@ -37,28 +42,39 @@ public sealed partial class Dashboard
             var current = result.Fight;
             var currentTitle = Text(current.Name, 22, bold: true);
             var header = Stack(Space(currentTitle, 4), Space(Hint(
-                $"{(current.Demo ? "Демонстрация" : "Локальный отчёт")}  ·  {Clock(TimeSpan.FromSeconds(current.Duration))}  ·  " +
+                $"{(current.Demo ? "Демонстрация" : current.Captured is null ? "Локальный отчёт" : "Данные Npcap")}  ·  {Clock(TimeSpan.FromSeconds(current.Duration))}  ·  " +
                 $"{Number(result.Damage)} урона  ·  {Number(result.Healing)} лечения"), 10));
-            if (current.Hits.Length > 0) header.Children.Add(Space(new BattleChart(result) { Height = 170 }, 10));
-            string[] labels = ["Участник", "Урон", "DPS", "Лечение", "HPS", "Крит", "Бурст"];
+            if (result.GroupCurve.Length > 0) header.Children.Add(Space(new BattleChart(result) { Height = 170 }, 10));
+            if (current.Build is { } build) header.Children.Add(Space(Hint($"Заявленный билд: {build}"), 8));
+            if (current.Captured?.Summary.MostDamageUnsent == true) header.Children.Add(Space(Hint("Сервер прислал неполные данные об уроне."), 8));
+            string[] labels = ["Участник", "Урон", "DPS", "Лечение", "HPS", "Крит", "Бурст", "Сила"];
             var memberTable = MakeTable(labels, result.Players, player => StatCells(result, player), player =>
             {
                 _player = player.Player;
+                _actor = player.ActorId;
                 RenderPage();
             });
             header.Children.Add(memberTable);
             page.Children.Add(Space(Card(header), 12));
 
-            var selected = result.Players.FirstOrDefault(p => string.Equals(p.Player, _player, StringComparison.OrdinalIgnoreCase))
+            var selected = result.Players.FirstOrDefault(p => _actor is { } id ? p.ActorId == id : string.Equals(p.Player, _player, StringComparison.OrdinalIgnoreCase))
                 ?? result.Players.FirstOrDefault(p => string.Equals(p.Player, current.Self, StringComparison.OrdinalIgnoreCase))
                 ?? result.Players[0];
             var damageShare = result.Damage == 0 ? 0 : (double)selected.Damage / result.Damage;
             var detail = Stack(Space(Text($"Навыки · {selected.Player}", 19, bold: true), 6),
                 Space(Hint($"Доля урона {damageShare:P1}  ·  Попадания {selected.Hits?.ToString() ?? "—"}  ·  Криты {selected.Crits?.ToString() ?? "—"}"), 9));
-            var skills = result.Skills(selected.Player);
+            var captured = current.Captured?.Details.FirstOrDefault(p => p.ActorId == selected.ActorId);
+            if (captured is not null)
+            {
+                string Percent(double? n) => n is { } value ? value.ToString("P1") : "—";
+                detail.Children.Add(Space(Hint($"Макс. удар {Compact(captured.Quality.MaxHit)} · Полученный урон {Compact(captured.DamageTaken)} · " +
+                    $"Атака со спины {Percent(captured.Quality.BackRate)} · Идеальный удар {Percent(captured.Quality.PerfectRate)} · " +
+                    $"Тяжёлый удар {Percent(captured.Quality.HeavyRate)}"), 9));
+            }
+            var skills = result.Skills(selected.Player, selected.ActorId);
             if (skills.Length == 0) detail.Children.Add(Hint("Разбивка по навыкам появляется при импорте событий."));
-            else detail.Children.Add(MakeTable(["Навык", "Урон", "DPS", "Лечение", "HPS", "Крит", "Бурст"],
-                skills, skill => StatCells(result, skill)));
+            else detail.Children.Add(MakeTable(["Навык", "Урон", "DPS", "Лечение", "HPS", "Крит", "Бурст", "Макс."],
+                skills, skill => StatCells(result, skill, true)));
             page.Children.Add(Space(Card(detail), 12));
         }
 
@@ -133,12 +149,30 @@ public sealed partial class Dashboard
         string ReportName(string fallback) => string.IsNullOrWhiteSpace(title.Text) ? fallback : title.Text.Trim();
     }
 
-    private static string[] StatCells(FightAnalysis result, PlayerStats player) =>
+    private static string[] StatCells(FightAnalysis result, PlayerStats player, bool skill = false) =>
     [
         player.Player, Compact(player.Damage), Compact(result.Rate(player.Damage)),
         Compact(player.Healing), Compact(result.Rate(player.Healing)),
-        player.CritRate is { } crit ? $"{crit:P0}" : "—", player.Burst is { } peak ? Compact(peak) : "—"
+        player.CritRate is { } crit ? $"{crit:P0}" : "—", player.Burst is { } peak ? Compact(peak) : "—",
+        (skill ? player.MaxHit : player.CombatPower) is > 0 and var value ? Compact(value) : "—"
     ];
+
+    private void ExportFight(Fight fight)
+    {
+        if (fight.Id == Guid.Empty || fight.Demo) return;
+        ExportJson(fight, "arx-fight.json");
+    }
+
+    private void ExportJson<T>(T value, string name)
+    {
+        var dialog = new SaveFileDialog { Filter = "JSON (*.json)|*.json", FileName = name };
+        if (dialog.ShowDialog(this) != true) return;
+        try { File.WriteAllText(dialog.FileName, JsonSerializer.Serialize(value, new JsonSerializerOptions { WriteIndented = true })); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this, ex.Message, "Экспорт ARX", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
 
     private static StackPanel MakeTable<T>(string[] headers, IEnumerable<T> rows, Func<T, string[]> values,
         Action<T>? choose = null)

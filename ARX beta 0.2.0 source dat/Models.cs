@@ -2,20 +2,22 @@ using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using Microsoft.VisualBasic.FileIO;
+using AionMeter.Core.Combat;
 
 namespace ArxBeta;
 
 public sealed record Hit(double Second, string Player, string Skill, long Damage, long Healing, bool Critical);
 public sealed record Totals(string Player, long Damage, long Healing);
 public sealed record Fight(Guid Id, string Name, DateTimeOffset Date, double Duration, string Self,
-    Hit[] Hits, Totals[] Entered, bool Demo = false)
+    Hit[] Hits, Totals[] Entered, bool Demo = false, FightRecord? Captured = null, string? Build = null)
 {
     public static Fight Empty { get; } = new(Guid.Empty, "Ожидание отчёта", DateTimeOffset.MinValue, 0, "", [], []);
 }
 
-public sealed record PlayerStats(string Player, long Damage, long Healing, int? Hits, int? Crits, double? Burst)
+public sealed record PlayerStats(string Player, long Damage, long Healing, int? Hits, int? Crits, double? Burst,
+    uint? ActorId = null, long CombatPower = 0, long MaxHit = 0, double? ObservedCrit = null)
 {
-    public double? CritRate => Hits is > 0 ? (double)Crits!.Value / Hits.Value : null;
+    public double? CritRate => ObservedCrit ?? (Hits is > 0 && Crits is { } count ? (double)count / Hits.Value : null);
 }
 
 public sealed class FightAnalysis
@@ -32,6 +34,27 @@ public sealed class FightAnalysis
     public FightAnalysis(Fight fight)
     {
         Fight = fight;
+        if (fight.Captured is { } captured)
+        {
+            Players = captured.Summary.Combatants.Select(c => new PlayerStats(c.Name, c.Damage, c.Healing ?? 0,
+                c.Hits, c.Hits > 0 ? (int)Math.Round(c.CritRate * c.Hits) : null, c.BurstDps,
+                c.ActorId, c.CombatPower, c.MaxHit, c.Hits > 0 ? c.CritRate : null)).ToArray();
+            Damage = Players.Sum(p => p.Damage);
+            Healing = Players.Sum(p => p.Healing);
+            var width = Math.Max(1, captured.Details.Select(d => d.PerSecond.Count).DefaultIfEmpty().Max());
+            var group = new long[width];
+            var personal = new long[width];
+            foreach (var player in captured.Details)
+                for (var i = 0; i < player.PerSecond.Count; i++)
+                {
+                    group[i] += player.PerSecond[i];
+                    if (player.IsSelf) personal[i] += player.PerSecond[i];
+                }
+            Burst = fight.Duration >= 5 ? BucketPeak(group) : null;
+            GroupCurve = Curve(group, fight.Duration);
+            SelfCurve = Curve(personal, fight.Duration);
+            return;
+        }
         Players = fight.Entered.Select(t => new PlayerStats(t.Player, t.Damage, t.Healing, null, null, null))
             .Concat(fight.Hits.GroupBy(h => h.Player, StringComparer.OrdinalIgnoreCase).Select(g => Summarize(g.Key, g)))
             .OrderByDescending(p => p.Damage).ToArray();
@@ -54,10 +77,45 @@ public sealed class FightAnalysis
 
     public double Rate(long amount) => Fight.Duration > 0 ? amount / Fight.Duration : 0;
 
-    public PlayerStats[] Skills(string player) => Fight.Hits
+    public PlayerStats[] Skills(string player, uint? actorId = null)
+    {
+        if (Fight.Captured is { } captured)
+        {
+            var detail = captured.Details.FirstOrDefault(c => actorId is { } id ? c.ActorId == id : c.Name == player);
+            if (detail is null) return [];
+            var heals = (detail.Heals ?? []).ToDictionary(row => row.SkillCode);
+            var skills = detail.Skills.Select(s => new PlayerStats(s.Name, s.Damage, heals.GetValueOrDefault(s.SkillCode)?.Total ?? 0,
+                s.Hits, s.CritRate is { } crit ? (int)Math.Round(crit * s.Hits) : null, null, MaxHit: s.Max, ObservedCrit: s.CritRate));
+            return skills.Concat(heals.Values.Where(h => detail.Skills.All(s => s.SkillCode != h.SkillCode))
+                .Select(h => new PlayerStats(h.Name, 0, h.Total, null, null, null)))
+                .OrderByDescending(s => s.Damage + s.Healing).ToArray();
+        }
+        return Fight.Hits
         .Where(h => string.Equals(h.Player, player, StringComparison.OrdinalIgnoreCase))
         .GroupBy(h => h.Skill, StringComparer.OrdinalIgnoreCase).Select(g => Summarize(g.Key, g))
         .OrderByDescending(p => p.Damage).ThenByDescending(p => p.Healing).ToArray();
+    }
+
+    private static double[] Curve(long[] seconds, double duration)
+    {
+        var bin = Math.Max(1, (int)Math.Ceiling(seconds.Length / 80.0));
+        var values = new double[(seconds.Length + bin - 1) / bin];
+        for (var i = 0; i < seconds.Length; i++)
+            values[i / bin] += seconds[i] / Math.Max(1, Math.Min(bin, duration - i / bin * bin));
+        return values;
+    }
+
+    private static double BucketPeak(long[] seconds)
+    {
+        long total = 0, peak = 0;
+        for (var i = 0; i < seconds.Length; i++)
+        {
+            total += seconds[i];
+            if (i >= 5) total -= seconds[i - 5];
+            peak = Math.Max(peak, total);
+        }
+        return peak / 5.0;
+    }
 
     private PlayerStats Summarize(string name, IEnumerable<Hit> events)
     {
@@ -154,8 +212,8 @@ public sealed record EventRule(Guid Id, string Name, DateTimeOffset AnchorUtc, i
 
 public sealed record SessionTask(Guid Id, Guid SessionId, string Text, bool Done);
 public sealed record KinaEntry(Guid Id, Guid SessionId, DateTimeOffset Date, string Note, long Amount);
-public sealed record MapPin(Guid Id, string Zone, double X, double Y, string Category, string Name, bool Found);
-public sealed record HudLayout(double Left, double Top, double Width, double Height, double Opacity);
+public sealed record MapPin(Guid Id, string Zone, double X, double Y, string Category, string Name, bool Found, string? Layer = null);
+public sealed record HudLayout(double Left, double Top, double Width, double Height, double Opacity, HudDensity? Density = null);
 
 public sealed class Profile
 {
@@ -166,6 +224,18 @@ public sealed class Profile
     public List<SessionTask> Tasks { get; set; } = [];
     public List<KinaEntry> Ledger { get; set; } = [];
     public List<MapPin> Pins { get; set; } = [];
+    public Dictionary<string, string> AtlasLayers { get; set; } = [];
+    public bool CaptureEnabled { get; set; }
+    public string? CaptureAdapter { get; set; }
+    public string DeclaredBuild { get; set; } = "";
+    public HudDensity CombatHudDensity { get; set; } = HudDensity.Medium;
+    public double? CombatHudOpacity { get; set; }
+    public bool CombatHudLocked { get; set; }
+    public Expedition? CurrentExpedition { get; set; }
+    public List<Expedition> Expeditions { get; set; } = [];
+    public string ProgressCharacter { get; set; } = "";
+    public List<ProgressGoal> Goals { get; set; } = [];
+    public Dictionary<string, int> BossAlarms { get; set; } = [];
     public Dictionary<string, HudLayout> HudLayouts { get; set; } = [];
     public string TeamFolder { get; set; } = "";
     public Guid TeamClientId { get; set; } = Guid.NewGuid();
@@ -190,6 +260,15 @@ public sealed class LegionStore
     public bool NewProfile { get; }
     public string TeamStatus { get; set; } = "Общая папка не подключена";
     public FightAnalysis Analysis { get; private set; }
+    public FightAnalysis? LiveAnalysis { get; private set; }
+    private static readonly FightAnalysis NoFight = new(Fight.Empty);
+    public bool FollowLive { get; private set; }
+    public FightAnalysis DisplayAnalysis => FollowLive ? LiveAnalysis ?? NoFight : Analysis;
+    public string CaptureLabel { get; private set; } = "Захват выключен";
+    public string? LiveIdentity { get; private set; }
+    public IReadOnlyList<ObservedBoss> LiveBosses { get; private set; } = [];
+    public string? BossNotice { get; private set; }
+    public event Action? LiveChanged;
     public event Action? Changed;
 
     public LegionStore(bool preview)
@@ -213,6 +292,7 @@ public sealed class LegionStore
     public void SetFight(Fight fight, bool save)
     {
         var result = new FightAnalysis(fight);
+        FollowLive = false;
         if (save && !fight.Demo)
         {
             Profile.History.Insert(0, fight);
@@ -221,6 +301,40 @@ public sealed class LegionStore
         }
         Analysis = result;
         Changed?.Invoke();
+    }
+
+    public void SetFollowLive(bool value)
+    {
+        FollowLive = value;
+        Changed?.Invoke();
+    }
+
+    public void UpdateLive(FightAnalysis? analysis, string label, string? identity, IReadOnlyList<ObservedBoss> bosses)
+    {
+        LiveAnalysis = analysis;
+        CaptureLabel = label;
+        LiveIdentity = identity;
+        LiveBosses = bosses;
+        LiveChanged?.Invoke();
+    }
+
+    public void Archive(Fight fight)
+    {
+        if (Profile.History.Any(f => f.Id == fight.Id)) return;
+        Profile.History.Insert(0, fight);
+        if (Profile.History.Count > 30) Profile.History.RemoveAt(30);
+        if (Profile.CurrentExpedition is { } run)
+        {
+            var stats = new FightAnalysis(fight);
+            run.Segments.Add(new ExpeditionSegment(fight.Id, fight.Name, fight.Duration, stats.Damage, stats.Healing));
+        }
+        Save();
+        LiveChanged?.Invoke();
+    }
+
+    public void SetBossNotice(string? notice)
+    {
+        BossNotice = notice;
     }
 
     public void Commit()

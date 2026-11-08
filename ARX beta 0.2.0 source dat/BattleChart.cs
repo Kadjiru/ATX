@@ -6,6 +6,13 @@ namespace ArxBeta;
 
 public sealed class BattleChart(FightAnalysis analysis) : FrameworkElement
 {
+    public void Update(FightAnalysis value)
+    {
+        if (ReferenceEquals(analysis, value)) return;
+        analysis = value;
+        InvalidateVisual();
+    }
+
     protected override void OnRender(DrawingContext dc)
     {
         var width = ActualWidth - 44;
