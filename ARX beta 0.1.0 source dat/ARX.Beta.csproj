@@ -8,6 +8,7 @@
     <AssemblyName>ARX.Beta</AssemblyName>
     <Version>0.1.0-beta</Version>
     <Product>ARX · Legion Companion</Product>
+    <ApplicationIcon>Assets/ARX.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets/Atreia.jpg" />

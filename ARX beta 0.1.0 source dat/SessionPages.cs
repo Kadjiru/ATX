@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using static ArxBeta.Ui;
@@ -11,6 +12,7 @@ public sealed partial class Dashboard
     {
         var page = Heading("События", "Таймеры работают по расписанию, даже когда игра закрыта");
         var rows = new StackPanel();
+        var clocks = new List<(EventRule Rule, TextBlock Clock)>();
         page.Children.Add(Space(Card(Stack(
             Space(Text("Ближайшие активности", 20, bold: true), 7),
             Space(Hint("Стартовые пресеты Global основаны на расписаниях сообщества. Сверьте якорь UTC с вашим сервером."), 10),
@@ -25,7 +27,8 @@ public sealed partial class Dashboard
             Space(Hint("Введите дату и время UTC в формате ГГГГ-ММ-ДД ЧЧ:ММ. Интервал 0 создаёт одноразовый таймер."), 8),
             Actions(Field("Название", name), Field("Якорь UTC", anchor), Field("Повтор, мин", minutes)),
             Actions(Button("Сохранить", SaveRule, true), Button("Новый таймер", ResetEditor)), note)));
-        _refreshTime = Refresh;
+        _refreshTime = RefreshClocks;
+        _refreshShared = Refresh;
         Refresh();
         return page;
 
@@ -33,12 +36,15 @@ public sealed partial class Dashboard
         {
             var now = DateTimeOffset.UtcNow;
             rows.Children.Clear();
-            foreach (var item in _store.Profile.Events.OrderBy(e => e.Next(now) ?? DateTimeOffset.MaxValue))
+            clocks.Clear();
+            foreach (var item in _store.AllEvents.OrderBy(e => e.Next(now) ?? DateTimeOffset.MaxValue))
             {
-                var due = item.Next(now);
-                var info = due is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}" : item.Enabled ? "Завершён" : "Выключен";
-                var toggle = new CheckBox { IsChecked = item.Enabled, Content = item.Name, MinWidth = 205 };
-                var line = Actions(toggle, Text(info, 15, "Mint", true), Button("Изменить", () =>
+                var shared = _store.SharedEvents.FirstOrDefault(e => e.Id == item.Id);
+                var toggle = new CheckBox { IsChecked = item.Enabled, Content = shared is null ? item.Name : item.Name + " · ARX",
+                    MinWidth = 205, IsEnabled = shared?.Enabled != false };
+                var label = Text("", 15, "Mint", true);
+                clocks.Add((item, label));
+                var edit = Button("Изменить", () =>
                 {
                     editing = item.Id;
                     caption.Text = $"Настроить · {item.Name}";
@@ -46,17 +52,34 @@ public sealed partial class Dashboard
                     anchor.Text = item.AnchorUtc.ToString("yyyy-MM-dd HH:mm");
                     minutes.Text = item.RepeatMinutes.ToString();
                     note.Text = "";
-                }));
+                });
+                var line = shared is null ? Actions(toggle, label, edit) : Actions(toggle, label);
                 toggle.Click += (_, _) =>
                 {
-                    var index = _store.Profile.Events.FindIndex(e => e.Id == item.Id);
-                    if (index < 0) return;
-                    _store.Profile.Events[index] = item with { Enabled = toggle.IsChecked == true };
+                    if (shared is not null)
+                    {
+                        if (toggle.IsChecked == true) _store.Profile.TeamDisabled.Remove(item.Id);
+                        else _store.Profile.TeamDisabled.Add(item.Id);
+                    }
+                    else
+                    {
+                        var index = _store.Profile.Events.FindIndex(e => e.Id == item.Id);
+                        if (index < 0) return;
+                        _store.Profile.Events[index] = item with { Enabled = toggle.IsChecked == true };
+                    }
                     _store.Commit();
-                    Refresh();
                 };
                 rows.Children.Add(line);
             }
+            RefreshClocks();
+        }
+
+        void RefreshClocks()
+        {
+            var now = DateTimeOffset.UtcNow;
+            foreach (var (rule, label) in clocks)
+                label.Text = rule.Next(now) is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}"
+                    : rule.Enabled ? "Завершён" : "Выключен";
         }
 
         void ResetEditor()
@@ -86,7 +109,6 @@ public sealed partial class Dashboard
                 _store.Profile.Events.Add(new EventRule(Guid.NewGuid(), name.Text.Trim(), utc, period));
             _store.Commit();
             ResetEditor();
-            Refresh();
         }
     }
 
@@ -152,11 +174,73 @@ public sealed partial class Dashboard
                 _store.Commit();
                 saved.Text = _store.LoadError is null ? "Профиль сохранён." : "Профиль доступен только в этой сессии.";
             }, true)), saved)), 12));
-        page.Children.Add(Card(Stack(Space(Text("Хранение данных", 20, bold: true), 7),
+        page.Children.Add(Space(Card(Stack(Space(Text("Хранение данных", 20, bold: true), 7),
             Space(Hint($"Профиль, карты и отчёты сохраняются на этом компьютере. Папка: {LegionStore.Folder}"), 10),
             Hint(_store.LoadError is null ? "Положение и прозрачность каждого HUD сохраняются отдельно."
-                : "Файл профиля повреждён или недоступен. Сделайте копию исходного файла и исправьте его перед следующим запуском."))));
+                : "Файл профиля повреждён или недоступен. Сделайте копию исходного файла и исправьте его перед следующим запуском."))), 12));
+        var syncStatus = Text("", 13, "Mint", true);
+        var folderLabel = Hint("");
+        var feedback = Hint("");
+        var publishing = false;
+        var publish = new Button { Content = "Опубликовать мои метки и таймеры", Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
+        publish.Click += (_, _) => _ = Publish();
+        page.Children.Add(Card(Stack(Space(Text("Синхронизация легиона", 20, bold: true), 7),
+            Space(Hint("Выберите папку, к которой участники уже имеют доступ. Один редактор публикует общий набор. У остальных ARX проверяет его каждые 15 секунд."), 8),
+            Space(Hint("При публикации в папку попадут названия и позиции ваших меток и настройки таймеров. Отметки о находках и остальные данные профиля остаются локальными."), 8),
+            Space(folderLabel, 4), Space(syncStatus, 8),
+            Actions(Button("Выбрать общую папку", PickFolder), publish, Button("Отключить", Disconnect)),
+            feedback, Hint($"{_catalog.Status} · ревизия {_catalog.Revision}"))));
+        _refreshTime = UpdateTeam;
+        UpdateTeam();
         return page;
+
+        void UpdateTeam()
+        {
+            folderLabel.Text = string.IsNullOrEmpty(_store.Profile.TeamFolder) ? "Общая папка не выбрана" : _store.Profile.TeamFolder;
+            syncStatus.Text = _store.TeamStatus;
+            publish.IsEnabled = !string.IsNullOrEmpty(_store.Profile.TeamFolder) && !publishing;
+        }
+
+        void PickFolder()
+        {
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Общая папка легиона ARX" };
+            if (dialog.ShowDialog(this) != true || dialog.FolderName == _store.Profile.TeamFolder) return;
+            _store.Profile.TeamFolder = dialog.FolderName;
+            _store.Profile.Team = null;
+            _store.TeamStatus = "Поиск набора легиона…";
+            _store.Commit();
+            UpdateTeam();
+            App.CurrentApp.PollTeam();
+        }
+
+        void Disconnect()
+        {
+            _store.Profile.TeamFolder = "";
+            _store.Profile.Team = null;
+            _store.TeamStatus = "Общая папка не подключена";
+            _store.Commit();
+            UpdateTeam();
+        }
+
+        async Task Publish()
+        {
+            var folder = _store.Profile.TeamFolder;
+            if (string.IsNullOrEmpty(folder) || publishing) return;
+            publishing = true;
+            UpdateTeam();
+            try
+            {
+                var snapshot = TeamShare.Prepare(_store.Profile);
+                await Task.Run(() => TeamShare.Publish(folder, snapshot));
+                feedback.Text = $"Опубликовано: {snapshot.Pins.Length} меток и {snapshot.Events.Length} таймеров.";
+                App.CurrentApp.PollTeam();
+            }
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
+            {
+                feedback.Text = "Публикация не удалась. " + ex.Message;
+            }
+            finally { publishing = false; UpdateTeam(); }
+        }
     }
 }
 

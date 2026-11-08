@@ -1,5 +1,3 @@
-using System.IO;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using static ArxBeta.Ui;
@@ -10,14 +8,7 @@ public sealed record Ingredient(string Id, int Count);
 public sealed record Recipe(string Id, string Name, string Profession, string Type, int Faction, string OutputId,
     int Yield, Ingredient[] Materials);
 public sealed record CatalogItem(string Name, string Source);
-public sealed record CraftCatalog(Recipe[] Recipes, Dictionary<string, CatalogItem> Items)
-{
-    public static CraftCatalog Load()
-    {
-        var file = Path.Combine(AppContext.BaseDirectory, "Data", "Crafting.json");
-        return JsonSerializer.Deserialize<CraftCatalog>(File.ReadAllText(file)) ?? throw new InvalidDataException("Пустой справочник.");
-    }
-}
+public sealed record CraftCatalog(Recipe[] Recipes, Dictionary<string, CatalogItem> Items);
 
 public sealed partial class Dashboard
 {
@@ -43,10 +34,11 @@ public sealed partial class Dashboard
 
     private UIElement CodexPage()
     {
-        var page = Heading("Мета и билды", "Global · памятки легиона ARX и срез данных на 8 ноября 2026");
+        var reference = _catalog.Reference;
+        var page = Heading("Мета и билды", $"Памятки легиона ARX · {reference.GameBuild} · сводка {reference.ReferenceDate}");
         page.Children.Add(Space(Card(Stack(
-            Space(Label("СОСТАВ ГРУППЫ · 26 ОКТЯБРЯ — 1 НОЯБРЯ"), 5),
-            Space(Text("Страж · Целитель · Чародей · Стрелок · Волшебник", 19, "Mint", true), 7),
+            Space(Label("СОСТАВ ГРУППЫ · " + reference.MetaWindow.ToUpperInvariant()), 5),
+            Space(Text(reference.Composition, 19, "Mint", true), 7),
             Hint("Наиболее частый состав среди боёв, загруженных пользователями AionFlex за неделю. Частота состава зависит от контента и состава выборки."))), 12));
         var choose = Choice(Builds.Select(b => b.Name), 265);
         var buildDetail = new StackPanel();
@@ -54,18 +46,16 @@ public sealed partial class Dashboard
         page.Children.Add(Space(Card(block), 12));
         choose.SelectionChanged += (_, _) => RenderBuild();
         RenderBuild();
-        page.Children.Add(Space(Card(Stack(
-            Space(Label("СНАРЯЖЕНИЕ GLOBAL 2.0.10.0 · 5 НОЯБРЯ"), 6),
-            Space(Text("Предметы для планирования", 20, bold: true), 7),
-            Space(Text("Оружие Лудры · целевой рейдовый апгрейд уровня предмета 102. Выбирайте вариант под свой класс.", 14), 6),
-            Space(Text("Браслет Лудры · уровень предмета 86, через преобразование ваучеров рейда.", 14), 6),
-            Hint("Браслет Бездны · уровень предмета 70. Сравните прибавку под свою роль, привязку и стоимость улучшения."))), 12));
+        var gear = Stack(Space(Label("СНАРЯЖЕНИЕ · " + reference.GameBuild), 6),
+            Space(Text("Предметы для планирования", 20, bold: true), 7));
+        foreach (var item in reference.Gear) gear.Children.Add(Space(Text(item, 14), 6));
+        page.Children.Add(Space(Card(gear), 12));
         page.Children.Add(Card(Stack(
             Space(Label("ГАЙД ЛЕГИОНА"), 6),
-            Space(Text("Кузница Бездны · Лудра", 20, bold: true), 6),
-            Space(Hint("Вход для 10 игроков. Уровень предметов 2800 для обычного режима и 3000 для сложного."), 7),
-            Space(Text("До боя назначьте ведущего, игроков для подхвата сфер и резерв. В первом заходе согласуйте стороны, точку сбора и очередность защитных навыков.", 14), 6),
-            Hint("Рабочий ориентир для разведки. Фазы и точные тайминги сложного режима проверьте на своей группе."))));
+            Space(Text(reference.Raid.Title, 20, bold: true), 6),
+            Space(Hint(reference.Raid.Entry), 7),
+            Space(Text(reference.Raid.Tactics, 14), 6),
+            Hint(reference.Raid.Status))));
         return page;
 
         void RenderBuild()
@@ -83,13 +73,7 @@ public sealed partial class Dashboard
     private UIElement CraftPage()
     {
         var page = Heading("Мастерская", "Поиск по локальной базе предметов, рецепты и расчёт недостающих ресурсов");
-        CraftCatalog catalog;
-        try { catalog = CraftCatalog.Load(); }
-        catch (Exception ex) when (ex is IOException or JsonException)
-        {
-            page.Children.Add(Card(Hint("База рецептов недоступна. Проверьте папку Data рядом с приложением.")));
-            return page;
-        }
+        var catalog = _catalog.Crafting;
 
         var search = Input("", 240);
         var profession = Choice(new[] { "Все профессии" }.Concat(catalog.Recipes.Select(r => r.Profession).Distinct().Order()), 168);
@@ -97,7 +81,7 @@ public sealed partial class Dashboard
         var results = new ListBox { Height = 212, DisplayMemberPath = nameof(Recipe.Name) };
         var tally = Hint("");
         page.Children.Add(Space(Card(Stack(
-            Space(Hint("Срез Global LST от 21.09.2026. Английские названия сохранены из таблицы. Сверьте количества в клиенте после патчей."), 9),
+            Space(Hint($"Срез Global LST от {_catalog.Reference.CraftingDate}. Английские названия сохранены из таблицы. Сверьте количества в клиенте после патчей."), 9),
             Actions(Field("Поиск по названию", search), Field("Профессия", profession), Field("Раздел", mode)),
             Space(tally, 5), results)), 12));
         var detail = new ContentControl();

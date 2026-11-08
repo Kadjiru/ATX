@@ -124,7 +124,7 @@ public sealed partial class Dashboard
         void TryAction(Action action)
         {
             try { action(); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or Microsoft.VisualBasic.FileIO.MalformedLineException)
+            catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or Microsoft.VisualBasic.FileIO.MalformedLineException)
             {
                 error.Text = ex.Message;
             }

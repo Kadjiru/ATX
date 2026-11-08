@@ -167,6 +167,11 @@ public sealed class Profile
     public List<KinaEntry> Ledger { get; set; } = [];
     public List<MapPin> Pins { get; set; } = [];
     public Dictionary<string, HudLayout> HudLayouts { get; set; } = [];
+    public string TeamFolder { get; set; } = "";
+    public Guid TeamClientId { get; set; } = Guid.NewGuid();
+    public TeamSnapshot? Team { get; set; }
+    public HashSet<Guid> TeamFound { get; set; } = [];
+    public HashSet<Guid> TeamDisabled { get; set; } = [];
     public List<EventRule> Events { get; set; } =
     [
         new(new Guid("55025e60-21df-42de-9e89-a22f94b8c426"), "Пространственный разлом", DateTimeOffset.UnixEpoch, 180),
@@ -182,12 +187,15 @@ public sealed class LegionStore
     public Profile Profile { get; }
     public string? LoadError { get; }
     public bool Preview { get; }
+    public bool NewProfile { get; }
+    public string TeamStatus { get; set; } = "Общая папка не подключена";
     public FightAnalysis Analysis { get; private set; }
     public event Action? Changed;
 
     public LegionStore(bool preview)
     {
         Preview = preview;
+        NewProfile = !File.Exists(PathName);
         try
         {
             Profile = !preview && File.Exists(PathName)
@@ -231,8 +239,13 @@ public sealed class LegionStore
     }
 
     public IEnumerable<(EventRule Rule, DateTimeOffset Due)> Upcoming(DateTimeOffset now) =>
-        Profile.Events.Select(rule => (Rule: rule, Due: rule.Next(now)))
+        AllEvents.Select(rule => (Rule: rule, Due: rule.Next(now)))
             .Where(item => item.Due.HasValue).Select(item => (item.Rule, item.Due!.Value)).OrderBy(item => item.Value);
 
     public IEnumerable<SessionTask> SessionTasks => Profile.Tasks.Where(t => t.SessionId == Profile.SessionId);
+    public IEnumerable<MapPin> AllPins => Profile.Pins.Concat(
+        (Profile.Team?.Pins ?? []).Select(p => p with { Found = Profile.TeamFound.Contains(p.Id) })).DistinctBy(p => p.Id);
+    public IEnumerable<EventRule> SharedEvents => Profile.Team is { } team && team.Publisher != Profile.TeamClientId ? team.Events : [];
+    public IEnumerable<EventRule> AllEvents => SharedEvents.Select(e => e with { Enabled = e.Enabled && !Profile.TeamDisabled.Contains(e.Id) })
+        .Concat(Profile.Events).DistinctBy(e => e.Id);
 }

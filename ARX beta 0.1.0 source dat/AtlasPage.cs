@@ -78,10 +78,11 @@ public sealed partial class Dashboard
             add);
         Place(grid, Card(side, 12), 0, 1);
         page.Children.Add(grid);
+        _refreshShared = Update;
         Update();
         return page;
 
-        IEnumerable<MapPin> VisiblePins(AtlasZone? zone) => profile.Pins.Where(p => p.Zone == zone?.Id &&
+        IEnumerable<MapPin> VisiblePins(AtlasZone? zone) => _store.AllPins.Where(p => p.Zone == zone?.Id &&
             (filter.SelectedIndex <= 0 || p.Category == (string)filter.SelectedItem));
 
         void SelectZone(AtlasZone? zone)
@@ -94,7 +95,7 @@ public sealed partial class Dashboard
         void Update()
         {
             zoneTitle.Text = map.Zone?.Name ?? "Атрея";
-            var pins = map.Zone is null ? profile.Pins.ToArray() : profile.Pins.Where(p => p.Zone == map.Zone.Id).ToArray();
+            var pins = map.Zone is null ? _store.AllPins.ToArray() : _store.AllPins.Where(p => p.Zone == map.Zone.Id).ToArray();
             progress.Text = $"{pins.Count(p => p.Found)} / {pins.Length} отмечено";
             hint.Text = map.Zone is null ? "Выберите зону на схеме или в панели. Положение зон условно."
                 : map.Placing ? "Щёлкните по карте, чтобы разместить метку."
@@ -112,7 +113,8 @@ public sealed partial class Dashboard
             listRefreshing = false;
             var current = pins.FirstOrDefault(p => p.Id == selected);
             selectedName.Text = current?.Name ?? "";
-            found.IsEnabled = delete.IsEnabled = current is not null;
+            found.IsEnabled = current is not null;
+            delete.IsEnabled = current is not null && profile.Pins.Any(p => p.Id == current.Id);
             found.Content = current?.Found == true ? "Снять отметку" : "Отметить находку";
             map.Selected = selected == Guid.Empty ? null : selected;
             map.InvalidateVisual();
@@ -121,9 +123,12 @@ public sealed partial class Dashboard
         void ToggleFound()
         {
             var index = profile.Pins.FindIndex(p => p.Id == selected);
-            if (index < 0) return;
-            var pin = profile.Pins[index];
-            profile.Pins[index] = pin with { Found = !pin.Found };
+            if (index >= 0)
+            {
+                var pin = profile.Pins[index];
+                profile.Pins[index] = pin with { Found = !pin.Found };
+            }
+            else if (!profile.TeamFound.Add(selected)) profile.TeamFound.Remove(selected);
             _store.Commit();
             Update();
         }

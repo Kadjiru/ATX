@@ -11,17 +11,20 @@ namespace ArxBeta;
 public sealed partial class Dashboard : Window
 {
     private readonly LegionStore _store;
+    private readonly CatalogSync _catalog;
     private readonly ScrollViewer _scroll;
     private readonly TextBlock _status;
     private readonly Dictionary<string, Button> _navigation = [];
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private Action? _refreshTime;
+    private Action? _refreshShared;
     private string _page = "combat";
     private string? _player;
 
-    public Dashboard(LegionStore store)
+    public Dashboard(LegionStore store, CatalogSync catalog)
     {
         _store = store;
+        _catalog = catalog;
         Title = "ARX · Legion Companion";
         Width = 1340;
         Height = 920;
@@ -111,6 +114,7 @@ public sealed partial class Dashboard : Window
     {
         UpdateStatus();
         if (_page is "combat" or "analysis" or "session") RenderPage();
+        else _refreshShared?.Invoke();
     }
 
     private void UpdateStatus()
@@ -124,6 +128,7 @@ public sealed partial class Dashboard : Window
     private void RenderPage()
     {
         _refreshTime = null;
+        _refreshShared = null;
         UpdateStatus();
         foreach (var (key, button) in _navigation)
         {
@@ -214,7 +219,18 @@ public sealed partial class Dashboard : Window
             party.Children.Add(button);
         }
         Place(details, Card(party), 0, 1);
-        page.Children.Add(details);
+        page.Children.Add(Space(details, 13));
+        var summaryCards = new UniformGrid { Columns = 3 };
+        var self = current.Players.FirstOrDefault(p => string.Equals(p.Player, fight.Self, StringComparison.OrdinalIgnoreCase));
+        var now = DateTimeOffset.UtcNow;
+        var next = _store.Upcoming(now).FirstOrDefault();
+        AddMetric(summaryCards, "ВАШ ВКЛАД", self is null ? "—" : Compact(current.Rate(self.Damage)) + " DPS",
+            self?.Player ?? "укажите персонажа в отчёте", "Mint");
+        AddMetric(summaryCards, "БЛИЖАЙШЕЕ СОБЫТИЕ", next.Rule is null ? "—" : next.Due.ToLocalTime().ToString("HH:mm"),
+            next.Rule?.Name ?? "активируйте таймер", "Gold");
+        var pins = _store.AllPins.ToArray();
+        AddMetric(summaryCards, "ПРОГРЕСС АТЛАСА", $"{pins.Count(p => p.Found)} / {pins.Length}", "найденные метки", "Coral");
+        page.Children.Add(summaryCards);
         return page;
     }
 
