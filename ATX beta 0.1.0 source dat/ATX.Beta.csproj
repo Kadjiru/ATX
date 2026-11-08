@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ATX.Beta</AssemblyName>
+    <Version>0.1.0-beta</Version>
+    <Product>ATX · Legion Companion</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets/Atreia.jpg" />
+    <None Update="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
