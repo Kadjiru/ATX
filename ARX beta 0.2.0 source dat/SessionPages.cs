@@ -190,7 +190,7 @@ public sealed partial class Dashboard
             Actions(captureButton, Button("Применить адаптер", () => _ = ApplyAdapter()),
                 Button("Экспорт диагностики", () => ExportJson(new
                 {
-                    Version = "0.2.0-beta", Windows = Environment.OSVersion.VersionString,
+                    Version = "0.2.1-beta", Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
             Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."))), 12));
@@ -222,9 +222,9 @@ public sealed partial class Dashboard
                 app.SetCombatOpacity(opacity.Value / 100);
                 app.SetCombatLock(lockHud.IsChecked == true);
                 RefreshHudStatus();
-            }, true), Button("Показать / скрыть HUD", () => Hud(HudKind.Combat))),
+            }, true), Button("Показать / скрыть HUD", () => Hud(HudKind.Combat)),
+                Button("Горячие клавиши", () => Navigate("hotkeys"))),
             Space(activeHud, 6),
-            Space(Hint("Alt+F8 — показ. Ctrl+Alt+1/2/3 — режим. Ctrl+Alt+PgUp/PgDn — прозрачность. Ctrl+Alt+L — закрепление."), 6),
             hotkeys)), 12));
         RefreshHudStatus();
         var syncStatus = Text("", 13, "Mint", true);

@@ -83,6 +83,7 @@ public sealed partial class Dashboard : Window
         AddNav(nav, "progress", "Прогресс");
         AddNav(nav, "codex", "Билды");
         AddNav(nav, "craft", "Крафт");
+        AddNav(nav, "hotkeys", "Горячие клавиши");
         AddNav(nav, "settings", "Настройки");
         Place(shell, new Border { Background = Ui.Brush("Surface"), Child = nav,
             Padding = new Thickness(16, 7, 8, 5), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 1) }, 1, 0);
@@ -93,7 +94,7 @@ public sealed partial class Dashboard : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false
         };
         Place(shell, _scroll, 2, 0);
-        var footer = Label("0.2.0 BETA     /     GLOBAL     /     ALT+F8 HUD УРОНА");
+        var footer = Label("0.2.1 BETA     /     GLOBAL     /     ALT+F8 HUD УРОНА");
         footer.Margin = new Thickness(21, 6, 0, 0);
         Place(shell, footer, 3, 0);
         Content = shell;
@@ -173,6 +174,7 @@ public sealed partial class Dashboard : Window
             "progress" => ProgressPage(),
             "codex" => CodexPage(),
             "craft" => CraftPage(),
+            "hotkeys" => HotkeysPage(),
             "settings" => SettingsPage(),
             _ => CombatPage()
         };

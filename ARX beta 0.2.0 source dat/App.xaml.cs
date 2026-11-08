@@ -17,8 +17,9 @@ public partial class App : Application
     public static App CurrentApp => (App)Current;
     internal LiveCombat? Live => _live;
     internal bool ClickThroughAvailable => _hotkeys?.ClickThroughRegistered == true;
-    internal string HotkeyStatus => _hotkeys?.Unavailable is { Count: > 0 } keys
-        ? "Заняты сочетания: " + string.Join(", ", keys) : "Глобальные сочетания готовы";
+    internal string HotkeyStatus => _hotkeys is null ? "Глобальные сочетания проверяются при запуске" :
+        _hotkeys.Unavailable.Count > 0 ? "Заняты сочетания: " + string.Join(", ", _hotkeys.Unavailable) : "Глобальные сочетания готовы";
+    internal bool? IsHotkeyRegistered(Hotkeys.Shortcut shortcut) => _hotkeys?.IsRegistered(shortcut);
 
     protected override async void OnStartup(StartupEventArgs e)
     {

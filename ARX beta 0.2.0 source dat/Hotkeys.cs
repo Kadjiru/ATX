@@ -5,6 +5,20 @@ namespace ArxBeta;
 
 internal sealed class Hotkeys : IDisposable
 {
+    internal sealed record Shortcut(int Id, uint Modifiers, uint Key, string Label, string Description);
+
+    internal static IReadOnlyList<Shortcut> Shortcuts { get; } =
+    [
+        new(1, 0x0001, 0x77, "Alt+F8", "Показать или скрыть боевой HUD"),
+        new(4, 0x0003, 0x31, "Ctrl+Alt+1", "Открыть минимальный HUD с итогами боя"),
+        new(5, 0x0003, 0x32, "Ctrl+Alt+2", "Открыть средний HUD со списком участников"),
+        new(6, 0x0003, 0x33, "Ctrl+Alt+3", "Открыть подробный HUD"),
+        new(7, 0x0003, 0x21, "Ctrl+Alt+PgUp", "Увеличить непрозрачность HUD на 5 п. п."),
+        new(8, 0x0003, 0x22, "Ctrl+Alt+PgDn", "Уменьшить непрозрачность HUD на 5 п. п."),
+        new(2, 0x0003, 0x4C, "Ctrl+Alt+L", "Закрепить HUD с пропуском щелчков или разблокировать"),
+        new(3, 0x0001, 0x52, "Alt+R", "Завершить текущий боевой сегмент")
+    ];
+
     private readonly HwndSource _window = new(new HwndSourceParameters("ARX Hotkeys") { ParentWindow = new IntPtr(-3) });
     private readonly Dictionary<int, Action> _registered = new();
     public List<string> Unavailable { get; } = [];
@@ -14,20 +28,18 @@ internal sealed class Hotkeys : IDisposable
         Action<HudDensity> density, Action<double> opacity)
     {
         _window.AddHook(Handle);
-        Register(1, 0x0001, 0x77, "Alt+F8", showCombat);
-        Register(2, 0x0003, 0x4C, "Ctrl+Alt+L", toggleClickThrough);
-        Register(3, 0x0001, 0x52, "Alt+R", archive);
-        Register(4, 0x0003, 0x31, "Ctrl+Alt+1", () => density(HudDensity.Minimal));
-        Register(5, 0x0003, 0x32, "Ctrl+Alt+2", () => density(HudDensity.Medium));
-        Register(6, 0x0003, 0x33, "Ctrl+Alt+3", () => density(HudDensity.Detailed));
-        Register(7, 0x0003, 0x21, "Ctrl+Alt+PgUp", () => opacity(.05));
-        Register(8, 0x0003, 0x22, "Ctrl+Alt+PgDn", () => opacity(-.05));
+        Action[] actions = [showCombat, toggleClickThrough, archive, () => density(HudDensity.Minimal),
+            () => density(HudDensity.Medium), () => density(HudDensity.Detailed), () => opacity(.05), () => opacity(-.05)];
+        foreach (var shortcut in Shortcuts) Register(shortcut, actions[shortcut.Id - 1]);
     }
 
-    private void Register(int id, uint modifiers, uint key, string label, Action action)
+    internal bool IsRegistered(Shortcut shortcut) => _registered.ContainsKey(shortcut.Id);
+
+    private void Register(Shortcut shortcut, Action action)
     {
-        if (RegisterHotKey(_window.Handle, id, modifiers | 0x4000, key)) _registered.Add(id, action);
-        else Unavailable.Add(label);
+        if (RegisterHotKey(_window.Handle, shortcut.Id, shortcut.Modifiers | 0x4000, shortcut.Key))
+            _registered.Add(shortcut.Id, action);
+        else Unavailable.Add(shortcut.Label);
     }
 
     private nint Handle(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
