@@ -1,0 +1,91 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+
+namespace ArxBeta;
+
+internal static class Ui
+{
+    public static Brush Brush(string name) => (Brush)Application.Current.FindResource(name);
+
+    public static TextBlock Text(string value, double size = 13, string color = "Text", bool bold = false)
+        => new()
+        {
+            Text = value, FontSize = size, Foreground = Brush(color),
+            FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal, TextWrapping = TextWrapping.Wrap
+        };
+
+    public static TextBlock Label(string value) => Text(value, 11, "Muted", true);
+
+    public static TextBlock Hint(string value) => Text(value, 13, "Muted");
+
+    public static StackPanel Stack(params UIElement[] elements)
+    {
+        var panel = new StackPanel();
+        foreach (var element in elements) panel.Children.Add(element);
+        return panel;
+    }
+
+    public static WrapPanel Actions(params UIElement[] elements)
+    {
+        var panel = new WrapPanel();
+        foreach (var element in elements)
+        {
+            if (element is FrameworkElement e) e.Margin = new Thickness(0, 0, 8, 7);
+            panel.Children.Add(element);
+        }
+        return panel;
+    }
+
+    public static Border Card(UIElement child, double padding = 18) => new()
+    {
+        Background = Brush("Surface"), BorderBrush = Brush("Line"), BorderThickness = new Thickness(1),
+        CornerRadius = new CornerRadius(17), Padding = new Thickness(padding), Child = child
+    };
+
+    public static Button Button(string text, Action action, bool primary = false)
+    {
+        var button = new Button { Content = text };
+        if (primary)
+        {
+            button.Background = Brush("Mint");
+            button.BorderBrush = Brush("Mint");
+            button.Foreground = Brush("Base");
+        }
+        button.Click += (_, _) => action();
+        return button;
+    }
+
+    public static TextBox Input(string text = "", double width = 210, int max = 120) =>
+        new() { Text = text, Width = width, MaxLength = max };
+
+    public static FrameworkElement Field(string label, FrameworkElement control)
+    {
+        var caption = Label(label);
+        caption.Margin = new Thickness(0, 0, 0, 5);
+        control.HorizontalAlignment = HorizontalAlignment.Left;
+        System.Windows.Automation.AutomationProperties.SetName(control, label);
+        return Stack(caption, control);
+    }
+
+    public static T Space<T>(T element, double bottom = 12) where T : FrameworkElement
+    {
+        element.Margin = new Thickness(0, 0, 0, bottom);
+        return element;
+    }
+
+    public static string Number(double value) => value.ToString("N0");
+    public static string Compact(double value) => value switch
+    {
+        >= 1_000_000_000 => $"{value / 1_000_000_000:0.##}B",
+        >= 1_000_000 => $"{value / 1_000_000:0.##}M",
+        >= 1_000 => $"{value / 1_000:0.#}K",
+        _ => $"{value:N0}"
+    };
+
+    public static string Clock(TimeSpan time)
+    {
+        var s = Math.Max(0, (long)Math.Ceiling(time.TotalSeconds));
+        return s >= 3600 ? $"{s / 3600:00}:{s / 60 % 60:00}:{s % 60:00}" : $"{s / 60:00}:{s % 60:00}";
+    }
+}

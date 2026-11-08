@@ -5,9 +5,9 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>ATX.Beta</AssemblyName>
+    <AssemblyName>ARX.Beta</AssemblyName>
     <Version>0.1.0-beta</Version>
-    <Product>ATX · Legion Companion</Product>
+    <Product>ARX · Legion Companion</Product>
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets/Atreia.jpg" />
