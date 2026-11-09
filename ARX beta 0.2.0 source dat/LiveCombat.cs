@@ -27,6 +27,7 @@ internal sealed class LiveCombat : IDisposable
     private LiveCapture? _source;
     private CombatTracker? _tracker;
     private bool _stopping;
+    private Task? _stopTask;
     private string? _error;
 
     public LiveCombat(LegionStore store)
@@ -55,10 +56,12 @@ internal sealed class LiveCombat : IDisposable
     public bool Start()
     {
         if (IsRunning || _stopping) return IsRunning;
+        _stopTask = null;
         _error = null;
         if (!NpcapAvailable)
         {
             _error = "Для живого режима установите Npcap.";
+            _store.SetFollowLive(true);
             Refresh();
             return false;
         }
@@ -81,9 +84,10 @@ internal sealed class LiveCombat : IDisposable
         return true;
     }
 
-    public async Task StopAsync()
+    public Task StopAsync() => _stopTask ??= _source is { } source ? StopCoreAsync(source) : Task.CompletedTask;
+
+    private async Task StopCoreAsync(LiveCapture source)
     {
-        if (_source is not { } source || _stopping) return;
         _stopping = true;
         _clock.Stop();
         try { await Task.Run(source.Dispose); }

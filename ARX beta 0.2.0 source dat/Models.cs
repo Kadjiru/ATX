@@ -228,7 +228,8 @@ public sealed class Profile
     public List<KinaEntry> Ledger { get; set; } = [];
     public List<MapPin> Pins { get; set; } = [];
     public Dictionary<string, string> AtlasLayers { get; set; } = [];
-    public bool CaptureEnabled { get; set; }
+    public string AtlasZone { get; set; } = "altgard";
+    public HashSet<Guid> AtlasFound { get; set; } = [];
     public string? CaptureAdapter { get; set; }
     public string DeclaredBuild { get; set; } = "";
     public HudDensity CombatHudDensity { get; set; } = HudDensity.Medium;
@@ -236,6 +237,7 @@ public sealed class Profile
     public bool CombatHudLocked { get; set; }
     public int CombatHudTextSize { get; set; } = 15;
     public bool CombatHudSelfFirst { get; set; } = true;
+    public CombatHudScope CombatHudScope { get; set; } = CombatHudScope.Party;
     public Dictionary<HudDensity, double> CombatHudHeights { get; set; } = [];
     public string CombatCharacterHint { get; set; } = "";
     public Expedition? CurrentExpedition { get; set; }
@@ -271,6 +273,7 @@ public sealed class LegionStore
     private static readonly FightAnalysis NoFight = new(Fight.Empty);
     public bool FollowLive { get; private set; }
     public FightAnalysis DisplayAnalysis => FollowLive ? LiveAnalysis ?? NoFight : Analysis;
+    internal FightAnalysis OverlayAnalysis => LiveAnalysis ?? (DisplayAnalysis.Fight.Demo ? DisplayAnalysis : NoFight);
     public string CaptureLabel { get; private set; } = "Захват выключен";
     public string? LiveIdentity { get; private set; }
     internal CharacterIdentity? LiveCharacter { get; private set; }

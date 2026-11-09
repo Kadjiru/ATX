@@ -107,7 +107,7 @@ public sealed partial class Dashboard : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false
         };
         Place(shell, _scroll, 1, 1);
-        var footer = Label("ARX 0.2.2 BETA     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD");
+        var footer = Label("ARX 0.2.3 BETA     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD");
         var footerFrame = new Border { Child = footer, Padding = new Thickness(18, 7, 0, 0),
             Background = Ui.Brush("Surface"), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 0) };
         Grid.SetColumnSpan(footerFrame, 2);
@@ -168,8 +168,7 @@ public sealed partial class Dashboard : Window
 
     private void UpdateStatus()
     {
-        var selected = _store.DisplayAnalysis.Fight;
-        _status.Text = selected.Demo ? "●  Демо · учебные данные" : "●  " + _store.CaptureLabel;
+        _status.Text = "●  " + (_store.Preview ? "Предпросмотр" : _store.CaptureLabel);
     }
 
     private void OnLiveChanged()
@@ -221,8 +220,7 @@ public sealed partial class Dashboard : Window
     private UIElement CombatPage()
     {
         var page = Stack(Space(Label("БОЕВОЙ ЖУРНАЛ    /    01"), 4), Space(Text("Монитор боя", 29, bold: true), 13));
-        var capture = Button("Начать захват", () => _ = App.CurrentApp.ToggleCapture(), true);
-        var controls = Actions(capture, Button("Живой бой", () => _store.SetFollowLive(true)),
+        var controls = Actions(Button("Живой бой", () => _store.SetFollowLive(true), true),
             Button("Боевой HUD", () => Hud(HudKind.Combat)), Button("Демо", () => _store.SetFight(FightImport.Sample(), false)));
 
         var title = Text("", 30, bold: true);
@@ -310,15 +308,13 @@ public sealed partial class Dashboard : Window
             var character = _store.FollowLive ? _store.LiveCharacter : null;
             var rows = PartyCombat.Rows(current, character, roster);
             var own = rows.FirstOrDefault(r => r.IsSelf);
-            capture.Content = App.CurrentApp.Live?.IsRunning == true ? "Остановить захват" : "Начать захват";
-            capture.IsEnabled = App.CurrentApp.Live?.IsStopping != true;
             source.Text = fight.Demo ? "01   /   ДЕМОНСТРАЦИЯ" : snapshot is not null
                 ? snapshot.IsActive && _store.FollowLive ? "01   /   В БОЮ" : "01   /   ЗАПИСЬ БОЯ"
                 : fight.Id == Guid.Empty ? "01   /   ОЖИДАНИЕ БОЯ" : "01   /   ЛОКАЛЬНЫЙ ОТЧЁТ";
             title.Text = fight.Id == Guid.Empty ? "Оперативный обзор" : fight.Name;
             sub.Text = snapshot?.MostDamageUnsent == true ? "Сервер прислал только часть урона участников."
                 : snapshot?.Boss is { MaxHpKnown: true } boss ? $"Цель: {boss.HpFraction:P0} HP   ·   {Clock(TimeSpan.FromSeconds(fight.Duration))}"
-                : fight.Id == Guid.Empty ? "Запустите захват, чтобы увидеть свой DPS и состав группы."
+                : fight.Id == Guid.Empty ? "ARX автоматически ждёт данные игры и состав группы."
                 : $"{Clock(TimeSpan.FromSeconds(fight.Duration))}    /    {rows.Count} участников";
             var self = _store.FollowLive ? _store.LiveIdentity : own?.Name;
             identity.Text = self is null ? "Персонаж ещё не определён" : self + (character?.Confirmed == false ? " · по имени" : "");

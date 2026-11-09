@@ -1,202 +1,274 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
-using System.IO;
+using System.Windows.Media;
 using static ArxBeta.Ui;
 
 namespace ArxBeta;
 
 public sealed partial class Dashboard
 {
+    private sealed record AtlasLayer(string? Key, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    private sealed record AtlasListRow(MapPin Pin)
+    {
+        public override string ToString() => $"{(Pin.Found ? "✓" : Pin.Category == "Телепорт" ? "◆" : "•")}  {Pin.Name}";
+    }
+
     private UIElement AtlasPage()
     {
         var profile = _store.Profile;
-        var page = Heading("Атлас Атреи", "Встроенная карта, пользовательские слои, маршруты и прогресс находок");
-        var toolbar = new WrapPanel();
-        var filter = Choice(["Все метки", "Сбор", "Босс", "Подземелье", "Телепорт", "Куб", "След", "Заметка"], 160);
-        var category = Choice(["Заметка", "Сбор", "Босс", "Подземелье", "Телепорт", "Куб", "След"], 153);
-        var pending = new CheckBox { Content = "Только ненайденные" };
-        string? layer = null;
-        var layerNote = Hint("");
-        var name = Input("", 153, 52);
-        var zoneTitle = Text("Атрея", 21, bold: true);
-        var progress = Text("", 13, "Mint", true);
-        var hint = Hint("");
-        var map = new AtlasCanvas(VisiblePins) { Height = 473 };
-        var add = new Button { Content = "Поставить метку", Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
-        var selectedName = Text("", 14, "Gold", true);
-        var markerList = new ListBox { Height = 115 };
-        var selected = Guid.Empty;
-        var listRefreshing = false;
-        var found = new Button { Content = "Отметить находку" };
-        var delete = new Button { Content = "Удалить метку" };
-        var import = new Button { Content = "Снимок карты…" };
-        var reset = new Button { Content = "К схеме" };
-        import.Click += (_, _) => ImportLayer();
-        reset.Click += (_, _) => SetLayer(null);
+        var page = Heading("Атлас Aion 2", "Точки интереса, личные отметки и маршруты по Атреи");
+        var region = new ComboBox { ItemsSource = AtlasZone.All, Width = 222, MinHeight = 32,
+            SelectedItem = AtlasZone.All.FirstOrDefault(z => z.Id == profile.AtlasZone) ?? AtlasZone.All[0] };
+        var layers = new ComboBox { Width = 168, MinHeight = 32 };
+        var search = Input("", 197, 120);
+        var category = Choice(["Все категории", "Телепорт", "След", "Сбор", "Куб", "Питомец", "Босс", "Подземелье", "Заметка"], 145);
+        var type = Choice(["Заметка", "Телепорт", "След", "Сбор", "Босс", "Подземелье", "Куб"], 118);
+        var pending = new CheckBox { Content = "Скрыть найденные" };
+        var title = Text("", 19, bold: true);
+        var progress = Text("", 12, "Mint", true);
+        var description = Hint("");
+        var inspector = Text("Выберите точку", 16, bold: true);
+        var details = Hint("");
+        var name = Input("", 111, 52);
+        var feedback = Hint("");
+        var list = new ListBox { Height = 182 };
+        var map = new AtlasCanvas { MinHeight = 480 };
+        var selection = Guid.Empty;
+        var route = new List<Guid>();
+        var changingLayer = false;
+        var refreshingList = false;
+        AtlasZone Zone() => (AtlasZone)region.SelectedItem;
+        AtlasCatalog.AtlasMap? World() => AtlasCatalog.For(Zone());
+        string? layer = AtlasCatalog.WorldLayer;
+
+        var import = new Button { Content = "Снимок зоны…" };
+        var add = new Button { Content = "Новая метка", Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
+        var found = new Button { Content = "Найдено" };
+        var delete = new Button { Content = "Удалить" };
+        var center = Button("На карте", () => { if (Selected() is { } pin) map.FocusPin(pin); });
+        var waypoint = new Button { Content = "В маршрут" };
+        var clearRoute = new Button { Content = "Сбросить маршрут" };
+        foreach (var action in new[] { center, found, delete, waypoint, clearRoute })
+            action.Padding = new Thickness(8, 5, 8, 5);
+        var routeStatus = Hint("");
+        var empty = Text("", 16, "Muted", true);
+        empty.HorizontalAlignment = HorizontalAlignment.Center;
+        empty.VerticalAlignment = VerticalAlignment.Center;
+        empty.IsHitTestVisible = false;
+        var mapArea = new Grid();
+        mapArea.Children.Add(map);
+        mapArea.Children.Add(empty);
+
+        page.Children.Add(Space(Actions(Field("Зона", region), Field("Слой", layers), Field("Поиск по имени", search),
+            Field("Категория", category)), 6));
+        var split = new Grid();
+        split.ColumnDefinitions.Add(new ColumnDefinition());
+        split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(270) });
+        var tools = Actions(Button("−", () => map.Zoom(1 / 1.25)), Button("+", () => map.Zoom(1.25)),
+            Button("Вписать", map.Fit), import);
+        var main = Card(Stack(tools, mapArea,
+            Space(Actions(Text("◆ Телепорт", 12, "Mint"), Text("● След", 12, "Gold"),
+                Text("● Сбор", 12, "Coral"), new TextBlock { Text = "● Куб", Foreground = Brushes.LightPink },
+                Text("● Питомец", 12, "Gold"),
+                Hint("Колесо — масштаб · перетаскивание — движение")), 1),
+            description, feedback), 11);
+        main.Margin = new Thickness(0, 0, 10, 0);
+        split.Children.Add(main);
+        Place(split, Card(Stack(Space(title, 5), Space(progress, 7), Space(pending, 7), Space(list, 9),
+            Space(inspector, 4), Space(details, 7), Actions(center, found, delete), Actions(waypoint, clearRoute),
+            Space(routeStatus, 7), Space(Label("ЛИЧНАЯ МЕТКА"), 5), Actions(Field("Название", name), Field("Тип", type)),
+            add), 12), 0, 1);
+        page.Children.Add(split);
+
+        import.Click += (_, _) => Import();
         add.Click += (_, _) => { map.Placing = !map.Placing; Update(); };
         found.Click += (_, _) => ToggleFound();
-        delete.Click += (_, _) => DeleteSelected();
-        markerList.SelectionChanged += (_, _) =>
+        delete.Click += (_, _) => Delete();
+        waypoint.Click += (_, _) =>
         {
-            if (!listRefreshing && markerList.SelectedItem is ListBoxItem { Tag: Guid id })
-            {
-                selected = id;
-                Update();
-            }
+            if (selection == Guid.Empty) return;
+            if (!route.Remove(selection)) route.Add(selection);
+            Update();
         };
-        markerList.MouseDoubleClick += (_, _) =>
+        clearRoute.Click += (_, _) => { route.Clear(); Update(); };
+        region.SelectionChanged += (_, _) => { profile.AtlasZone = Zone().Id; _store.Save(); SetZone(); };
+        layers.SelectionChanged += (_, _) =>
         {
-            if (VisiblePins(map.Zone).FirstOrDefault(pin => pin.Id == selected) is { } pin) map.FocusPin(pin);
+            if (!changingLayer && layers.SelectedItem is AtlasLayer option) SetLayer(option.Key);
         };
-        filter.SelectionChanged += (_, _) => Update();
+        category.SelectionChanged += (_, _) => { if (!changingLayer) Update(); };
+        search.TextChanged += (_, _) => Update();
         pending.Click += (_, _) => Update();
-        map.ZoneSelected += zone => SelectZone(zone);
+        list.SelectionChanged += (_, _) =>
+        {
+            if (refreshingList || list.SelectedItem is not AtlasListRow row) return;
+            selection = row.Pin.Id;
+            UpdateSelection();
+        };
+        list.MouseDoubleClick += (_, _) => { if (Selected() is { } pin) map.FocusPin(pin); };
         map.PinSelected += pin =>
         {
-            selected = pin.Id;
-            Update();
+            selection = pin.Id;
+            UpdateSelection();
+            if (list.SelectedItem is AtlasListRow row) list.ScrollIntoView(row);
         };
         map.PinRequested += point =>
         {
-            if (map.Zone is not { } zone) return;
-            var type = (string)category.SelectedItem;
+            if (layer is null || layers.SelectedItem is not AtlasLayer) return;
+            var group = (string)type.SelectedItem;
             var label = name.Text.Trim();
-            selected = Guid.NewGuid();
-            profile.Pins.Add(new MapPin(selected, zone.Id, point.X, point.Y, type,
-                label.Length == 0 ? type : label, false, layer));
+            selection = Guid.NewGuid();
+            profile.Pins.Add(new MapPin(selection, Zone().Id, point.X, point.Y, group,
+                label.Length == 0 ? group : label, false, layer));
             name.Clear();
             map.Placing = false;
             _store.Commit();
-            Update();
         };
-        foreach (var button in AtlasZone.All.Select(zone => Button(zone.Name, () => SelectZone(zone)))
-            .Prepend(Button("Вся Атрея", () => SelectZone(null))))
-        {
-            button.Margin = new Thickness(0, 0, 6, 6);
-            toolbar.Children.Add(button);
-        }
-        page.Children.Add(Space(toolbar, 7));
-        var route = new CheckBox { Content = "Маршрут по меткам" };
-        route.Click += (_, _) => { map.ShowRoute = route.IsChecked == true; map.InvalidateVisual(); };
-        var zoom = Actions(Button("−", () => map.Zoom(1 / 1.25)), Button("+", () => map.Zoom(1.25)),
-            Button("Вписать", map.Fit), import, reset, route);
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition());
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(214) });
-        var frame = Card(Stack(zoom, map, layerNote), 8);
-        frame.Margin = new Thickness(0, 0, 10, 0);
-        grid.Children.Add(frame);
-        var side = Stack(Space(zoneTitle, 5), Space(progress, 7), Space(hint, 9),
-            Space(Field("Фильтр", filter), 7), Space(pending, 7), Space(markerList, 7),
-            Space(selectedName, 5), Actions(found, delete),
-            Space(Field("Название новой метки", name), 7), Space(Field("Категория", category), 7),
-            add);
-        Place(grid, Card(side, 12), 0, 1);
-        page.Children.Add(grid);
         _refreshShared = Update;
-        Update();
+        SetZone();
         return page;
 
-        IEnumerable<MapPin> VisiblePins(AtlasZone? zone) => _store.AllPins.Where(p => p.Zone == zone?.Id &&
-            p.Layer == layer && (pending.IsChecked != true || !p.Found) &&
-            (filter.SelectedIndex <= 0 || p.Category == (string)filter.SelectedItem));
-
-        void SelectZone(AtlasZone? zone)
+        MapPin[] All()
         {
-            selected = Guid.Empty;
-            map.ChangeZone(zone);
-            layer = zone is null ? null : profile.AtlasLayers.GetValueOrDefault(zone.Id);
-            map.Backdrop = AtlasLayers.Open(layer);
-            if (map.Backdrop is null) layer = null;
-            Update();
+            var user = _store.AllPins.Where(p => p.Zone == Zone().Id && p.Layer == layer);
+            if (layer != AtlasCatalog.WorldLayer || World() is not { } world) return user.ToArray();
+            return user.Concat(world.Pins.Select(p => profile.AtlasFound.Contains(p.Id) ? p with { Found = true } : p)).ToArray();
         }
 
-        void ImportLayer()
+        MapPin? Selected() => selection == Guid.Empty ? null : All().FirstOrDefault(p => p.Id == selection);
+
+        void SetZone(string? preferred = AtlasCatalog.WorldLayer)
         {
-            if (map.Zone is null) return;
-            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Изображения (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg" };
-            if (dialog.ShowDialog(this) != true) return;
-            try { SetLayer(AtlasLayers.Import(dialog.FileName)); }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException)
-            {
-                layerNote.Text = ex.Message;
-            }
+            var options = new List<AtlasLayer> { new(AtlasCatalog.WorldLayer, "Игровые координаты") };
+            var custom = profile.AtlasLayers.GetValueOrDefault(Zone().Id);
+            if (custom is not null && AtlasLayers.Open(custom) is not null) options.Add(new AtlasLayer(custom, "Мой снимок"));
+            if (_store.AllPins.Any(p => p.Zone == Zone().Id && p.Layer is null))
+                options.Add(new AtlasLayer(null, "Архив старых меток"));
+            changingLayer = true;
+            layers.ItemsSource = options;
+            layers.SelectedItem = options.FirstOrDefault(l => l.Key == preferred) ?? options[0];
+            changingLayer = false;
+            SetLayer(((AtlasLayer)layers.SelectedItem).Key);
         }
 
         void SetLayer(string? key)
         {
-            if (map.Zone is not { } zone) return;
-            map.Backdrop = AtlasLayers.Open(key);
-            layer = map.Backdrop is null ? null : key;
-            if (layer is null) profile.AtlasLayers.Remove(zone.Id);
-            else profile.AtlasLayers[zone.Id] = layer;
-            selected = Guid.Empty;
-            map.Placing = false;
-            map.Fit();
-            _store.Commit();
+            layer = key;
+            changingLayer = true;
+            category.SelectedIndex = layer == AtlasCatalog.WorldLayer && World()?.Pins.Any(p => p.Category == "Телепорт") == true ? 1 : 0;
+            changingLayer = false;
+            selection = Guid.Empty;
+            route.Clear();
+            feedback.Text = "";
+            map.SetLayer(layer == AtlasCatalog.WorldLayer ? World() : null, AtlasLayers.Open(key));
+            Update();
+        }
+
+        void Import()
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Изображения (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg" };
+            if (dialog.ShowDialog(this) != true) return;
+            try
+            {
+                var key = AtlasLayers.Import(dialog.FileName);
+                profile.AtlasLayers[Zone().Id] = key;
+                _store.Save();
+                SetZone(key);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException)
+            {
+                feedback.Text = ex.Message;
+            }
         }
 
         void Update()
         {
-            zoneTitle.Text = map.Zone?.Name ?? "Атрея";
-            var pins = map.Zone is null ? _store.AllPins.ToArray() : _store.AllPins.Where(p => p.Zone == map.Zone.Id && p.Layer == layer).ToArray();
-            progress.Text = $"{pins.Count(p => p.Found)} / {pins.Length} отмечено";
-            hint.Text = map.Zone is null ? "Выберите зону на схеме или в панели. Положение зон условно."
-                : map.Placing ? "Щёлкните по карте, чтобы разместить метку."
-                : "Колесо — масштаб, перетаскивание — перемещение.";
-            add.IsEnabled = map.Zone is not null;
-            import.IsEnabled = map.Zone is not null;
-            reset.IsEnabled = layer is not null;
-            layerNote.Text = layer is null ? "Авторская схема. География и масштаб условны." :
-                "Локальный снимок. Метки на этом слое хранятся отдельно.";
-            add.Content = map.Placing ? "Отменить размещение" : "Поставить метку";
-            listRefreshing = true;
-            markerList.Items.Clear();
-            foreach (var pin in VisiblePins(map.Zone))
+            title.Text = Zone().Name;
+            var all = All();
+            var query = search.Text.Trim();
+            var world = layer == AtlasCatalog.WorldLayer ? World() : null;
+            var visible = all.Where(p => (pending.IsChecked != true || !p.Found) &&
+                (category.SelectedIndex <= 0 || p.Category == (string)category.SelectedItem) &&
+                (query.Length == 0 || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
+                    world?.English(p.Id)?.Contains(query, StringComparison.OrdinalIgnoreCase) == true))
+                .OrderBy(p => p.Category == "Телепорт" ? 1 : 0).ToArray();
+            var selectedPin = all.FirstOrDefault(p => p.Id == selection);
+            if (selectedPin is null || visible.All(p => p.Id != selection)) selection = Guid.Empty;
+            var visibleRows = visible.OrderBy(p => p.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(p => p.Id)
+                .Select(p => new AtlasListRow(p)).ToArray();
+            refreshingList = true;
+            list.ItemsSource = visibleRows;
+            refreshingList = false;
+            var byId = all.ToLookup(p => p.Id);
+            map.SetPins(visible, route.Where(byId.Contains).Select(id => byId[id].First()).ToArray());
+            progress.Text = $"Найдено {all.Count(p => p.Found)} из {all.Length}   ·   видно {visible.Length}";
+            add.IsEnabled = layer is not null && (layer != AtlasCatalog.WorldLayer || world is not null);
+            add.Content = map.Placing ? "Отмена" : "Новая метка";
+            map.Cursor = map.Placing ? System.Windows.Input.Cursors.Cross : System.Windows.Input.Cursors.Hand;
+            empty.Text = layer == AtlasCatalog.WorldLayer && world is null ? "Для этой зоны добавьте снимок карты" : "";
+            description.Text = map.Placing ? "Щёлкните на карте, чтобы добавить метку." : layer switch
             {
-                var row = new ListBoxItem { Content = (pin.Found ? "✓  " : "○  ") + pin.Name, Tag = pin.Id };
-                markerList.Items.Add(row);
-                if (pin.Id == selected) markerList.SelectedItem = row;
-            }
-            listRefreshing = false;
-            var current = pins.FirstOrDefault(p => p.Id == selected);
-            selectedName.Text = current is null ? "" : $"{current.Name} · {current.X / 10:0.#}%, {current.Y / 6:0.#}%";
-            found.IsEnabled = current is not null;
+                null => "Архив старой схемы. Эти отметки сохранили прежние условные координаты.",
+                AtlasCatalog.WorldLayer when world is not null => "Точки в игровых координатах. Рельеф восстановлен приближённо по высотам объектов.",
+                AtlasCatalog.WorldLayer => "Координатный слой для этой зоны пока отсутствует.",
+                _ => "Локальный снимок. Отметки этого слоя привязаны к изображению."
+            };
+            UpdateSelection();
+        }
+
+        void UpdateSelection()
+        {
+            var current = Selected();
+            refreshingList = true;
+            list.SelectedItem = (list.ItemsSource as AtlasListRow[])?.FirstOrDefault(row => row.Pin.Id == selection);
+            refreshingList = false;
+            inspector.Text = current?.Name ?? "Выберите точку";
+            var world = layer == AtlasCatalog.WorldLayer ? World() : null;
+            var coordinate = current is not null && world is not null ? world.ToGame(new Point(current.X, current.Y)) : (Point?)null;
+            details.Text = current is null ? "Щелчок по метке откроет её здесь." :
+                (current.Category == "Куб" && coordinate is not null ? "Возможное место куба" : current.Category) +
+                (coordinate is { } c ? $" · X {c.X / 100:0} м / Y {c.Y / 100:0} м" : "");
+            center.IsEnabled = found.IsEnabled = waypoint.IsEnabled = current is not null;
+            clearRoute.IsEnabled = route.Count > 0;
+            routeStatus.Text = route.Count == 0 ? "Маршрут пуст" : $"В маршруте: {route.Count} · по порядку добавления";
             delete.IsEnabled = current is not null && profile.Pins.Any(p => p.Id == current.Id);
-            found.Content = current?.Found == true ? "Снять отметку" : "Отметить находку";
-            map.Selected = selected == Guid.Empty ? null : selected;
+            found.Content = current?.Found == true ? "Снять отметку" : "Отметить";
+            waypoint.Content = route.Contains(selection) ? "Из маршрута" : "В маршрут";
+            map.Selected = current?.Id;
             map.InvalidateVisual();
         }
 
         void ToggleFound()
         {
-            var index = profile.Pins.FindIndex(p => p.Id == selected);
-            if (index >= 0)
+            if (Selected() is not { } pin) return;
+            var index = profile.Pins.FindIndex(p => p.Id == selection);
+            if (index >= 0) profile.Pins[index] = pin with { Found = !pin.Found };
+            else if (layer == AtlasCatalog.WorldLayer && World()?.English(pin.Id) is not null)
             {
-                var pin = profile.Pins[index];
-                profile.Pins[index] = pin with { Found = !pin.Found };
+                if (!profile.AtlasFound.Add(selection)) profile.AtlasFound.Remove(selection);
             }
-            else if (!profile.TeamFound.Add(selected)) profile.TeamFound.Remove(selected);
+            else if (!profile.TeamFound.Add(selection)) profile.TeamFound.Remove(selection);
             _store.Commit();
-            Update();
         }
 
-        void DeleteSelected()
+        void Delete()
         {
-            if (selected == Guid.Empty) return;
-            profile.Pins.RemoveAll(p => p.Id == selected);
-            selected = Guid.Empty;
+            if (profile.Pins.RemoveAll(p => p.Id == selection) == 0) return;
+            route.Remove(selection);
+            selection = Guid.Empty;
             _store.Commit();
-            Update();
         }
     }
 
-    private static ComboBox Choice(IEnumerable<string> items, double width)
-    {
-        return new ComboBox
+    private static ComboBox Choice(IEnumerable<string> items, double width) =>
+        new()
         {
             ItemsSource = items, SelectedIndex = 0, Width = width, MinHeight = 31,
             Padding = new Thickness(6, 4, 6, 4)
         };
-    }
 }

@@ -5,58 +5,62 @@ using System.Windows.Media;
 
 namespace ArxBeta;
 
-internal sealed record AtlasZone(string Id, string Name, Point Center, string Region, int Seed)
-{
-    public static AtlasZone[] All { get; } =
-    [
-        new("ishalgen", "Ишальген", new Point(184, 157), "АСМОДЕЯ", 12),
-        new("altgard", "Альтгард", new Point(309, 219), "АСМОДЕЯ", 42),
-        new("upper", "Верхняя Решанта", new Point(538, 114), "БЕЗДНА", 26),
-        new("lower", "Нижняя Решанта", new Point(462, 317), "БЕЗДНА", 74),
-        new("outer", "Внешняя Решанта", new Point(658, 252), "БЕЗДНА", 45),
-        new("poeta", "Поэта", new Point(690, 478), "ЭЛИЗЕЯ", 81),
-        new("verteron", "Бертрон", new Point(808, 386), "ЭЛИЗЕЯ", 24)
-    ];
-}
-
 internal sealed class AtlasCanvas : FrameworkElement
 {
-    private const double W = 1000, H = 600;
-    private static readonly Geometry Asmodae = Geometry.Parse("M 31,211 L 84,159 105,99 192,75 217,112 296,105 339,143 385,149 406,199 358,232 344,292 273,321 214,287 173,294 146,254 83,261 Z");
-    private static readonly Geometry Elysea = Geometry.Parse("M 610,525 L 638,460 698,417 725,348 793,315 838,322 873,292 925,324 958,382 912,402 909,475 845,489 814,528 758,528 693,560 Z");
-    private static readonly Geometry Abyss = Geometry.Parse("M 431,110 L 479,68 572,62 608,116 578,166 500,183 438,151 Z M 397,308 L 438,269 505,263 532,306 500,356 450,370 416,348 Z M 595,245 L 639,200 707,219 735,249 696,289 631,298 Z");
-    private static readonly string[] Palette = ["#10252A", "#203F43", "#456566", "#2C5150", "#508072", "#88B2A3"];
-    private static readonly Brush[] AtlasBrushes = Palette.Select(value => (Brush)new BrushConverter().ConvertFromString(value)!).ToArray();
-    private readonly Func<AtlasZone?, IEnumerable<MapPin>> _pins;
+    private const double W = AtlasCatalog.Width, H = AtlasCatalog.Height;
+    private static readonly Brush Water = Swatch("#0D2029");
+    private static readonly Brush GridLine = Swatch("#3B5260");
+    private static readonly Brush Plate = Swatch("#132831");
+    private static readonly Brush Teleport = Swatch("#88EBCC");
+    private static readonly Brush Trace = Swatch("#C6B9FF");
+    private static readonly Brush Gather = Swatch("#F4C580");
+    private static readonly Brush Cube = Swatch("#FF9EAB");
+    private static readonly Brush Pet = Swatch("#B4D2FE");
+    private static readonly HashSet<string> Landmarks = new(StringComparer.Ordinal)
+    {
+        "Деревня беглецов", "Водопад Васфельта", "Озеро Идунн", "Утес Уртумхейма", "Побережье Дранактуса",
+        "Деревня Джумион", "Лощина крепости Бертрон", "Окраина леса Тольбас", "Лагерь запада долины Кантаса",
+        "Восточные корни Ратерана", "Западные корни Ратерана"
+    };
+
     private Point _down;
     private Vector _atDown;
     private Vector _pan;
     private double _zoom = 1;
     private bool _drag;
+    private AtlasCatalog.AtlasMap? _map;
+    private ImageSource? _backdrop;
+    private IReadOnlyList<MapPin> _pins = [];
+    private IReadOnlyList<MapPin> _route = [];
+    private MapPin? _hover;
 
-    public AtlasZone? Zone { get; private set; }
     public bool Placing { get; set; }
-    public bool ShowRoute { get; set; }
-    public ImageSource? Backdrop { get; set; }
     public Guid? Selected { get; set; }
-    public event Action<AtlasZone>? ZoneSelected;
     public event Action<MapPin>? PinSelected;
     public event Action<Point>? PinRequested;
 
-    public AtlasCanvas(Func<AtlasZone?, IEnumerable<MapPin>> pins)
+    public AtlasCanvas()
     {
-        _pins = pins;
         ClipToBounds = true;
-        Focusable = true;
         Cursor = Cursors.Hand;
+        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.Linear);
     }
 
-    public void ChangeZone(AtlasZone? zone)
+    public void SetLayer(AtlasCatalog.AtlasMap? map, ImageSource? backdrop)
     {
-        Zone = zone;
+        _map = map;
+        _backdrop = backdrop;
         Selected = null;
         Placing = false;
         Fit();
+    }
+
+    public void SetPins(IReadOnlyList<MapPin> pins, IReadOnlyList<MapPin> route)
+    {
+        _pins = pins;
+        _route = route;
+        _hover = null;
+        InvalidateVisual();
     }
 
     public void Fit()
@@ -68,7 +72,7 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     public void FocusPin(MapPin pin)
     {
-        _zoom = Math.Max(2, _zoom);
+        _zoom = Math.Max(2.8, _zoom);
         _pan = new Vector((W / 2 - pin.X) * Scale, (H / 2 - pin.Y) * Scale);
         KeepInView();
         InvalidateVisual();
@@ -82,10 +86,10 @@ internal sealed class AtlasCanvas : FrameworkElement
         if (Scale <= 0) return;
         var cursor = around ?? new Point(ActualWidth / 2, ActualHeight / 2);
         var world = ToWorld(cursor);
-        _zoom = Math.Clamp(_zoom * multiplier, 1, 4);
-        var offset = Origin;
-        _pan += cursor - new Point(offset.X + world.X * Scale, offset.Y + world.Y * Scale);
+        _zoom = Math.Clamp(_zoom * multiplier, 1, 12);
+        _pan += cursor - ToScreen(world);
         KeepInView();
+        _hover = null;
         InvalidateVisual();
     }
 
@@ -96,142 +100,156 @@ internal sealed class AtlasCanvas : FrameworkElement
         _pan = new Vector(Math.Clamp(_pan.X, -x, x), Math.Clamp(_pan.Y, -y, y));
     }
 
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        KeepInView();
+    }
+
     private Point ToWorld(Point point)
     {
-        var offset = Origin;
-        return new Point((point.X - offset.X) / Scale, (point.Y - offset.Y) / Scale);
+        var origin = Origin;
+        return new Point((point.X - origin.X) / Scale, (point.Y - origin.Y) / Scale);
+    }
+
+    private Point ToScreen(Point point)
+    {
+        var origin = Origin;
+        return new Point(origin.X + point.X * Scale, origin.Y + point.Y * Scale);
     }
 
     protected override void OnRender(DrawingContext dc)
     {
-        dc.DrawRectangle(AtlasBrushes[0], null, new Rect(0, 0, ActualWidth, ActualHeight));
+        var view = new Rect(0, 0, ActualWidth, ActualHeight);
+        dc.DrawRectangle(Water, null, view);
         if (Scale <= 0) return;
         var matrix = new Matrix(Scale, 0, 0, Scale, Origin.X, Origin.Y);
         dc.PushTransform(new MatrixTransform(matrix));
+        var bounds = new Rect(0, 0, W, H);
+        if (_backdrop is not null) dc.DrawImage(_backdrop, bounds);
+        else if (_map is not null) dc.DrawImage(_map.Terrain, bounds);
         DrawGrid(dc);
-        if (Zone is null) DrawWorld(dc);
-        else
-        {
-            if (Backdrop is not null) dc.DrawImage(Backdrop, new Rect(0, 0, W, H));
-            else DrawZone(dc, Zone);
-            DrawPins(dc, Zone);
-        }
-        Compass(dc);
         dc.Pop();
-    }
 
-    private static void DrawGrid(DrawingContext dc)
-    {
-        var grid = new Pen(AtlasBrushes[1], .7);
-        for (var x = 0; x <= W; x += 40) dc.DrawLine(grid, new Point(x, 0), new Point(x, H));
-        for (var y = 0; y <= H; y += 40) dc.DrawLine(grid, new Point(0, y), new Point(W, y));
-    }
-
-    private void DrawWorld(DrawingContext dc)
-    {
-        DrawLand(dc, Asmodae, AtlasBrushes[1]);
-        DrawLand(dc, Elysea, AtlasBrushes[3]);
-        DrawLand(dc, Abyss, AtlasBrushes[2]);
-        var route = new Pen(AtlasBrushes[5], 1.5) { DashStyle = DashStyles.Dash };
-        for (var i = 1; i < AtlasZone.All.Length; i++)
-            dc.DrawLine(route, AtlasZone.All[i - 1].Center, AtlasZone.All[i].Center);
-        Caption(dc, "АСМОДЕЯ", new Point(116, 263), 21, AtlasBrushes[5]);
-        Caption(dc, "БЕЗДНА", new Point(572, 333), 20, AtlasBrushes[5]);
-        Caption(dc, "ЭЛИЗЕЯ", new Point(793, 462), 21, AtlasBrushes[5]);
-        foreach (var zone in AtlasZone.All)
+        var track = new Pen(Teleport, 1.4) { DashStyle = DashStyles.Dash };
+        for (var i = 1; i < _route.Count; i++)
+            dc.DrawLine(track, Position(_route[i - 1]), Position(_route[i]));
+        foreach (var pin in _pins)
         {
-            dc.DrawEllipse(Ui.Brush("Mint"), new Pen(AtlasBrushes[0], 2), zone.Center, 9, 9);
-            Caption(dc, zone.Name, new Point(zone.Center.X + 13, zone.Center.Y - 10), 16, Ui.Brush("Text"));
+            var point = Position(pin);
+            if (!view.Contains(point)) continue;
+            DrawMarker(dc, pin, point, _zoom);
+        }
+        DrawLandmarks(dc, view);
+        if (_pins.FirstOrDefault(pin => pin.Id == Selected) is { } selected)
+            DrawCallout(dc, view, selected);
+        if (_hover is { } hover && hover.Id != Selected)
+            DrawCallout(dc, view, hover);
+        DrawScale(dc);
+    }
+
+    private Point Position(MapPin pin) => ToScreen(new Point(pin.X, pin.Y));
+
+    private void DrawGrid(DrawingContext dc)
+    {
+        var line = new Pen(GridLine, .55 / Scale);
+        for (var x = 0; x <= W; x += 100) dc.DrawLine(line, new Point(x, 0), new Point(x, H));
+        for (var y = 0; y <= H; y += 100) dc.DrawLine(line, new Point(0, y), new Point(W, y));
+    }
+
+    private static void DrawMarker(DrawingContext dc, MapPin pin, Point at, double zoom)
+    {
+        var color = pin.Found ? GridLine : pin.Category switch
+        {
+            "Телепорт" => Teleport,
+            "След" => Trace,
+            "Сбор" => Gather,
+            "Куб" => Cube,
+            "Питомец" => Pet,
+            _ => Ui.Brush("Text")
+        };
+        var radius = pin.Category == "Телепорт" ? 5.1 : zoom >= 2 ? 4.0 : 2.7;
+        if (pin.Category == "Телепорт")
+        {
+            var diamond = new StreamGeometry();
+            using (var shape = diamond.Open())
+            {
+                shape.BeginFigure(new Point(at.X, at.Y - radius), true, true);
+                shape.PolyLineTo([new Point(at.X + radius, at.Y), new Point(at.X, at.Y + radius),
+                    new Point(at.X - radius, at.Y)], true, false);
+            }
+            dc.DrawGeometry(color, new Pen(Water, 1), diamond);
+        }
+        else dc.DrawEllipse(color, new Pen(Water, 1), at, radius, radius);
+    }
+
+    private void DrawLandmarks(DrawingContext dc, Rect view)
+    {
+        var occupied = new List<Rect>();
+        foreach (var pin in _pins.Where(p => p.Category == "Телепорт" && Landmarks.Contains(p.Name)))
+        {
+            if (pin.Id == Selected || pin.Id == _hover?.Id) continue;
+            var at = Position(pin) + new Vector(8, -9);
+            var label = Caption(pin.Name, 11);
+            var box = new Rect(at, new Size(label.Width + 10, label.Height + 4));
+            if (!view.Contains(box) || occupied.Any(other => other.IntersectsWith(box))) continue;
+            occupied.Add(box);
+            dc.DrawRoundedRectangle(Plate, null, box, 3, 3);
+            dc.DrawText(label, at + new Vector(5, 2));
         }
     }
 
-    private void DrawZone(DrawingContext dc, AtlasZone zone)
+    private void DrawCallout(DrawingContext dc, Rect view, MapPin pin)
     {
-        var rng = new Random(zone.Seed);
-        var coast = new List<Point>();
-        for (var i = 0; i < 32; i++)
-        {
-            var angle = Math.PI * 2 * i / 32;
-            var radial = 0.73 + rng.NextDouble() * .25;
-            coast.Add(new Point(510 + Math.Cos(angle) * 445 * radial, 307 + Math.Sin(angle) * 272 * radial));
-        }
-        var shape = Polygon(coast);
-        DrawLand(dc, shape, AtlasBrushes[3]);
-        dc.PushClip(shape);
-        for (var i = 0; i < 9; i++)
-        {
-            var scale = 0.86 - i * 0.074;
-            var contour = Polygon(coast.Select(p => new Point(500 + (p.X - 500) * scale + i * 3,
-                290 + (p.Y - 290) * scale - i * 1.7)));
-            dc.DrawGeometry(null, new Pen(AtlasBrushes[4], 1), contour);
-        }
-        for (var i = 0; i < 70; i++)
-        {
-            var p = new Point(rng.Next(130, 900), rng.Next(100, 530));
-            dc.DrawLine(new Pen(AtlasBrushes[5], .7), p, p + new Vector(rng.Next(3, 12), -4));
-        }
-        dc.DrawGeometry(null, new Pen(AtlasBrushes[0], 8), Geometry.Parse("M 82,294 C 268,158 375,433 558,350 S 746,174 918,255"));
-        dc.DrawGeometry(null, new Pen(AtlasBrushes[5], 1.5) { DashStyle = DashStyles.Dash },
-            Geometry.Parse("M 120,338 C 293,278 452,235 573,304 S 714,443 913,371"));
-        dc.Pop();
-        Caption(dc, zone.Region, new Point(38, 38), 14, Ui.Brush("Muted"));
-        Caption(dc, zone.Name.ToUpperInvariant(), new Point(38, 59), 27, Ui.Brush("Text"));
+        var point = Position(pin);
+        if (!view.Contains(point)) return;
+        dc.DrawEllipse(null, new Pen(Ui.Brush("Text"), 1.6), point, 9, 9);
+        var label = Caption(pin.Name, 12);
+        var x = Math.Clamp(point.X + 12, 5, Math.Max(5, ActualWidth - label.Width - 21));
+        var y = Math.Clamp(point.Y - 12, 5, Math.Max(5, ActualHeight - label.Height - 14));
+        dc.DrawRoundedRectangle(Plate, new Pen(GridLine, 1), new Rect(x, y, label.Width + 14, label.Height + 8), 5, 5);
+        dc.DrawText(label, new Point(x + 7, y + 4));
     }
 
-    private void DrawPins(DrawingContext dc, AtlasZone zone)
+    private void DrawScale(DrawingContext dc)
     {
-        var pins = _pins(zone).ToArray();
-        if (ShowRoute && pins.Length > 1)
-        {
-            var route = new Pen(Ui.Brush("Mint"), 2.8) { DashStyle = DashStyles.Dash };
-            for (var i = 1; i < pins.Length; i++)
-                dc.DrawLine(route, new Point(pins[i - 1].X, pins[i - 1].Y), new Point(pins[i].X, pins[i].Y));
-        }
-        for (var i = 0; i < pins.Length; i++)
-        {
-            var pin = pins[i];
-            var point = new Point(pin.X, pin.Y);
-            var color = Ui.Brush(pin.Found ? "Mint" : pin.Category == "Босс" ? "Coral" : "Gold");
-            if (pin.Id == Selected) dc.DrawEllipse(null, new Pen(Ui.Brush("Text"), 2), point, 15, 15);
-            dc.DrawEllipse(color, new Pen(AtlasBrushes[0], 2), point, 8, 8);
-            Caption(dc, ShowRoute ? $"{i + 1}. {pin.Name}" : pin.Name, point + new Vector(12, -9), 13, Ui.Brush("Text"));
-        }
+        if (_map is not { } map) return;
+        const double x = 18;
+        var y = ActualHeight - 20;
+        var target = map.Metres(95 / Scale);
+        var unit = Math.Pow(10, Math.Floor(Math.Log10(target)));
+        var distance = target < 2 * unit ? unit : target < 5 * unit ? 2 * unit : 5 * unit;
+        var length = distance / map.Metres(1) * Scale;
+        var pen = new Pen(Ui.Brush("Text"), 1);
+        dc.DrawRoundedRectangle(Plate, null, new Rect(x - 7, y - 24, Math.Max(77, length + 14), 33), 5, 5);
+        dc.DrawLine(pen, new Point(x, y), new Point(x + length, y));
+        dc.DrawLine(pen, new Point(x, y - 3), new Point(x, y + 3));
+        dc.DrawLine(pen, new Point(x + length, y - 3), new Point(x + length, y + 3));
+        dc.DrawText(Caption(distance >= 1000 ? $"{distance / 1000:g} км" : $"{distance:g} м", 11), new Point(x, y - 19));
+        dc.DrawText(Caption("↑ N", 14), new Point(Math.Max(0, ActualWidth - 43), 12));
     }
 
-    private static void DrawLand(DrawingContext dc, Geometry shape, Brush fill)
+    private FormattedText Caption(string value, double size) =>
+        new(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI Semibold"),
+            size, Ui.Brush("Text"), VisualTreeHelper.GetDpi(this).PixelsPerDip)
+        { MaxTextWidth = 244, MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
+
+    private static Brush Swatch(string value)
     {
-        dc.DrawGeometry(fill, new Pen(AtlasBrushes[2], 9), shape);
-        dc.DrawGeometry(fill, new Pen(AtlasBrushes[5], 1.3), shape);
+        var brush = (Brush)new BrushConverter().ConvertFromString(value)!;
+        brush.Freeze();
+        return brush;
     }
 
-    private static StreamGeometry Polygon(IEnumerable<Point> points)
+    private MapPin? Hit(Point at)
     {
-        var geometry = new StreamGeometry();
-        using var writer = geometry.Open();
-        using var iterator = points.GetEnumerator();
-        if (iterator.MoveNext()) writer.BeginFigure(iterator.Current, true, true);
-        while (iterator.MoveNext()) writer.LineTo(iterator.Current, true, false);
-        return geometry;
-    }
-
-    private void Compass(DrawingContext dc)
-    {
-        var at = new Point(945, 65);
-        dc.DrawEllipse(AtlasBrushes[0], new Pen(AtlasBrushes[4], 1), at, 26, 26);
-        dc.DrawGeometry(Ui.Brush("Mint"), null, Polygon([new Point(945, 48), new Point(956, 78), new Point(945, 72), new Point(934, 78)]));
-        Caption(dc, "N", new Point(941, 23), 11, Ui.Brush("Muted"));
-    }
-
-    private void Caption(DrawingContext dc, string text, Point at, double size, Brush color)
-    {
-        var formatted = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
-            new Typeface("Segoe UI Semibold"), size, color, VisualTreeHelper.GetDpi(this).PixelsPerDip) { MaxTextWidth = 220 };
-        dc.DrawText(formatted, at);
+        var closest = _pins.MinBy(pin => (Position(pin) - at).LengthSquared);
+        return closest is not null && (Position(closest) - at).LengthSquared <= 100 ? closest : null;
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
-        Zoom(e.Delta > 0 ? 1.18 : 1 / 1.18, e.GetPosition(this));
+        Zoom(e.Delta > 0 ? 1.22 : 1 / 1.22, e.GetPosition(this));
         e.Handled = true;
     }
 
@@ -245,12 +263,27 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (!IsMouseCaptured) return;
-        var delta = e.GetPosition(this) - _down;
+        var at = e.GetPosition(this);
+        if (!IsMouseCaptured)
+        {
+            var hover = Placing || Scale <= 0 ? null : Hit(at);
+            if (hover?.Id == _hover?.Id) return;
+            _hover = hover;
+            InvalidateVisual();
+            return;
+        }
+        var delta = at - _down;
         if (delta.Length < 4 && !_drag) return;
         _drag = true;
+        _hover = null;
         _pan = _atDown + delta;
         KeepInView();
+        InvalidateVisual();
+    }
+
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        _hover = null;
         InvalidateVisual();
     }
 
@@ -259,20 +292,10 @@ internal sealed class AtlasCanvas : FrameworkElement
         if (!IsMouseCaptured) return;
         ReleaseMouseCapture();
         if (_drag || Scale <= 0) return;
-        var point = ToWorld(e.GetPosition(this));
+        var at = e.GetPosition(this);
+        var point = ToWorld(at);
         if (point.X is < 0 or > W || point.Y is < 0 or > H) return;
-        if (Zone is null)
-        {
-            var nearest = AtlasZone.All.MinBy(zone => (zone.Center - point).Length);
-            if (nearest is not null && (nearest.Center - point).Length < 60) ZoneSelected?.Invoke(nearest);
-            return;
-        }
-        if (Placing)
-        {
-            PinRequested?.Invoke(point);
-            return;
-        }
-        var marker = _pins(Zone).MinBy(pin => (new Point(pin.X, pin.Y) - point).Length);
-        if (marker is not null && (new Point(marker.X, marker.Y) - point).Length <= 17) PinSelected?.Invoke(marker);
+        if (Placing) PinRequested?.Invoke(point);
+        else if (Hit(at) is { } marker) PinSelected?.Invoke(marker);
     }
 }

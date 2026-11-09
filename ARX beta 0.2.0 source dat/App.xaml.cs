@@ -14,8 +14,10 @@ public partial class App : Application
     private Dashboard? _dashboard;
     private readonly Dictionary<HudKind, HudWindow> _huds = [];
     private Mutex? _instance;
+    private bool _closing;
     public static App CurrentApp => (App)Current;
     internal LiveCombat? Live => _live;
+    internal bool IsClosing => _closing;
     internal bool ClickThroughAvailable => _hotkeys?.ClickThroughRegistered == true;
     internal string HotkeyStatus => _hotkeys is null ? "Глобальные сочетания проверяются при запуске" :
         _hotkeys.Unavailable.Count > 0 ? "Заняты сочетания: " + string.Join(", ", _hotkeys.Unavailable) : "Глобальные сочетания готовы";
@@ -64,7 +66,6 @@ public partial class App : Application
             Shutdown();
             return;
         }
-        ShutdownMode = ShutdownMode.OnExplicitShutdown;
         var splash = new LaunchWindow();
         splash.Show();
         try
@@ -82,7 +83,6 @@ public partial class App : Application
             await Task.Delay(290);
             ShowDashboard();
             splash.Close();
-            ShutdownMode = ShutdownMode.OnLastWindowClose;
             BeginTeamSync();
             _hotkeys = new Hotkeys(() => ToggleHud(HudKind.Combat),
                 () => SetCombatLock(!_store.Profile.CombatHudLocked), () => _live?.FinishSegment(),
@@ -97,10 +97,11 @@ public partial class App : Application
                 _store.Profile.CombatHudLocked = false;
                 _store.Save();
             }
-            if (_store.Profile.CaptureEnabled || e.Args.Contains("--live")) _live.Start();
+            _live.Start();
         }
         catch (Exception ex)
         {
+            _closing = true;
             splash.Close();
             MessageBox.Show("Не удалось запустить ARX. " + ex.Message, "ARX", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
@@ -109,6 +110,7 @@ public partial class App : Application
 
     public void ShowDashboard()
     {
+        if (_closing) return;
         if (_dashboard is not null)
         {
             if (_dashboard.WindowState == WindowState.Minimized) _dashboard.WindowState = WindowState.Normal;
@@ -116,13 +118,18 @@ public partial class App : Application
             return;
         }
         _dashboard = new Dashboard(_store, _catalog);
-        _dashboard.Closed += (_, _) => _dashboard = null;
+        _dashboard.Closing += (_, args) =>
+        {
+            args.Cancel = !_closing;
+            if (args.Cancel) _ = ExitApplicationAsync();
+        };
         MainWindow = _dashboard;
         _dashboard.Show();
     }
 
     public void ToggleHud(HudKind kind)
     {
+        if (_closing) return;
         if (_huds.TryGetValue(kind, out var existing))
         {
             existing.Close();
@@ -132,22 +139,6 @@ public partial class App : Application
         _huds.Add(kind, hud);
         hud.Closed += (_, _) => _huds.Remove(kind);
         hud.Show();
-    }
-
-    public async Task ToggleCapture()
-    {
-        if (_live is null || _live.IsStopping) return;
-        if (_live.IsRunning)
-        {
-            _store.Profile.CaptureEnabled = false;
-            _store.Save();
-            await _live.StopAsync();
-        }
-        else
-        {
-            _store.Profile.CaptureEnabled = _live.Start();
-            _store.Save();
-        }
     }
 
     internal double CombatOpacity => _store.Profile.CombatHudOpacity ??
@@ -162,7 +153,7 @@ public partial class App : Application
 
     internal void SetCombatOpacity(double opacity)
     {
-        _store.Profile.CombatHudOpacity = Math.Clamp(Math.Round(opacity, 2), .35, 1);
+        _store.Profile.CombatHudOpacity = Math.Clamp(Math.Round(opacity, 2), 0, 1);
         if (_huds.TryGetValue(HudKind.Combat, out var hud)) hud.ApplyCombatPreferences();
         _store.Save();
     }
@@ -172,6 +163,29 @@ public partial class App : Application
         _store.Profile.CombatHudLocked = value && ClickThroughAvailable;
         if (_huds.TryGetValue(HudKind.Combat, out var hud)) hud.ApplyCombatPreferences();
         _store.Save();
+    }
+
+    internal void SetCombatScope(CombatHudScope scope)
+    {
+        _store.Profile.CombatHudScope = scope;
+        if (_huds.TryGetValue(HudKind.Combat, out var hud)) hud.ApplyCombatPreferences();
+        _store.Save();
+    }
+
+    private async Task ExitApplicationAsync()
+    {
+        _closing = true;
+        // Let the first Window.Closing notification finish before Shutdown closes the main window again.
+        await System.Windows.Threading.Dispatcher.Yield();
+        _teamPoll?.Stop();
+        _hotkeys?.Dispose();
+        _hotkeys = null;
+        try
+        {
+            foreach (var hud in _huds.Values.ToArray()) hud.Close();
+            if (_live is { } live) await live.StopAsync();
+        }
+        finally { Shutdown(); }
     }
 
     protected override void OnExit(ExitEventArgs e)

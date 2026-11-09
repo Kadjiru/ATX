@@ -28,8 +28,9 @@ internal static class PartyCombat
     }
 
     internal static IReadOnlyList<PartyCombatRow> Rows(FightAnalysis analysis,
-        CharacterIdentity? character = null, PartyRosterEvent? roster = null, bool selfFirst = false)
+        CharacterIdentity? character = null, PartyRosterEvent? roster = null, bool selfFirst = false, CombatHudScope? scope = null)
     {
+        if (scope == CombatHudScope.Self) roster = null;
         var players = analysis.Players.Where(p => p.ActorId != Combatant.UnknownSummonsId).ToArray();
         var rows = new List<PartyCombatRow>();
         var matched = new HashSet<PartyMemberInfo>();
@@ -38,6 +39,8 @@ internal static class PartyCombat
             var isSelf = player.IsSelf;
             var unique = players.Count(p => string.Equals(p.Player, player.Player, StringComparison.OrdinalIgnoreCase)) == 1;
             var member = roster is null ? null : Match(roster, player.Player, player.ServerId, unique);
+            if (!isSelf && scope is not null &&
+                (scope == CombatHudScope.Self || (!analysis.Fight.Demo && member is null))) continue;
             if (member is not null) matched.Add(member);
             rows.Add(new PartyCombatRow(player.Player, member?.ServerId ?? player.ServerId, isSelf, player, SelfColor));
         }

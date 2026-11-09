@@ -183,17 +183,16 @@ public sealed partial class Dashboard
         var devices = App.CurrentApp.Live?.Adapters().ToArray() ?? [];
         var adapter = Choice(new[] { "Автоматически" }.Concat(devices.Select(d => d.Description)), 270);
         adapter.SelectedIndex = Math.Max(0, Array.FindIndex(devices, d => d.Name == _store.Profile.CaptureAdapter) + 1);
-        var captureButton = Button("Начать захват", () => _ = App.CurrentApp.ToggleCapture(), true);
         var character = Input(_store.Profile.CombatCharacterHint, 235, 40);
         var detection = Text("", 13, "Coral", true);
         var identityFeedback = Hint("");
         page.Children.Add(Space(Card(Stack(Space(Text("Подключение Aion 2", 20, bold: true), 7),
-            Space(Hint("Режим читает локальные сетевые пакеты через Npcap. Игра может присылать неполный состав и урон. Запустите захват перед входом в локацию."), 8),
+            Space(Hint("Считывание через Npcap включается при запуске ARX. Для определения персонажа лучше открыть ARX перед входом в игру или сменить локацию."), 8),
             Space(captureStatus, 7), Actions(Field("Сетевой адаптер", adapter)),
-            Actions(captureButton, Button("Применить адаптер", () => _ = ApplyAdapter()),
+            Actions(Button("Применить адаптер", () => _ = ApplyAdapter()),
                 Button("Экспорт диагностики", () => ExportJson(new
                 {
-                    Version = "0.2.2-beta", Windows = Environment.OSVersion.VersionString,
+                    Version = "0.2.3-beta", Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
             Space(Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."), 10),
@@ -213,7 +212,7 @@ public sealed partial class Dashboard
         density.SelectedIndex = Math.Clamp((int)_store.Profile.CombatHudDensity, 0, 2);
         var opacity = new Slider
         {
-            Width = 172, Minimum = 35, Maximum = 100, Value = Math.Clamp(app.CombatOpacity * 100, 35, 100),
+            Width = 152, Minimum = 0, Maximum = 100, Value = Math.Clamp(app.CombatOpacity * 100, 0, 100),
             TickFrequency = 5, SmallChange = 1, LargeChange = 5
         };
         var percent = Hint($"{opacity.Value:0}%");
@@ -223,6 +222,8 @@ public sealed partial class Dashboard
         var size = Hint($"{font.Value:0} пт");
         font.ValueChanged += (_, _) => size.Text = $"{font.Value:0} пт";
         var selfFirst = new CheckBox { Content = "Мой персонаж сверху", IsChecked = _store.Profile.CombatHudSelfFirst };
+        var scope = Choice(["Только мой персонаж", "Я и моя группа"], 175);
+        scope.SelectedIndex = _store.Profile.CombatHudScope == CombatHudScope.Self ? 0 : 1;
         var lockHud = new CheckBox
         {
             Content = "Закрепить и пропускать щелчки",
@@ -233,13 +234,15 @@ public sealed partial class Dashboard
         var activeHud = Hint("");
         page.Children.Insert(2, Space(Card(Stack(Space(Label("ОКНО ПОВЕРХ ИГРЫ"), 4),
             Space(Text("Боевой HUD", 22, bold: true), 7),
-            Space(Hint("Минимальный оставляет цветные имена и DPS без фона. Средний добавляет HPS, подробный показывает долю, крит, бурст и доступное HP цели."), 9),
-            Actions(Field("Режим", density), Field("Непрозрачность", opacity), percent, Field("Размер текста", font), size),
+            Space(Hint("Пока игра не прислала состав, HUD показывает только вашего персонажа. Прозрачность меняет фон и обводку. В минимальном режиме фон всегда прозрачный."), 9),
+            Actions(Field("Кого показывать", scope), Field("Режим", density)),
+            Actions(Field("Непрозрачность фона", opacity), percent, Field("Размер текста", font), size),
             Actions(selfFirst, lockHud),
             Actions(Button("Применить HUD", () =>
             {
                 _store.Profile.CombatHudTextSize = (int)font.Value;
                 _store.Profile.CombatHudSelfFirst = selfFirst.IsChecked == true;
+                app.SetCombatScope(scope.SelectedIndex == 0 ? CombatHudScope.Self : CombatHudScope.Party);
                 app.SetCombatDensity((HudDensity)density.SelectedIndex);
                 app.SetCombatOpacity(opacity.Value / 100);
                 app.SetCombatLock(lockHud.IsChecked == true);
@@ -269,7 +272,8 @@ public sealed partial class Dashboard
         {
             var mode = _store.Profile.CombatHudDensity switch { HudDensity.Minimal => "минимальный",
                 HudDensity.Detailed => "подробный", _ => "средний" };
-            activeHud.Text = $"Применено: {mode} · {app.CombatOpacity:P0} · текст {_store.Profile.CombatHudTextSize}" +
+            var audience = _store.Profile.CombatHudScope == CombatHudScope.Self ? "только вы" : "вы и ваша группа";
+            activeHud.Text = $"Применено: {mode} · {audience} · фон {app.CombatOpacity:P0} · текст {_store.Profile.CombatHudTextSize}" +
                 (_store.Profile.CombatHudLocked ? " · закреплён" : "");
         }
 
@@ -277,8 +281,6 @@ public sealed partial class Dashboard
         {
             var live = App.CurrentApp.Live;
             captureStatus.Text = live?.Diagnostic ?? "Предпросмотр";
-            captureButton.Content = live?.IsRunning == true ? "Остановить захват" : "Начать захват";
-            captureButton.IsEnabled = live?.IsStopping != true;
             detection.Text = _store.LiveIdentity is { } identity
                 ? $"ВЫ · {identity}" + (_store.LiveCharacter?.Confirmed == false ? " · совпадение по имени" : " · данные игры")
                 : "Ваш персонаж ещё не определён";
@@ -290,9 +292,8 @@ public sealed partial class Dashboard
             if (live is null || live.IsStopping) return;
             _store.Profile.CaptureAdapter = adapter.SelectedIndex > 0 ? devices[adapter.SelectedIndex - 1].Name : null;
             _store.Save();
-            if (!live.IsRunning) return;
             await live.StopAsync();
-            live.Start();
+            if (!App.CurrentApp.IsClosing) live.Start();
         }
 
         void UpdateTeam()
@@ -350,17 +351,27 @@ internal sealed class TaskPanel : StackPanel
     private readonly LegionStore _store;
     private readonly StackPanel _rows = new();
     private readonly TextBox _note;
+    private readonly Button _add;
 
-    public TaskPanel(LegionStore store)
+    public TaskPanel(LegionStore store, bool compact = false)
     {
         _store = store;
         _note = Input("", 175, 140);
         System.Windows.Automation.AutomationProperties.SetName(_note, "Новая задача");
         _note.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) Add(); };
-        Children.Add(Space(Text("Задачи сессии", 17, bold: true), 7));
-        Children.Add(Actions(_note, Button("Добавить", Add, true)));
+        if (!compact) Children.Add(Space(Text("Задачи сессии", 17, bold: true), 7));
+        _add = Button("Добавить", Add, !compact);
+        Children.Add(Actions(_note, _add));
         Children.Add(_rows);
         Refresh();
+    }
+
+    public void SetSurfaceOpacity(double opacity)
+    {
+        _note.Background = HudWindow.Faded(Ui.Brush("Base"), opacity);
+        _note.BorderBrush = HudWindow.Faded(Ui.Brush("Line"), opacity);
+        _add.Background = HudWindow.Faded(Ui.Brush("Raised"), opacity);
+        _add.BorderBrush = HudWindow.Faded(Ui.Brush("Mint"), opacity * .5);
     }
 
     private void Add()
