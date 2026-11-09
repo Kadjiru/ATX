@@ -10,7 +10,7 @@ internal sealed class Hotkeys : IDisposable
     internal static IReadOnlyList<Shortcut> Shortcuts { get; } =
     [
         new(1, 0x0001, 0x77, "Alt+F8", "Показать или скрыть боевой HUD"),
-        new(9, 0x0001, 0x78, "Alt+F9", "Показать или скрыть HUD мировых боссов"),
+        new(9, 0x0003, 0x78, "Ctrl+Alt+F9", "Показать или скрыть HUD мировых боссов"),
         new(4, 0x0003, 0x31, "Ctrl+Alt+1", "Открыть минимальный HUD с прозрачным фоном"),
         new(5, 0x0003, 0x32, "Ctrl+Alt+2", "Открыть средний HUD со списком участников"),
         new(6, 0x0003, 0x33, "Ctrl+Alt+3", "Открыть подробный HUD"),
