@@ -5,8 +5,8 @@
 [Setup]
 AppId={{9F5CB164-814E-4346-A21A-E3171454CEFA}
 AppName=ARX
-AppVersion=0.2.4-beta
-AppVerName=ARX 0.2.4 beta
+AppVersion=0.2.5-beta
+AppVerName=ARX 0.2.5 beta
 AppPublisher=ARX
 AppPublisherURL=https://github.com/Kadjiru/ATX
 DefaultDirName={localappdata}\Programs\ARX
@@ -15,7 +15,7 @@ PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0.17763
 AppMutex=Local\ARX.Legion.Beta
-OutputBaseFilename=ARX-Setup-0.2.4-beta
+OutputBaseFilename=ARX-Setup-0.2.5-beta
 SetupIconFile=Assets\ARX.ico
 UninstallDisplayIcon={app}\ARX.Beta.exe
 WizardStyle=modern dark hidebevels

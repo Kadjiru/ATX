@@ -107,7 +107,7 @@ public sealed partial class Dashboard : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false
         };
         Place(shell, _scroll, 1, 1);
-        var footer = Label("ARX 0.2.4 BETA     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD");
+        var footer = Label("ARX 0.2.5 BETA     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD");
         var footerFrame = new Border { Child = footer, Padding = new Thickness(18, 7, 0, 0),
             Background = Ui.Brush("Surface"), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 0) };
         Grid.SetColumnSpan(footerFrame, 2);

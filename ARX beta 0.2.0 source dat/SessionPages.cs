@@ -192,7 +192,7 @@ public sealed partial class Dashboard
             Actions(Button("Применить адаптер", () => _ = ApplyAdapter()),
                 Button("Экспорт диагностики", () => ExportJson(new
                 {
-                    Version = "0.2.4-beta", Windows = Environment.OSVersion.VersionString,
+                    Version = "0.2.5-beta", Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
             Space(Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."), 10),

@@ -2,7 +2,7 @@ param([string]$OutDir = (Join-Path $PSScriptRoot '..\dist\arx-beta'))
 
 $ErrorActionPreference = 'Stop'
 $out = [IO.Path]::GetFullPath($OutDir)
-$stage = Join-Path $out 'ARX-0.2.4-beta-win-x64'
+$stage = Join-Path $out 'ARX-0.2.5-beta-win-x64'
 New-Item -ItemType Directory -Force $stage | Out-Null
 
 dotnet publish (Join-Path $PSScriptRoot 'ARX.Beta.csproj') -c Release -r win-x64 --self-contained true -o $stage `
@@ -18,7 +18,7 @@ foreach ($path in 'ARX.Beta.exe', 'Data\Crafting.json', 'Data\CatalogManifest.js
 }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$archive = Join-Path $out 'ARX-0.2.4-beta-win-x64.zip'
+$archive = Join-Path $out 'ARX-0.2.5-beta-win-x64.zip'
 $temporary = $archive + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
 try {
     [IO.Compression.ZipFile]::CreateFromDirectory($stage, $temporary, [IO.Compression.CompressionLevel]::Optimal, $false)

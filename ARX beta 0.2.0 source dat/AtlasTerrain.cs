@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -16,12 +17,25 @@ internal static class AtlasTerrain
     }
 
     public static BitmapSource Render(byte[] relief, int columns, int rows)
+        => Render(relief, columns, rows, new Rect(0, 0, 1, 1), PixelWidth, PixelHeight);
+
+    public static BitmapSource Render(byte[] relief, int columns, int rows, Rect region, int width, int height)
     {
         // Interpolate elevation and coverage separately so unmeasured terrain cannot pull the visible edge down.
-        var horizontal = Filters(columns, PixelWidth);
-        var scanlines = new Sample[rows * PixelWidth];
-        for (var y = 0; y < rows; y++)
-        for (var x = 0; x < PixelWidth; x++)
+        var stepX = region.Width / width;
+        var stepY = region.Height / height;
+        // Include a halo for shading so a view clipped at the window edge matches the surrounding terrain.
+        var dx = Math.Max(1, (int)Math.Round(1 / (180 * stepX)));
+        var dy = Math.Max(1, (int)Math.Round(1 / (108 * stepY)));
+        var sampleWidth = width + dx;
+        var sampleHeight = height + dy;
+        var horizontal = Filters(columns, sampleWidth, region.X - dx * stepX, stepX);
+        var vertical = Filters(rows, sampleHeight, region.Y - dy * stepY, stepY);
+        var firstRow = vertical[0].A;
+        var lastRow = vertical[^1].D;
+        var scanlines = new Sample[(lastRow - firstRow + 1) * sampleWidth];
+        for (var y = firstRow; y <= lastRow; y++)
+        for (var x = 0; x < sampleWidth; x++)
         {
             var f = horizontal[x];
             var row = y * columns;
@@ -29,58 +43,56 @@ internal static class AtlasTerrain
             var b = relief[row + f.B];
             var c = relief[row + f.C];
             var d = relief[row + f.D];
-            scanlines[y * PixelWidth + x] = new Sample(f.Blend(a, b, c, d),
+            scanlines[(y - firstRow) * sampleWidth + x] = new Sample(f.Blend(a, b, c, d),
                 f.Blend(a > 0 ? 1 : 0, b > 0 ? 1 : 0, c > 0 ? 1 : 0, d > 0 ? 1 : 0));
         }
 
-        var vertical = Filters(rows, PixelHeight);
-        var pixels = new byte[PixelWidth * PixelHeight * 4];
-        var heights = new float[PixelWidth * PixelHeight];
-        for (var y = 0; y < PixelHeight; y++)
-        for (var x = 0; x < PixelWidth; x++)
+        var pixels = new byte[width * height * 4];
+        var heights = new float[sampleWidth * sampleHeight];
+        for (var y = 0; y < sampleHeight; y++)
+        for (var x = 0; x < sampleWidth; x++)
         {
             var f = vertical[y];
-            var a = scanlines[f.A * PixelWidth + x];
-            var b = scanlines[f.B * PixelWidth + x];
-            var c = scanlines[f.C * PixelWidth + x];
-            var d = scanlines[f.D * PixelWidth + x];
+            var a = scanlines[(f.A - firstRow) * sampleWidth + x];
+            var b = scanlines[(f.B - firstRow) * sampleWidth + x];
+            var c = scanlines[(f.C - firstRow) * sampleWidth + x];
+            var d = scanlines[(f.D - firstRow) * sampleWidth + x];
             var coverage = f.Blend(a.Coverage, b.Coverage, c.Coverage, d.Coverage);
             if (coverage <= 0) continue;
-            var index = y * PixelWidth + x;
-            heights[index] = f.Blend(a.Height, b.Height, c.Height, d.Height) / coverage;
+            heights[y * sampleWidth + x] = f.Blend(a.Height, b.Height, c.Height, d.Height) / coverage;
+            if (x < dx || y < dy) continue;
+            var index = (y - dy) * width + x - dx;
             var edge = Math.Clamp((coverage - .32f) / .36f, 0, 1);
             pixels[index * 4 + 3] = Tone(255 * edge * edge * (3 - 2 * edge));
         }
 
-        var dx = Math.Max(1, PixelWidth / columns);
-        var dy = Math.Max(1, PixelHeight / rows);
-        for (var y = 0; y < PixelHeight; y++)
-        for (var x = 0; x < PixelWidth; x++)
+        for (var y = 0; y < height; y++)
+        for (var x = 0; x < width; x++)
         {
-            var index = y * PixelWidth + x;
-            var offset = index * 4;
+            var index = (y + dy) * sampleWidth + x + dx;
+            var offset = (y * width + x) * 4;
             if (pixels[offset + 3] == 0) continue;
-            var height = heights[index];
-            var west = heights[index - Math.Min(dx, x)];
-            var north = heights[index - Math.Min(dy, y) * PixelWidth];
-            var shade = Math.Clamp(((west > 0 ? west - height : 0) + (north > 0 ? north - height : 0)) * .87f, -23, 25);
-            var level = height / 254;
-            var contour = Math.Max(0, 5 - 3 * Math.Abs(height - 26 * MathF.Round(height / 26)));
+            var elevation = heights[index];
+            var west = heights[index - dx];
+            var north = heights[index - dy * sampleWidth];
+            var shade = Math.Clamp(((west > 0 ? west - elevation : 0) + (north > 0 ? north - elevation : 0)) * .87f, -23, 25);
+            var level = elevation / 254;
+            var contour = Math.Max(0, 5 - 3 * Math.Abs(elevation - 26 * MathF.Round(elevation / 26)));
             pixels[offset] = Tone(60 + level * 39 + shade + contour);
             pixels[offset + 1] = Tone(76 + level * 55 + shade + contour);
             pixels[offset + 2] = Tone(39 + level * 77 + shade + contour);
         }
-        var bitmap = BitmapSource.Create(PixelWidth, PixelHeight, 96, 96, PixelFormats.Bgra32, null, pixels, PixelWidth * 4);
+        var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, width * 4);
         bitmap.Freeze();
         return bitmap;
     }
 
-    private static Filter[] Filters(int sourceLength, int targetLength)
+    private static Filter[] Filters(int sourceLength, int targetLength, double start, double step)
     {
         var filters = new Filter[targetLength];
         for (var i = 0; i < targetLength; i++)
         {
-            var source = (i + .5f) * sourceLength / targetLength - .5f;
+            var source = (float)((start + (i + .5) * step) * sourceLength - .5);
             var index = (int)MathF.Floor(source);
             var t = source - index;
             var u = 1 - t;

@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 namespace ArxBeta;
 
@@ -33,6 +35,13 @@ internal sealed class AtlasCanvas : FrameworkElement
     private IReadOnlyList<MapPin> _pins = [];
     private IReadOnlyList<MapPin> _route = [];
     private MapPin? _hover;
+    private readonly DispatcherTimer _detailTimer = new() { Interval = TimeSpan.FromMilliseconds(95) };
+    private DetailRequest? _requestedDetail;
+    private DetailRequest? _renderedDetail;
+    private BitmapSource? _detail;
+    private bool _renderingDetail;
+
+    private sealed record DetailRequest(AtlasCatalog.AtlasMap Map, Rect Area, int Width, int Height);
 
     public bool Placing { get; set; }
     public Guid? Selected { get; set; }
@@ -44,12 +53,16 @@ internal sealed class AtlasCanvas : FrameworkElement
         ClipToBounds = true;
         Cursor = Cursors.Hand;
         RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.Linear);
+        _detailTimer.Tick += (_, _) => RenderDetail();
+        Loaded += (_, _) => QueueDetail();
+        Unloaded += (_, _) => ClearDetail();
     }
 
     public void SetLayer(AtlasCatalog.AtlasMap? map, ImageSource? backdrop)
     {
         _map = map;
         _backdrop = backdrop;
+        ClearDetail();
         Selected = null;
         Placing = false;
         Fit();
@@ -67,6 +80,7 @@ internal sealed class AtlasCanvas : FrameworkElement
     {
         _zoom = 1;
         _pan = default;
+        QueueDetail();
         InvalidateVisual();
     }
 
@@ -75,6 +89,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         _zoom = Math.Max(2.8, _zoom);
         _pan = new Vector((W / 2 - pin.X) * Scale, (H / 2 - pin.Y) * Scale);
         KeepInView();
+        QueueDetail();
         InvalidateVisual();
     }
 
@@ -90,6 +105,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         _pan += cursor - ToScreen(world);
         KeepInView();
         _hover = null;
+        QueueDetail();
         InvalidateVisual();
     }
 
@@ -104,6 +120,13 @@ internal sealed class AtlasCanvas : FrameworkElement
     {
         base.OnRenderSizeChanged(sizeInfo);
         KeepInView();
+        QueueDetail();
+    }
+
+    protected override void OnDpiChanged(DpiScale oldDpi, DpiScale newDpi)
+    {
+        base.OnDpiChanged(oldDpi, newDpi);
+        QueueDetail();
     }
 
     private Point ToWorld(Point point)
@@ -127,7 +150,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         dc.PushTransform(new MatrixTransform(matrix));
         var bounds = new Rect(0, 0, W, H);
         if (_backdrop is not null) dc.DrawImage(_backdrop, bounds);
-        else if (_map is not null) dc.DrawImage(_map.Terrain, bounds);
+        else if (_map is { } map) DrawTerrain(dc, map, bounds);
         DrawGrid(dc);
         dc.Pop();
 
@@ -146,6 +169,96 @@ internal sealed class AtlasCanvas : FrameworkElement
         if (_hover is { } hover && hover.Id != Selected)
             DrawCallout(dc, view, hover);
         DrawScale(dc);
+    }
+
+    private void DrawTerrain(DrawingContext dc, AtlasCatalog.AtlasMap map, Rect bounds)
+    {
+        if (_renderedDetail is { } current && _detail is { } detail)
+        {
+            dc.PushClip(new CombinedGeometry(GeometryCombineMode.Exclude,
+                new RectangleGeometry(bounds), new RectangleGeometry(current.Area)));
+            dc.DrawImage(map.Terrain, bounds);
+            dc.Pop();
+            dc.DrawImage(detail, current.Area);
+        }
+        else dc.DrawImage(map.Terrain, bounds);
+    }
+
+    private void QueueDetail()
+    {
+        if (_map is not { } map || _backdrop is not null || !IsLoaded || Scale <= 0)
+        {
+            ClearDetail();
+            return;
+        }
+        var bounds = new Rect(0, 0, W, H);
+        var dpi = VisualTreeHelper.GetDpi(this);
+        var visible = new Rect(ToWorld(new Point()), ToWorld(new Point(ActualWidth, ActualHeight)));
+        visible.Intersect(bounds);
+        var detailed = !visible.IsEmpty && visible.Width > 0 && visible.Height > 0 &&
+            (W * Scale * dpi.DpiScaleX > AtlasTerrain.PixelWidth || H * Scale * dpi.DpiScaleY > AtlasTerrain.PixelHeight);
+        if (!detailed)
+        {
+            ClearDetail();
+            return;
+        }
+
+        // Keep a little extra area in the cache so short drags can reuse the same sharp image.
+        var scaleX = Scale * dpi.DpiScaleX;
+        var scaleY = Scale * dpi.DpiScaleY;
+        if (_renderedDetail is { } rendered && rendered.Area.Contains(visible) &&
+            Math.Abs(rendered.Width / rendered.Area.Width - scaleX) <= scaleX * .04 &&
+            Math.Abs(rendered.Height / rendered.Area.Height - scaleY) <= scaleY * .04)
+        {
+            _requestedDetail = rendered;
+            _detailTimer.Stop();
+            return;
+        }
+        visible.Inflate(visible.Width * .10, visible.Height * .10);
+        visible.Intersect(bounds);
+        var request = new DetailRequest(map, visible, Math.Clamp((int)Math.Ceiling(visible.Width * scaleX), 1, 4096),
+            Math.Clamp((int)Math.Ceiling(visible.Height * scaleY), 1, 3072));
+        if (request == _requestedDetail) return;
+        _requestedDetail = request;
+        _detailTimer.Stop();
+        _detailTimer.Start();
+    }
+
+    private async void RenderDetail()
+    {
+        _detailTimer.Stop();
+        if (_renderingDetail || _requestedDetail is not { } request || request == _renderedDetail) return;
+        _renderingDetail = true;
+        try
+        {
+            var area = request.Area;
+            var fraction = new Rect(area.X / W, area.Y / H, area.Width / W, area.Height / H);
+            var map = request.Map;
+            var bitmap = await Task.Run(() => AtlasTerrain.Render(map.Relief, map.Columns, map.Rows, fraction,
+                request.Width, request.Height));
+            if (_requestedDetail != request || !IsLoaded) return;
+            _detail = bitmap;
+            _renderedDetail = request;
+            InvalidateVisual();
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            System.Diagnostics.Debug.WriteLine(ex);
+        }
+        finally
+        {
+            _renderingDetail = false;
+            if (_requestedDetail is { } next && next != request && next != _renderedDetail && IsLoaded)
+                _detailTimer.Start();
+        }
+    }
+
+    private void ClearDetail()
+    {
+        _detailTimer.Stop();
+        _requestedDetail = null;
+        _renderedDetail = null;
+        _detail = null;
     }
 
     private Point Position(MapPin pin) => ToScreen(new Point(pin.X, pin.Y));
@@ -278,6 +391,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         _hover = null;
         _pan = _atDown + delta;
         KeepInView();
+        QueueDetail();
         InvalidateVisual();
     }
 

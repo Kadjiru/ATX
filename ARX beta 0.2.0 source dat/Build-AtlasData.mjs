@@ -20,7 +20,8 @@ const zones = {
     middle: 'Intersever/Abyss/Abyss_Reshanta_C',
     upper: 'Intersever/Abyss/Abyss_Reshanta_D'
 };
-const columns = 180, rows = 108;
+const baseColumns = 180, baseRows = 108;
+const columns = 720, rows = 432;
 const data = Object.entries(zones).map(([zone, table]) => {
     const samples = Object.values(spawns[table]).flat();
     const points = [];
@@ -54,22 +55,46 @@ const data = Object.entries(zones).map(([zone, table]) => {
     };
     const [minX, maxX] = extent(0, 'x');
     const [minY, maxY] = extent(1, 'y');
-    const step = Math.max((maxX - minX) / columns, (maxY - minY) / rows) * 1.12;
-    const west = (minX + maxX - columns * step) / 2;
-    const north = (minY + maxY - rows * step) / 2;
+    const baseStep = Math.max((maxX - minX) / baseColumns, (maxY - minY) / baseRows) * 1.12;
+    const west = (minX + maxX - baseColumns * baseStep) / 2;
+    const north = (minY + maxY - baseRows * baseStep) / 2;
+    const step = baseColumns * baseStep / columns;
     const heights = samples.map(p => p[2]).sort((a, b) => a - b);
     const low = heights[Math.floor(heights.length * .02)];
     const high = heights[Math.floor(heights.length * .98)];
     const relief = Buffer.alloc(rows * columns);
-    const radius = Math.max(4 * step, 0.048 * Math.max(maxX - minX, maxY - minY));
+    const radius = Math.max(4 * baseStep, 0.048 * Math.max(maxX - minX, maxY - minY));
+    const buckets = new Map();
+    const key = (x, y) => `${x}:${y}`;
+    for (const sample of samples) {
+        const bucket = key(Math.floor(sample[0] / radius), Math.floor(sample[1] / radius));
+        if (!buckets.has(bucket)) buckets.set(bucket, []);
+        buckets.get(bucket).push(sample);
+    }
+    const nearby = new Map();
+    const neighbors = (x, y) => {
+        const col = Math.floor(x / radius), row = Math.floor(y / radius);
+        const bucket = key(col, row);
+        if (!nearby.has(bucket)) {
+            const neighbors = [];
+            for (let dy = -1; dy <= 1; dy++)
+                for (let dx = -1; dx <= 1; dx++)
+                    neighbors.push(...(buckets.get(key(col + dx, row + dy)) ?? []));
+            nearby.set(bucket, neighbors);
+        }
+        return nearby.get(bucket);
+    };
+    const radiusSquared = radius ** 2;
+    const smoothing = (baseStep * 1.3) ** 2;
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < columns; col++) {
             const x = west + (col + .5) * step, y = north + (row + .5) * step;
             let elevation = 0, weight = 0, nearest = Infinity;
-            for (const [sx, sy, z] of samples) {
+            for (const [sx, sy, z] of neighbors(x, y)) {
                 const distance = (sx - x) ** 2 + (sy - y) ** 2;
-                if (distance > radius ** 2) continue;
-                const influence = 1 / (distance + (step * 1.3) ** 2) ** 1.7;
+                if (distance >= radiusSquared) continue;
+                const fade = 1 - distance / radiusSquared;
+                const influence = fade * fade / (distance + smoothing) ** 1.7;
                 elevation += influence * z;
                 weight += influence;
                 nearest = Math.min(nearest, distance);
@@ -79,7 +104,7 @@ const data = Object.entries(zones).map(([zone, table]) => {
             relief[row * columns + col] = 1 + Math.round(Math.max(0, Math.min(1, normalized)) * 253);
         }
     }
-    return { zone, west, north, span: step * columns, columns, rows, relief: relief.toString('base64'),
+    return { zone, west, north, span: baseStep * baseColumns, columns, rows, relief: relief.toString('base64'),
         points: [...new Map(points.map(point => [point.key, point])).values()] };
 });
 writeFileSync(new URL('./Data/Atlas.json.gz', import.meta.url), gzipSync(JSON.stringify(data), { level: 9 }));
