@@ -26,6 +26,7 @@ public sealed class HudWindow : Window
     private readonly Border _frame;
     private readonly StackPanel _buttons;
     private readonly Button? _scopeButton;
+    private readonly Button? _modeButton;
     private double _surfaceOpacity;
     private bool _clickThrough;
     private HudDensity _density;
@@ -48,7 +49,8 @@ public sealed class HudWindow : Window
         WindowStartupLocation = WindowStartupLocation.Manual;
         var area = SystemParameters.WorkArea;
         var defaultLayout = new HudLayout(area.Right - 425, area.Top + 56 + (int)kind * 200,
-            kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 282 : kind == HudKind.Bosses ? 213 : 193, 0.94);
+            kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 406 : kind == HudKind.Bosses ? 213 : 193, 0.94,
+            kind == HudKind.Combat ? HudDensity.Detailed : null);
         var layout = store.Profile.HudLayouts.GetValueOrDefault(kind.ToString(), defaultLayout);
         Width = Math.Clamp(layout.Width, MinWidth, Math.Max(MinWidth, area.Width));
         Height = Math.Clamp(layout.Height, MinHeight, Math.Max(MinHeight, area.Height));
@@ -68,9 +70,10 @@ public sealed class HudWindow : Window
             var lockButton = Button("⇥", () => App.CurrentApp.SetCombatLock(!_store.Profile.CombatHudLocked));
             lockButton.ToolTip = "Закрепить HUD и пропускать щелчки · Ctrl+Alt+L";
             actions.Add(lockButton);
-            var modes = Button("↕", () => App.CurrentApp.SetCombatDensity((HudDensity)(((int)_density + 1) % 3)));
-            modes.ToolTip = "Сменить плотность HUD · Ctrl+Alt+1/2/3";
-            actions.Add(modes);
+            _modeButton = Button("↕", () => App.CurrentApp.SetCombatDensity((HudDensity)(((int)_density + 1) % 3)));
+            _modeButton.ToolTip = "Сменить плотность HUD · Ctrl+Alt+1/2/3";
+            System.Windows.Automation.AutomationProperties.SetName(_modeButton, "Сменить режим HUD");
+            actions.Add(_modeButton);
         }
         actions.Add(Button("×", Close));
         foreach (var button in actions)
@@ -164,7 +167,8 @@ public sealed class HudWindow : Window
         _density = density;
         var minimal = density == HudDensity.Minimal;
         _frame.Padding = new Thickness(minimal ? 8 : 12);
-        _buttons.Visibility = minimal ? Visibility.Collapsed : Visibility.Visible;
+        foreach (Button button in _buttons.Children)
+            button.Visibility = minimal && button != _modeButton ? Visibility.Collapsed : Visibility.Visible;
         _scroll.VerticalScrollBarVisibility = minimal ? ScrollBarVisibility.Hidden : ScrollBarVisibility.Auto;
         ResizeMode = minimal ? ResizeMode.NoResize : ResizeMode.CanResizeWithGrip;
         MinHeight = minimal ? 65 : 145;
@@ -204,8 +208,8 @@ public sealed class HudWindow : Window
         _handle.Effect = TextShadow();
         foreach (Button button in _buttons.Children)
         {
-            button.Background = Faded(Brush("Raised"), _surfaceOpacity);
-            button.BorderBrush = Faded(Brush("Line"), _surfaceOpacity);
+            button.Background = minimal ? Brushes.Transparent : Faded(Brush("Raised"), _surfaceOpacity);
+            button.BorderBrush = minimal ? Brushes.Transparent : Faded(Brush("Line"), _surfaceOpacity);
             button.Effect = TextShadow();
         }
         _tasks?.SetSurfaceOpacity(_surfaceOpacity);

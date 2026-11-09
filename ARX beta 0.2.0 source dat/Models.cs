@@ -232,7 +232,8 @@ public sealed class Profile
     public HashSet<Guid> AtlasFound { get; set; } = [];
     public string? CaptureAdapter { get; set; }
     public string DeclaredBuild { get; set; } = "";
-    public HudDensity CombatHudDensity { get; set; } = HudDensity.Medium;
+    public HudDensity CombatHudDensity { get; set; } = HudDensity.Detailed;
+    public bool AutoUpdate { get; set; } = true;
     public double? CombatHudOpacity { get; set; }
     public bool CombatHudLocked { get; set; }
     public int CombatHudTextSize { get; set; } = 15;

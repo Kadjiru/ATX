@@ -1,4 +1,5 @@
 using System.IO;
+using System.Windows.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -15,9 +16,16 @@ public partial class App : Application
     private readonly Dictionary<HudKind, HudWindow> _huds = [];
     private Mutex? _instance;
     private bool _closing;
+    private AppUpdates? _updates;
+    private DispatcherTimer? _updateTimer;
+    private UpdateWindow? _updateWindow;
+    private string? _offeredUpdate;
+    private string? _approvedUpdate;
     public static App CurrentApp => (App)Current;
     internal LiveCombat? Live => _live;
     internal bool IsClosing => _closing;
+    internal AppUpdates? Updates => _updates;
+    internal bool UpdateApproved => _approvedUpdate is not null && _approvedUpdate == _updates?.ReadyIdentity;
     internal bool ClickThroughAvailable => _hotkeys?.ClickThroughRegistered == true;
     internal string HotkeyStatus => _hotkeys is null ? "Глобальные сочетания проверяются при запуске" :
         _hotkeys.Unavailable.Count > 0 ? "Заняты сочетания: " + string.Join(", ", _hotkeys.Unavailable) : "Глобальные сочетания готовы";
@@ -29,6 +37,16 @@ public partial class App : Application
         var render = e.Args.Length >= 2 && e.Args[0] == "--render";
         if (!render)
         {
+            for (var attempt = 0; InstallerRunning(); attempt++)
+            {
+                if (attempt >= 120)
+                {
+                    MessageBox.Show("Установщик ARX ещё работает. Запустите приложение после завершения установки.", "ARX");
+                    Shutdown();
+                    return;
+                }
+                await Task.Delay(250);
+            }
             _instance = new Mutex(true, "Local\\ARX.Legion.Beta", out var first);
             if (!first)
             {
@@ -111,6 +129,7 @@ public partial class App : Application
                 _store.Save();
             }
             _live.Start();
+            StartAppUpdates();
         }
         catch (Exception ex)
         {
@@ -119,6 +138,59 @@ public partial class App : Application
             MessageBox.Show("Не удалось запустить ARX. " + ex.Message, "ARX", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
+    }
+
+    private static bool InstallerRunning()
+    {
+        if (!Mutex.TryOpenExisting("Local\\ARX.Setup", out var mutex)) return false;
+        mutex.Dispose();
+        return true;
+    }
+
+    private void StartAppUpdates()
+    {
+        _updates = new AppUpdates();
+        _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(2) };
+        _updateTimer.Tick += (_, _) => { if (_store.Profile.AutoUpdate) _ = CheckAppUpdatesAsync(); };
+        _updateTimer.Start();
+        if (_store.Profile.AutoUpdate) _ = CheckAppUpdatesAsync();
+    }
+
+    internal async Task CheckAppUpdatesAsync()
+    {
+        if (_closing || _updates is not { } updates) return;
+        await updates.CheckAsync();
+        if (!_closing && updates.ReadyIdentity is { } identity && identity != _offeredUpdate) ShowUpdateOffer();
+    }
+
+    internal void ShowUpdateOffer()
+    {
+        if (_closing || _updates?.ReadyVersion is not { } version || _updates.ReadyIdentity is not { } identity ||
+            _dashboard is not { } dashboard) return;
+        if (_updateWindow is { } existing)
+        {
+            existing.Activate();
+            return;
+        }
+        _offeredUpdate = identity;
+        var window = new UpdateWindow(dashboard, version, now =>
+        {
+            if (now is null)
+            {
+                if (_approvedUpdate == identity) _approvedUpdate = null;
+                return;
+            }
+            if (_updates?.ReadyIdentity != identity)
+            {
+                ShowUpdateOffer();
+                return;
+            }
+            _approvedUpdate = identity;
+            if (now.Value) dashboard.Close();
+        });
+        _updateWindow = window;
+        window.Closed += (_, _) => _updateWindow = null;
+        window.Show();
     }
 
     public void ShowDashboard()
@@ -205,12 +277,14 @@ public partial class App : Application
         // Let the first Window.Closing notification finish before Shutdown closes the main window again.
         await System.Windows.Threading.Dispatcher.Yield();
         _teamPoll?.Stop();
+        _updateTimer?.Stop();
         _hotkeys?.Dispose();
         _hotkeys = null;
         try
         {
             foreach (var hud in _huds.Values.ToArray()) hud.Close();
             if (_live is { } live) await live.StopAsync();
+            if (UpdateApproved) _updates?.InstallAfterClose();
         }
         finally { Shutdown(); }
     }
@@ -218,6 +292,8 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _teamPoll?.Stop();
+        _updateTimer?.Stop();
+        _updates?.Dispose();
         if (_store is not null) _store.LiveChanged -= CheckBossAlerts;
         _hotkeys?.Dispose();
         _live?.Dispose();

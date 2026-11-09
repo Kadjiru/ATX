@@ -52,7 +52,7 @@ internal sealed class AtlasCanvas : FrameworkElement
     {
         ClipToBounds = true;
         Cursor = Cursors.Hand;
-        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.Linear);
+        RenderOptions.SetBitmapScalingMode(this, BitmapScalingMode.HighQuality);
         _detailTimer.Tick += (_, _) => RenderDetail();
         Loaded += (_, _) => QueueDetail();
         Unloaded += (_, _) => ClearDetail();
@@ -195,17 +195,17 @@ internal sealed class AtlasCanvas : FrameworkElement
         var dpi = VisualTreeHelper.GetDpi(this);
         var visible = new Rect(ToWorld(new Point()), ToWorld(new Point(ActualWidth, ActualHeight)));
         visible.Intersect(bounds);
-        var detailed = !visible.IsEmpty && visible.Width > 0 && visible.Height > 0 &&
-            (W * Scale * dpi.DpiScaleX > AtlasTerrain.PixelWidth || H * Scale * dpi.DpiScaleY > AtlasTerrain.PixelHeight);
-        if (!detailed)
+        if (visible.IsEmpty || visible.Width <= 0 || visible.Height <= 0)
         {
             ClearDetail();
             return;
         }
 
         // Keep a little extra area in the cache so short drags can reuse the same sharp image.
-        var scaleX = Scale * dpi.DpiScaleX;
-        var scaleY = Scale * dpi.DpiScaleY;
+        // Supersample the overview too. The small-scale contours must survive reduction to the display.
+        const double samplesPerPixel = 1.5;
+        var scaleX = Scale * dpi.DpiScaleX * samplesPerPixel;
+        var scaleY = Scale * dpi.DpiScaleY * samplesPerPixel;
         if (_renderedDetail is { } rendered && rendered.Area.Contains(visible) &&
             Math.Abs(rendered.Width / rendered.Area.Width - scaleX) <= scaleX * .04 &&
             Math.Abs(rendered.Height / rendered.Area.Height - scaleY) <= scaleY * .04)

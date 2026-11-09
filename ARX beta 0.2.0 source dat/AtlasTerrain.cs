@@ -75,12 +75,14 @@ internal static class AtlasTerrain
             var elevation = heights[index];
             var west = heights[index - dx];
             var north = heights[index - dy * sampleWidth];
-            var shade = Math.Clamp(((west > 0 ? west - elevation : 0) + (north > 0 ? north - elevation : 0)) * .87f, -23, 25);
+            var shade = Math.Clamp(((west > 0 ? west - elevation : 0) + (north > 0 ? north - elevation : 0)) * 1.12f, -31, 32);
             var level = elevation / 254;
-            var contour = Math.Max(0, 5 - 3 * Math.Abs(elevation - 26 * MathF.Round(elevation / 26)));
-            pixels[offset] = Tone(60 + level * 39 + shade + contour);
-            pixels[offset + 1] = Tone(76 + level * 55 + shade + contour);
-            pixels[offset + 2] = Tone(39 + level * 77 + shade + contour);
+            var contour = Math.Max(0, 1 - Math.Abs(elevation - 20 * MathF.Round(elevation / 20)) / 1.4f);
+            var major = Math.Max(0, 1 - Math.Abs(elevation - 60 * MathF.Round(elevation / 60)) / 1.65f);
+            var ink = contour * 4 + major * 6;
+            pixels[offset] = Tone(56 + level * 53 + shade + ink);
+            pixels[offset + 1] = Tone(76 + level * 71 + shade + ink);
+            pixels[offset + 2] = Tone(37 + level * 100 + shade + ink);
         }
         var bitmap = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, pixels, width * 4);
         bitmap.Freeze();

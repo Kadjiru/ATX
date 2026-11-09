@@ -192,7 +192,7 @@ public sealed partial class Dashboard
             Actions(Button("Применить адаптер", () => _ = ApplyAdapter()),
                 Button("Экспорт диагностики", () => ExportJson(new
                 {
-                    Version = "0.2.5-beta", Windows = Environment.OSVersion.VersionString,
+                    Version = AppUpdates.CurrentLabel, Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
             Space(Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."), 10),
@@ -252,6 +252,28 @@ public sealed partial class Dashboard
             Space(activeHud, 6),
             hotkeys)), 12));
         RefreshHudStatus();
+        var updateStatus = Text("", 13, "Mint", true);
+        var autoUpdate = new CheckBox { Content = "Проверять обновления автоматически", IsChecked = _store.Profile.AutoUpdate };
+        autoUpdate.Click += (_, _) =>
+        {
+            _store.Profile.AutoUpdate = autoUpdate.IsChecked == true;
+            _store.Save();
+            if (_store.Profile.AutoUpdate) _ = app.CheckAppUpdatesAsync();
+        };
+        var checkUpdate = Button("Проверить сейчас", () => _ = app.CheckAppUpdatesAsync());
+        var updateAction = Button("Обновление", () =>
+        {
+            if (app.Updates?.Ready == true) app.ShowUpdateOffer();
+            else if (app.Updates?.ReleasePage is { } pageUrl)
+            {
+                try { using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pageUrl) { UseShellExecute = true }); }
+                catch (System.ComponentModel.Win32Exception) { updateStatus.Text = "Не удалось открыть страницу релиза."; }
+            }
+        }, true);
+        page.Children.Insert(3, Space(Card(Stack(Space(Text("Обновление ARX", 20, bold: true), 6),
+            Space(Hint($"Версия {AppUpdates.CurrentLabel}. После скачивания установщика ARX спросит, когда его запустить."), 8),
+            Space(autoUpdate, 8), Actions(checkUpdate, updateAction), updateStatus)), 12));
+        RefreshUpdate();
         var syncStatus = Text("", 13, "Mint", true);
         var folderLabel = Hint("");
         var feedback = Hint("");
@@ -264,9 +286,20 @@ public sealed partial class Dashboard
             Space(folderLabel, 4), Space(syncStatus, 8),
             Actions(Button("Выбрать общую папку", PickFolder), publish, Button("Отключить", Disconnect)),
             feedback, Hint($"{_catalog.Status} · ревизия {_catalog.Revision}"))));
-        _refreshTime = () => { UpdateTeam(); RefreshHudStatus(); };
+        _refreshTime = () => { UpdateTeam(); RefreshHudStatus(); RefreshUpdate(); };
         UpdateTeam();
         return page;
+
+        void RefreshUpdate()
+        {
+            var updates = app.Updates;
+            checkUpdate.IsEnabled = updates is not null;
+            updateAction.Visibility = updates?.Ready == true || updates?.ReleasePage is not null
+                ? Visibility.Visible : Visibility.Collapsed;
+            updateAction.Content = updates?.Ready == true ? "Открыть окно установки" : "Открыть релиз";
+            updateStatus.Text = app.UpdateApproved ? "Обновление установится при закрытии ARX."
+                : updates?.Status ?? "Предпросмотр";
+        }
 
         void RefreshHudStatus()
         {

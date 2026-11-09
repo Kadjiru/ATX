@@ -5,8 +5,8 @@
 [Setup]
 AppId={{9F5CB164-814E-4346-A21A-E3171454CEFA}
 AppName=ARX
-AppVersion=0.2.5-beta
-AppVerName=ARX 0.2.5 beta
+AppVersion=1.0.0-beta
+AppVerName=ARX 1.0.0 beta
 AppPublisher=ARX
 AppPublisherURL=https://github.com/Kadjiru/ATX
 DefaultDirName={localappdata}\Programs\ARX
@@ -14,8 +14,8 @@ DefaultGroupName=ARX
 PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0.17763
-AppMutex=Local\ARX.Legion.Beta
-OutputBaseFilename=ARX-Setup-0.2.5-beta
+SetupMutex=Local\ARX.Setup
+OutputBaseFilename=ARX-Setup-1.0.0-beta
 SetupIconFile=Assets\ARX.ico
 UninstallDisplayIcon={app}\ARX.Beta.exe
 WizardStyle=modern dark hidebevels
@@ -36,6 +36,7 @@ ru.Desktop=Создать ярлык на рабочем столе
 ru.Launch=Открыть ARX
 ru.Guide=Инструкция ARX
 ru.Missing=В Windows отсутствуют компоненты, необходимые для запуска ARX:
+ru.Running=Закройте ARX, чтобы продолжить установку.
 ru.NpcapTitle=Npcap для живой статистики
 ru.NpcapSubtitle=ARX проверил, установлен ли драйвер захвата.
 ru.NpcapText=Npcap не найден. ARX установится и сможет открывать карту, таймеры и сохранённые отчёты. Для живого боя установите Npcap отдельно с настройками по умолчанию.
@@ -44,6 +45,7 @@ en.Desktop=Create a desktop shortcut
 en.Launch=Open ARX
 en.Guide=ARX user guide
 en.Missing=Windows is missing components required to run ARX:
+en.Running=Close ARX to continue the installation.
 en.NpcapTitle=Npcap for live combat
 en.NpcapSubtitle=ARX checked for the packet capture driver.
 en.NpcapText=Npcap was not found. ARX can use the atlas, timers and saved reports. For live combat, install Npcap separately with its default settings.
@@ -110,6 +112,32 @@ procedure CheckComponent(const FileName: String; var Missing: String);
 begin
   if not FileExists(ExpandConstant('{sys}\') + FileName) then
     Missing := Missing + #13#10 + ' • ' + FileName;
+end;
+
+function IsArxUpdate(): Boolean;
+var
+  I: Integer;
+begin
+  Result := False;
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), '/ARXUPDATE') = 0 then
+      Result := True;
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  I: Integer;
+begin
+  Result := '';
+  if IsArxUpdate() then
+    for I := 1 to 100 do
+    begin
+      if not CheckForMutexes('Local\ARX.Legion.Beta') then
+        Exit;
+      Sleep(200);
+    end;
+  if CheckForMutexes('Local\ARX.Legion.Beta') then
+    Result := CustomMessage('Running');
 end;
 
 function InitializeSetup(): Boolean;
