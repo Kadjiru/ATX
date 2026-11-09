@@ -72,15 +72,16 @@
         <Style TargetType="ComboBox">
             <Setter Property="Foreground" Value="{StaticResource Text}"/>
             <Setter Property="Background" Value="{StaticResource Raised}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
                         <Grid>
-                            <ToggleButton Focusable="False" Background="Transparent"
+                            <ToggleButton Focusable="False" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                           IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
-                                        <Border Background="{StaticResource Raised}" BorderBrush="{StaticResource Line}"
+                                        <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                                 BorderThickness="1" CornerRadius="7"/>
                                     </ControlTemplate>
                                 </ToggleButton.Template>

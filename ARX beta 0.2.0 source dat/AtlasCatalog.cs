@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
 namespace ArxBeta;
@@ -58,7 +57,7 @@ internal static class AtlasCatalog
         private MapPin[]? _pins;
         private BitmapSource? _terrain;
         private Dictionary<Guid, string>? _english;
-        public BitmapSource Terrain => _terrain ??= DrawTerrain();
+        public BitmapSource Terrain => _terrain ??= AtlasTerrain.Render(Relief, Columns, Rows);
         public IReadOnlyList<MapPin> Pins => _pins ??= Points.Select(BuildPin).ToArray();
         public string? English(Guid id) => (_english ??= Points.ToDictionary(p => PointId(p.Key), p => p.En)).GetValueOrDefault(id);
 
@@ -70,31 +69,5 @@ internal static class AtlasCatalog
 
         private Guid PointId(string key) => new(SHA256.HashData(Encoding.UTF8.GetBytes($"{Zone}/{key}")).AsSpan(0, 16));
 
-        private BitmapSource DrawTerrain()
-        {
-            var pixels = new byte[Columns * Rows * 4];
-            for (var y = 0; y < Rows; y++)
-            for (var x = 0; x < Columns; x++)
-            {
-                var index = y * Columns + x;
-                var elevation = Relief[index];
-                if (elevation == 0) continue;
-                var west = x > 0 && Relief[index - 1] > 0 ? Relief[index - 1] : elevation;
-                var north = y > 0 && Relief[index - Columns] > 0 ? Relief[index - Columns] : elevation;
-                var shade = Math.Clamp((west + north - 2 * elevation) * .87, -23, 25);
-                var level = elevation / 254d;
-                var contour = west / 26 != elevation / 26 || north / 26 != elevation / 26 ? 8 : 0;
-                var offset = index * 4;
-                pixels[offset] = Tone(60 + level * 39 + shade + contour);
-                pixels[offset + 1] = Tone(76 + level * 55 + shade + contour);
-                pixels[offset + 2] = Tone(39 + level * 77 + shade + contour);
-                pixels[offset + 3] = 255;
-            }
-            var terrain = BitmapSource.Create(Columns, Rows, 96, 96, PixelFormats.Bgra32, null, pixels, Columns * 4);
-            terrain.Freeze();
-            return terrain;
-        }
-
-        private static byte Tone(double channel) => (byte)Math.Clamp(channel, 0, 255);
     }
 }

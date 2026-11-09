@@ -192,7 +192,7 @@ public sealed partial class Dashboard
             Actions(Button("Применить адаптер", () => _ = ApplyAdapter()),
                 Button("Экспорт диагностики", () => ExportJson(new
                 {
-                    Version = "0.2.3-beta", Windows = Environment.OSVersion.VersionString,
+                    Version = "0.2.4-beta", Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
             Space(Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."), 10),
@@ -352,10 +352,13 @@ internal sealed class TaskPanel : StackPanel
     private readonly StackPanel _rows = new();
     private readonly TextBox _note;
     private readonly Button _add;
+    private readonly bool _compact;
+    private double _surfaceOpacity = 1;
 
     public TaskPanel(LegionStore store, bool compact = false)
     {
         _store = store;
+        _compact = compact;
         _note = Input("", 175, 140);
         System.Windows.Automation.AutomationProperties.SetName(_note, "Новая задача");
         _note.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) Add(); };
@@ -368,6 +371,7 @@ internal sealed class TaskPanel : StackPanel
 
     public void SetSurfaceOpacity(double opacity)
     {
+        _surfaceOpacity = opacity;
         _note.Background = HudWindow.Faded(Ui.Brush("Base"), opacity);
         _note.BorderBrush = HudWindow.Faded(Ui.Brush("Line"), opacity);
         _add.Background = HudWindow.Faded(Ui.Brush("Raised"), opacity);
@@ -388,11 +392,12 @@ internal sealed class TaskPanel : StackPanel
     {
         _rows.Children.Clear();
         var tasks = _store.SessionTasks.ToArray();
-        if (tasks.Length == 0) _rows.Children.Add(Hint("Добавьте первую задачу."));
+        if (tasks.Length == 0) _rows.Children.Add(_compact ? HudWindow.Ink(Hint("Добавьте первую задачу.")) : Hint("Добавьте первую задачу."));
         foreach (var task in tasks.OrderBy(t => t.Done))
         {
-            var check = new CheckBox { Content = Text(task.Text, 13, task.Done ? "Muted" : "Text"), IsChecked = task.Done };
-            check.Margin = new Thickness(3, 3, 0, 7);
+            var label = Text(task.Text, 13, task.Done ? "Muted" : "Text");
+            var check = new CheckBox { Content = _compact ? HudWindow.Ink(label) : label, IsChecked = task.Done };
+            if (!_compact) check.Margin = new Thickness(3, 3, 0, 7);
             check.Click += (_, _) =>
             {
                 var index = _store.Profile.Tasks.FindIndex(t => t.Id == task.Id);
@@ -401,7 +406,7 @@ internal sealed class TaskPanel : StackPanel
                 _store.Commit();
                 Refresh();
             };
-            _rows.Children.Add(check);
+            _rows.Children.Add(_compact ? Space(HudWindow.Plate(check, Ui.Brush("Mint"), _surfaceOpacity), 5) : check);
         }
     }
 }

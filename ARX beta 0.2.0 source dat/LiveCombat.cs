@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.IO;
-using System.Text.Json;
 using System.Windows.Threading;
 using AionMeter.Core.Capture;
 using AionMeter.Core.Combat;
@@ -12,14 +11,17 @@ namespace ArxBeta;
 public sealed record ExpeditionSegment(Guid FightId, string Target, double Seconds, long Damage, long Healing);
 public sealed record Expedition(Guid Id, string Name, string Build, DateTimeOffset StartedAt,
     List<ExpeditionSegment> Segments, DateTimeOffset? EndedAt = null, bool Interrupted = false);
-public sealed record ObservedBoss(string Key, string Name, string Zone, bool Alive, DateTimeOffset When);
+public sealed record ObservedBoss(string Key, string Name, string Zone, bool Alive, DateTimeOffset When, string? CatalogId = null)
+{
+    internal string SelectionId => CatalogId ?? Key;
+}
 
 internal sealed class LiveCombat : IDisposable
 {
     private readonly LegionStore _store;
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly GameData _data;
-    private readonly Dictionary<int, BossMap> _mapNames;
+    private readonly Dictionary<int, WorldBossCatalog.Zone> _bossMaps = [];
     private readonly ConcurrentQueue<(FightRecord Record, PartyRosterEvent? Roster, bool HasSelf)> _completed = new();
     private readonly ConcurrentDictionary<(int Server, int Map), FieldBossListEvent> _bossLists = new();
     private readonly object _sessionGate = new();
@@ -35,7 +37,6 @@ internal sealed class LiveCombat : IDisposable
         _store = store;
         var folder = Path.Combine(AppContext.BaseDirectory, "GameData");
         _data = GameData.Load(folder, "ru");
-        _mapNames = ReadBossMaps(Path.Combine(folder, "field_boss_maps.json"));
         _clock.Tick += (_, _) => Refresh();
     }
 
@@ -218,18 +219,20 @@ internal sealed class LiveCombat : IDisposable
         foreach (var pair in _bossLists.Where(pair => pair.Key.Server == server))
         {
             var list = pair.Value;
-            var mapping = _mapNames.GetValueOrDefault(list.MapId);
-            var zone = mapping?.Ru ?? $"Карта {list.MapId}";
-            var npcs = mapping is null ? [] : _data.Npcs.Values
-                .Where(npc => npc.IsBoss && npc.Code / 1000 == mapping.Block).OrderBy(npc => npc.Code).ToArray();
-            var trusted = npcs.Length == list.Count;
+            var mapping = _bossMaps.GetValueOrDefault(list.MapId);
+            if (mapping?.Bosses.Length != list.Count && WorldBossCatalog.Identify(list) is { } identified)
+                _bossMaps[list.MapId] = mapping = identified;
+            var zone = mapping?.Name ?? $"Карта {list.MapId}";
             foreach (var slot in list.Slots)
             {
                 var position = slot.SlotId - list.MapId * 100 - 1;
-                var name = trusted && position >= 0 && position < npcs.Length ? npcs[position].Name : $"Босс #{slot.SlotId}";
+                var entry = mapping?.Bosses.Length == list.Count && position >= 0 && position < list.Count
+                    ? mapping.Bosses[position] : null;
+                var name = entry?.Name ?? $"Босс #{slot.SlotId}";
                 if (slot.AtMs <= 0 || slot.AtMs > 253402300799999L) continue;
                 results.Add(new ObservedBoss($"{server}/{slot.SlotId}", name, zone, slot.Alive,
-                    DateTimeOffset.FromUnixTimeMilliseconds(slot.AtMs)));
+                    DateTimeOffset.FromUnixTimeMilliseconds(slot.AtMs),
+                    entry is not null && mapping is not null ? WorldBossCatalog.Key(mapping, entry) : null));
             }
         }
         return results.OrderBy(b => b.Alive).ThenBy(b => b.When).ToArray();
@@ -244,13 +247,4 @@ internal sealed class LiveCombat : IDisposable
         _ => "Захват выключен"
     };
 
-    private sealed record BossMap(int Block, string Ru);
-    private sealed record BossMaps(Dictionary<int, BossMap> Maps);
-
-    private static Dictionary<int, BossMap> ReadBossMaps(string file)
-    {
-        try { return JsonSerializer.Deserialize<BossMaps>(File.ReadAllText(file),
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })?.Maps ?? []; }
-        catch (Exception ex) when (ex is IOException or JsonException or UnauthorizedAccessException) { return []; }
-    }
 }

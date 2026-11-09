@@ -245,6 +245,7 @@ public sealed class Profile
     public string ProgressCharacter { get; set; } = "";
     public List<ProgressGoal> Goals { get; set; } = [];
     public Dictionary<string, int> BossAlarms { get; set; } = [];
+    public string? BossHudSelection { get; set; }
     public Dictionary<string, HudLayout> HudLayouts { get; set; } = [];
     public string TeamFolder { get; set; } = "";
     public Guid TeamClientId { get; set; } = Guid.NewGuid();

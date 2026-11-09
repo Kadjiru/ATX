@@ -10,6 +10,7 @@ internal sealed class Hotkeys : IDisposable
     internal static IReadOnlyList<Shortcut> Shortcuts { get; } =
     [
         new(1, 0x0001, 0x77, "Alt+F8", "Показать или скрыть боевой HUD"),
+        new(9, 0x0001, 0x78, "Alt+F9", "Показать или скрыть HUD мировых боссов"),
         new(4, 0x0003, 0x31, "Ctrl+Alt+1", "Открыть минимальный HUD с прозрачным фоном"),
         new(5, 0x0003, 0x32, "Ctrl+Alt+2", "Открыть средний HUD со списком участников"),
         new(6, 0x0003, 0x33, "Ctrl+Alt+3", "Открыть подробный HUD"),
@@ -25,11 +26,11 @@ internal sealed class Hotkeys : IDisposable
     public bool ClickThroughRegistered => _registered.ContainsKey(2);
 
     public Hotkeys(Action showCombat, Action toggleClickThrough, Action archive,
-        Action<HudDensity> density, Action<double> opacity)
+        Action<HudDensity> density, Action<double> opacity, Action showBosses)
     {
         _window.AddHook(Handle);
         Action[] actions = [showCombat, toggleClickThrough, archive, () => density(HudDensity.Minimal),
-            () => density(HudDensity.Medium), () => density(HudDensity.Detailed), () => opacity(.05), () => opacity(-.05)];
+            () => density(HudDensity.Medium), () => density(HudDensity.Detailed), () => opacity(.05), () => opacity(-.05), showBosses];
         foreach (var shortcut in Shortcuts) Register(shortcut, actions[shortcut.Id - 1]);
     }
 

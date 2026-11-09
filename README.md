@@ -1,4 +1,4 @@
-# ARX 0.2.3 beta
+# ARX 0.2.4 beta
 
 Общедоступный помощник для Aion 2 Global на Windows.
 
@@ -6,6 +6,6 @@
 
 Личный DPS и DPS каждого участника через Npcap, отдельные HUD, отчёты и забеги, встроенная карта, таймеры, личный прогресс и локальный справочник.
 
-![Атлас Aion 2 в ARX](docs/arx-beta-023-atlas.png)
+![Атлас Aion 2 в ARX](docs/arx-beta-024-atlas.png)
 
-[Боевой HUD](docs/arx-beta-023-hud.png)
+[HUD мировых боссов](docs/arx-beta-024-bosses.png)

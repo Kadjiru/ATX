@@ -31,8 +31,8 @@ public sealed partial class Dashboard
         var filter = Input("", 200, 70);
         var starred = new CheckBox { Content = "Только с напоминанием" };
         var panel = Stack(Space(Text("Полевые боссы · данные игры", 19, bold: true), 6),
-            Space(Hint("При включённом захвате откройте список полевых монстров на карте игры. ARX показывает только полученные от сервера времена."), 9),
-            Actions(Field("Поиск", filter), starred, Button("Скрыть напоминание", () =>
+            Space(Hint("Откройте список полевых монстров на карте игры. ARX показывает полученные от сервера времена."), 9),
+            Actions(Button("HUD боссов", () => Hud(HudKind.Bosses), true), Field("Поиск", filter), starred, Button("Скрыть напоминание", () =>
             {
                 _store.SetBossNotice(null);
                 notice.Text = "";
@@ -67,7 +67,8 @@ public sealed partial class Dashboard
                     if (starred.IsChecked == true) Rebuild();
                 };
                 var when = boss.Alive ? $"В мире с {boss.When.ToLocalTime():HH:mm}" : $"Ожидается {boss.When.ToLocalTime():dd.MM HH:mm}";
-                rows.Children.Add(Actions(Text(boss.Name, 14, "Text", true), Hint($"{boss.Zone} · {when}"), reminder));
+                rows.Children.Add(Actions(Text(boss.Name, 14, "Text", true), Hint($"{boss.Zone} · {when}"), reminder,
+                    Button("Следить в HUD", () => App.CurrentApp.TrackBoss(boss))));
             }
             if (rows.Children.Count == 0) rows.Children.Add(Hint(previous.Count == 0 ? "Список от сервера ещё не получен." : "Метки по фильтру не найдены."));
         }

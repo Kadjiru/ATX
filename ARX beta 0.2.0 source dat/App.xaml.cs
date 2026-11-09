@@ -48,13 +48,26 @@ public partial class App : Application
                 splashPreview.Stage(76, "Сверка версии базы с репозиторием ARX", false);
                 Render(splashPreview, e.Args[1], new Size(720, 360));
             }
-            else if (section is "hud-minimal" or "hud-medium" or "hud-detailed")
+            else if (section.StartsWith("hud-", StringComparison.Ordinal))
             {
                 _store.Profile.CombatHudDensity = section switch
                 {
                     "hud-minimal" => HudDensity.Minimal, "hud-detailed" => HudDensity.Detailed, _ => HudDensity.Medium
                 };
-                var hudPreview = new HudWindow(_store, HudKind.Combat);
+                var kind = section switch
+                {
+                    "hud-events" => HudKind.Events, "hud-tasks" => HudKind.Tasks,
+                    "hud-bosses" => HudKind.Bosses, _ => HudKind.Combat
+                };
+                if (kind == HudKind.Bosses && WorldBossCatalog.Choices.FirstOrDefault() is { } boss)
+                {
+                    _store.Profile.BossHudSelection = boss.Id;
+                    _store.UpdateLive(null, "Демонстрация", null,
+                        [new ObservedBoss("preview", boss.Name, boss.Zone, false, DateTimeOffset.UtcNow.AddMinutes(38), boss.Id)]);
+                }
+                if (kind == HudKind.Tasks)
+                    _store.Profile.Tasks.Add(new SessionTask(Guid.NewGuid(), _store.Profile.SessionId, "Проверить задания Бездны", false));
+                var hudPreview = new HudWindow(_store, kind);
                 Render(hudPreview, e.Args[1], new Size(hudPreview.Width, hudPreview.Height));
             }
             else
@@ -91,7 +104,7 @@ public partial class App : Application
                     SetCombatDensity(mode);
                     if (!_huds.ContainsKey(HudKind.Combat)) ToggleHud(HudKind.Combat);
                 },
-                delta => SetCombatOpacity(CombatOpacity + delta));
+                delta => SetCombatOpacity(CombatOpacity + delta), () => ToggleHud(HudKind.Bosses));
             if (!ClickThroughAvailable && _store.Profile.CombatHudLocked)
             {
                 _store.Profile.CombatHudLocked = false;
@@ -135,6 +148,20 @@ public partial class App : Application
             existing.Close();
             return;
         }
+        ShowHud(kind);
+    }
+
+    internal void TrackBoss(ObservedBoss boss)
+    {
+        if (_closing) return;
+        _store.Profile.BossHudSelection = boss.SelectionId;
+        _store.Commit();
+        ShowHud(HudKind.Bosses);
+    }
+
+    private void ShowHud(HudKind kind)
+    {
+        if (_huds.ContainsKey(kind)) return;
         var hud = new HudWindow(_store, kind);
         _huds.Add(kind, hud);
         hud.Closed += (_, _) => _huds.Remove(kind);

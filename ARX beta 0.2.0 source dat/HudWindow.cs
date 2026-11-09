@@ -9,7 +9,7 @@ using static ArxBeta.Ui;
 
 namespace ArxBeta;
 
-public enum HudKind { Combat, Events, Tasks }
+public enum HudKind { Combat, Events, Tasks, Bosses }
 public enum HudDensity { Minimal, Medium, Detailed }
 public enum CombatHudScope { Self, Party }
 
@@ -20,6 +20,7 @@ public sealed class HudWindow : Window
     private readonly StackPanel _body = new();
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private TaskPanel? _tasks;
+    private readonly BossHudPanel? _bosses;
     private readonly ScrollViewer _scroll;
     private readonly TextBlock _handle;
     private readonly Border _frame;
@@ -33,7 +34,8 @@ public sealed class HudWindow : Window
     {
         _store = store;
         _kind = kind;
-        Title = $"ARX · {kind switch { HudKind.Combat => "Урон", HudKind.Events => "События", _ => "Задачи" }}";
+        var name = kind switch { HudKind.Combat => "Урон", HudKind.Events => "События", HudKind.Bosses => "Боссы", _ => "Задачи" };
+        Title = $"ARX · {name}";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
         Background = Brushes.Transparent;
@@ -46,7 +48,7 @@ public sealed class HudWindow : Window
         WindowStartupLocation = WindowStartupLocation.Manual;
         var area = SystemParameters.WorkArea;
         var defaultLayout = new HudLayout(area.Right - 425, area.Top + 56 + (int)kind * 200,
-            kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 282 : 193, 0.94);
+            kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 282 : kind == HudKind.Bosses ? 213 : 193, 0.94);
         var layout = store.Profile.HudLayouts.GetValueOrDefault(kind.ToString(), defaultLayout);
         Width = Math.Clamp(layout.Width, MinWidth, Math.Max(MinWidth, area.Width));
         Height = Math.Clamp(layout.Height, MinHeight, Math.Max(MinHeight, area.Height));
@@ -80,7 +82,7 @@ public sealed class HudWindow : Window
         }
         DockPanel.SetDock(_buttons, Dock.Right);
         bar.Children.Add(_buttons);
-        _handle = Text($"◇  {Title}", 14, "Mint", true);
+        _handle = Text($"◇  {name.ToUpperInvariant()}", 14, "Mint", true);
         _handle.VerticalAlignment = VerticalAlignment.Center;
         _handle.Cursor = Cursors.SizeAll;
         _handle.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
@@ -106,11 +108,16 @@ public sealed class HudWindow : Window
             _tasks = new TaskPanel(store, compact: true);
             _body.Children.Add(_tasks);
         }
+        if (kind == HudKind.Bosses)
+        {
+            _bosses = new BossHudPanel(store);
+            _body.Children.Add(_bosses);
+        }
         ApplySurface();
         Refresh();
         _store.Changed += Refresh;
-        if (kind == HudKind.Combat) _store.LiveChanged += Refresh;
-        if (kind == HudKind.Events)
+        if (kind is HudKind.Combat or HudKind.Bosses) _store.LiveChanged += Refresh;
+        if (kind is HudKind.Events or HudKind.Bosses)
         {
             _clock.Tick += (_, _) => Refresh();
             _clock.Start();
@@ -202,6 +209,7 @@ public sealed class HudWindow : Window
             button.Effect = TextShadow();
         }
         _tasks?.SetSurfaceOpacity(_surfaceOpacity);
+        _bosses?.SetSurfaceOpacity(_surfaceOpacity);
     }
 
     private void Refresh()
@@ -211,18 +219,23 @@ public sealed class HudWindow : Window
             _tasks?.Refresh();
             return;
         }
+        if (_bosses is not null)
+        {
+            _bosses.Refresh();
+            return;
+        }
         _body.Children.Clear();
         if (_kind == HudKind.Events)
         {
             var now = DateTimeOffset.UtcNow;
-            if (_store.BossNotice is { } notice) _body.Children.Add(Space(Text(notice, 13, "Gold", true), 7));
+            if (_store.BossNotice is { } notice) _body.Children.Add(Space(Ink(Text(notice, 13, "Gold", true)), 7));
             var upcoming = _store.Upcoming(now).Take(5).ToArray();
             foreach (var item in upcoming)
                 _body.Children.Add(Space(EventRow(item.Rule.Name, Clock(item.Due - now), "Mint"), 5));
             var bosses = _store.LiveBosses.Where(b => !b.Alive && b.When > now).Take(3).ToArray();
             foreach (var boss in bosses)
                 _body.Children.Add(Space(EventRow(boss.Name, Clock(boss.When - now), "Coral"), 5));
-            if (upcoming.Length == 0 && bosses.Length == 0) _body.Children.Add(Hint("Нет активных таймеров"));
+            if (upcoming.Length == 0 && bosses.Length == 0) _body.Children.Add(Ink(Hint("Нет активных таймеров")));
             return;
         }
 
@@ -323,12 +336,21 @@ public sealed class HudWindow : Window
         return Plate(row, Brush(color));
     }
 
-    private Border Plate(UIElement content, Brush accent) => new()
+    private Border Plate(UIElement content, Brush accent) => Plate(content, accent, _surfaceOpacity);
+
+    internal static Border Plate(UIElement content, Brush accent, double opacity)
     {
-        Background = Faded(Brush("Raised"), _surfaceOpacity * .82), BorderBrush = Faded(accent, _surfaceOpacity),
-        BorderThickness = new Thickness(2, 0, 0, 0), CornerRadius = new CornerRadius(8),
-        Padding = new Thickness(8, 5, 8, 5), Child = content
-    };
+        var plate = new Border { BorderThickness = new Thickness(2, 0, 0, 0), CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(8, 5, 8, 5), Child = content };
+        StylePlate(plate, accent, opacity);
+        return plate;
+    }
+
+    internal static void StylePlate(Border plate, Brush accent, double opacity)
+    {
+        plate.Background = Faded(Brush("Raised"), opacity * .82);
+        plate.BorderBrush = Faded(accent, opacity);
+    }
 
     internal static Brush Faded(Brush source, double opacity)
     {
@@ -338,7 +360,7 @@ public sealed class HudWindow : Window
         return brush;
     }
 
-    private static TextBlock Ink(TextBlock text)
+    internal static TextBlock Ink(TextBlock text)
     {
         text.Effect = TextShadow();
         return text;
