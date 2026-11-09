@@ -218,6 +218,11 @@ public sealed record KinaEntry(Guid Id, Guid SessionId, DateTimeOffset Date, str
 public sealed record MapPin(Guid Id, string Zone, double X, double Y, string Category, string Name, bool Found, string? Layer = null);
 public sealed record HudLayout(double Left, double Top, double Width, double Height, double Opacity, HudDensity? Density = null);
 
+public sealed record CharacterBuild(Guid Id, string Name, string Server, string ClassId, bool Solo)
+{
+    public override string ToString() => Server.Length == 0 ? Name : $"{Name} · {Server}";
+}
+
 public sealed class Profile
 {
     public Guid SessionId { get; set; } = Guid.NewGuid();
@@ -232,6 +237,8 @@ public sealed class Profile
     public HashSet<Guid> AtlasFound { get; set; } = [];
     public string? CaptureAdapter { get; set; }
     public string DeclaredBuild { get; set; } = "";
+    public List<CharacterBuild> CharacterBuilds { get; set; } = [];
+    public Guid? SelectedBuildCharacterId { get; set; }
     public HudDensity CombatHudDensity { get; set; } = HudDensity.Detailed;
     public bool AutoUpdate { get; set; } = true;
     public double? CombatHudOpacity { get; set; }

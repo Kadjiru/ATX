@@ -90,7 +90,8 @@ public sealed partial class Dashboard : Window
         AddNav(nav, "events", "◷", "События");
         AddNav(nav, "session", "☰", "Сессия");
         AddNav(nav, "progress", "✓", "Прогресс");
-        AddNav(nav, "codex", "✧", "Билды");
+        AddNav(nav, "codex", "✧", "Билды и гайды");
+        AddNav(nav, "pets", "♧", "Питомцы");
         AddNav(nav, "craft", "⬡", "Крафт");
         NavHeading("УПРАВЛЕНИЕ");
         AddNav(nav, "hotkeys", "⌨", "Горячие клавиши");
@@ -199,7 +200,8 @@ public sealed partial class Dashboard : Window
             "events" => EventsPage(),
             "session" => SessionPage(),
             "progress" => ProgressPage(),
-            "codex" => CodexPage(),
+            "codex" or "guides" => CodexPage(),
+            "pets" => PetsPage(),
             "craft" => CraftPage(),
             "hotkeys" => HotkeysPage(),
             "settings" => SettingsPage(),
