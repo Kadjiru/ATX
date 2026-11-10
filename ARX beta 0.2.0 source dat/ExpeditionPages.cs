@@ -4,14 +4,27 @@ using static ArxBeta.Ui;
 
 namespace ArxBeta;
 
-public sealed record ProgressGoal(Guid Id, string Character, string Period, string Name, int Count, int Target);
+public sealed record ProgressGoal(Guid Id, string Character, string Period, string Name, int Count, int Target,
+    string? ActivityId = null, int ServerId = 0, string? OwnerName = null);
 
 public sealed partial class Dashboard
 {
     private UIElement ExpeditionsPage()
     {
         var profile = _store.Profile;
-        var page = Heading("Журнал забегов", "Собирайте несколько боёв в один забег и сохраняйте заявленный билд");
+        var page = Heading("Журнал забегов", "Умные экспедиции и разбор отдельных боёв");
+        var automatic = new CheckBox { Content = "Записывать поддерживаемые экспедиции автоматически", IsChecked = profile.AutoExpeditions };
+        var openRunId = profile.CurrentExpedition?.Id;
+        var latestRunId = profile.Expeditions.FirstOrDefault()?.Id;
+        automatic.Click += (_, _) =>
+        {
+            profile.AutoExpeditions = automatic.IsChecked == true;
+            if (!profile.AutoExpeditions && profile.CurrentExpedition?.Automatic == true) Finish(true);
+            else _store.Save();
+        };
+        page.Children.Add(Space(Card(Stack(Space(automatic, 7),
+            Hint("ARX начинает запись после первого полученного боя вашего персонажа в распознанной экспедиции. Победа засчитывается по финальному боссу."),
+            Space(Hint(string.Join(" · ", ExpeditionActivity.All.Select(activity => activity.Name))), 0)), 13), 12));
         var caption = Text("", 18, bold: true);
         var totals = Hint("");
         var targets = new ContentControl();
@@ -24,11 +37,11 @@ public sealed partial class Dashboard
             current.Children.Add(Actions(Button("Начать забег", () =>
             {
                 App.CurrentApp.Live?.FinishSegment();
+                if (profile.CurrentExpedition is not null) return;
                 profile.DeclaredBuild = build.Text.Trim();
                 profile.CurrentExpedition = new Expedition(Guid.NewGuid(), name.Text.Trim() is { Length: > 0 } text ? text : "Новый забег",
                     profile.DeclaredBuild, DateTimeOffset.Now, []);
                 _store.Commit();
-                RenderPage();
             }, true)));
         }
         else
@@ -44,7 +57,7 @@ public sealed partial class Dashboard
             var expander = new Expander
             {
                 Header = $"{run.Name} · {run.StartedAt.ToLocalTime():dd.MM HH:mm} · {run.Segments.Count} боёв" +
-                    (run.Interrupted ? " · прерван" : ""),
+                    (run.ConfirmedWin ? " · победа подтверждена" : run.Interrupted ? " · прерван" : ""),
                 Foreground = Ui.Brush("Text"),
                 Content = Stack(Space(Hint(RunSummary(run)), 6), RunTable(run),
                     Actions(Button("Экспорт JSON", () => ExportJson(run, "arx-run.json"))))
@@ -77,6 +90,12 @@ public sealed partial class Dashboard
             }
         }
         _refreshLive = Refresh;
+        _refreshShared = () =>
+        {
+            if (openRunId != profile.CurrentExpedition?.Id || latestRunId != profile.Expeditions.FirstOrDefault()?.Id)
+                RenderPage();
+            else Refresh();
+        };
         Refresh();
         return page;
 
@@ -94,13 +113,9 @@ public sealed partial class Dashboard
 
         void Finish(bool interrupted)
         {
-            if (profile.CurrentExpedition is not { } run) return;
-            App.CurrentApp.Live?.FinishSegment();
-            profile.Expeditions.Insert(0, run with { EndedAt = DateTimeOffset.Now, Interrupted = interrupted });
-            if (profile.Expeditions.Count > 25) profile.Expeditions.RemoveAt(25);
-            profile.CurrentExpedition = null;
-            _store.Commit();
-            RenderPage();
+            if (profile.CurrentExpedition is null) return;
+            if (App.CurrentApp.Live is { } live) live.EndExpedition(interrupted);
+            else _store.EndExpedition(interrupted);
         }
     }
 
@@ -111,9 +126,41 @@ public sealed partial class Dashboard
 
     private static double RunRate(Expedition run) => run.Segments.Sum(s => s.Damage) / Math.Max(1, run.Segments.Sum(s => s.Seconds));
 
-    private static StackPanel RunTable(Expedition run) =>
-        MakeTable(["Цель", "Урон", "Лечение", "Время"], run.Segments,
-            s => [s.Target, Compact(s.Damage), Compact(s.Healing), Clock(TimeSpan.FromSeconds(s.Seconds))]);
+    private StackPanel RunTable(Expedition run)
+    {
+        var summary = MakeTable(["Цель", "Итог", "Урон", "DPS", "Время"], run.Segments,
+            s => [s.Target, OutcomeLabel(s.Outcome), Compact(s.Damage), Compact(s.Damage / Math.Max(1, s.Seconds)),
+                Clock(TimeSpan.FromSeconds(s.Seconds))]);
+        var bosses = run.Segments.Select(segment => (segment, report: segment.BossReport ??
+            _store.Profile.History.FirstOrDefault(fight => fight.Id == segment.FightId && fight.Captured?.Summary.Boss is not null)))
+            .Where(item => item.report is not null).ToArray();
+        if (bosses.Length == 0) return summary;
+
+        var buttons = Stack(Space(Label("БОССЫ И ПОПЫТКИ"), 6));
+        foreach (var (segment, report) in bosses)
+        {
+            var open = Button($"{segment.Target} · {OutcomeLabel(segment.Outcome ?? report!.Captured?.Summary.Reason)}  ↗", () =>
+            {
+                _actor = null;
+                _player = null;
+                _store.SetFight(report!, false);
+                Navigate("analysis");
+            });
+            open.HorizontalContentAlignment = HorizontalAlignment.Left;
+            buttons.Children.Add(Space(open, 5));
+        }
+        return Stack(Space(summary, 10), buttons);
+    }
+
+    private static string OutcomeLabel(AionMeter.Core.Combat.EncounterEndReason? outcome) => outcome switch
+    {
+        AionMeter.Core.Combat.EncounterEndReason.Kill => "Победа",
+        AionMeter.Core.Combat.EncounterEndReason.Wipe => "Сброс босса",
+        AionMeter.Core.Combat.EncounterEndReason.Manual => "Вручную",
+        AionMeter.Core.Combat.EncounterEndReason.ZoneChange => "Выход из зоны",
+        AionMeter.Core.Combat.EncounterEndReason.Idle => "Бой затих",
+        _ => "—"
+    };
 
     private UIElement ProgressPage()
     {
@@ -124,11 +171,18 @@ public sealed partial class Dashboard
         var task = Input("", 245, 100);
         var goal = Input("1", 75, 5);
         var scope = Choice(["Ежедневные", "Еженедельные", "Постоянные"], 155);
+        var activities = new ComboBox
+        {
+            ItemsSource = new object[] { "Ручная цель" }.Concat(ExpeditionActivity.All), SelectedIndex = 0,
+            MinHeight = 32, Width = 216
+        };
         var hide = new CheckBox { Content = "Скрывать завершённые" };
         var message = Hint("");
         var rows = new StackPanel();
         page.Children.Add(Space(Card(Stack(Actions(Field("Профиль персонажа", character), Field("Период", scope)),
-            Actions(Field("Новая цель", task), Field("Количество", goal)), Actions(Button("Добавить цель", Add, true), hide),
+            Actions(Field("Новая цель", task), Field("Количество", goal), Field("Отслеживание", activities)),
+            Actions(Button("Добавить цель", Add, true), Button("Текущий персонаж", () =>
+                character.Text = CharacterLabel() ?? profile.Character), hide),
             Space(message, 7), Hint("Сброс периода выполняется вручную после сброса на вашем сервере."))), 12));
         page.Children.Add(Card(Stack(Actions(Button("Сбросить выбранный период", Reset)), rows)));
         character.TextChanged += (_, _) => Refresh();
@@ -139,21 +193,36 @@ public sealed partial class Dashboard
         };
         scope.SelectionChanged += (_, _) => Refresh();
         hide.Click += (_, _) => Refresh();
+        _refreshShared = Refresh;
         Refresh();
         return page;
 
-        IEnumerable<ProgressGoal> Current() => profile.Goals.Where(t => t.Character == character.Text.Trim() && t.Period == (string)scope.SelectedItem);
+        string? CharacterLabel() => _store.LiveCharacter is { ServerId: > 0 } player
+            ? _store.LiveIdentity ?? $"{player.Name} · S{player.ServerId}" : null;
+
+        IEnumerable<ProgressGoal> Current() => profile.Goals.Where(t =>
+            string.Equals(t.Character, character.Text.Trim(), StringComparison.OrdinalIgnoreCase) && t.Period == (string)scope.SelectedItem);
 
         void Add()
         {
-            if (string.IsNullOrWhiteSpace(character.Text) || string.IsNullOrWhiteSpace(task.Text) ||
+            var activity = activities.SelectedItem as ExpeditionActivity;
+            var player = _store.LiveCharacter;
+            if (activity is not null && (!SmartExpeditions.KnownCharacter(player) || !string.Equals(character.Text.Trim(), CharacterLabel(),
+                StringComparison.OrdinalIgnoreCase)))
+            {
+                message.Text = "Для автоцели войдите в игру и выберите «Текущий персонаж», когда ARX распознает персонажа и сервер.";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(character.Text) || (activity is null && string.IsNullOrWhiteSpace(task.Text)) ||
                 !int.TryParse(goal.Text, out var count) || count is < 1 or > 10000)
             {
                 message.Text = "Укажите персонажа, название и количество от 1 до 10 000.";
                 return;
             }
             profile.ProgressCharacter = character.Text.Trim();
-            profile.Goals.Add(new ProgressGoal(Guid.NewGuid(), profile.ProgressCharacter, (string)scope.SelectedItem, task.Text.Trim(), 0, count));
+            var name = string.IsNullOrWhiteSpace(task.Text) ? activity!.Name : task.Text.Trim();
+            profile.Goals.Add(new ProgressGoal(Guid.NewGuid(), profile.ProgressCharacter, (string)scope.SelectedItem, name, 0, count,
+                activity?.Id, activity is null ? 0 : player!.ServerId, activity is null ? null : player!.Name));
             task.Clear();
             message.Text = "";
             _store.Commit();
@@ -174,7 +243,8 @@ public sealed partial class Dashboard
         {
             rows.Children.Clear();
             foreach (var item in Current().Where(g => hide.IsChecked != true || g.Count < g.Target))
-                rows.Children.Add(Actions(Text($"{item.Name}   ·   {item.Count} / {item.Target}", 14, "Text", true),
+                rows.Children.Add(Actions(Text($"{item.Name}   ·   {item.Count} / {item.Target}" +
+                    (item.ActivityId is null ? "" : "   ·   авто"), 14, "Text", true),
                     Button("−", () => Change(item, -1)), Button("+", () => Change(item, 1))));
             if (rows.Children.Count == 0) rows.Children.Add(Hint("Нет целей в выбранном списке."));
         }

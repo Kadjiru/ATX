@@ -69,6 +69,22 @@ public class EngineTests
     }
 
     [Fact]
+    public void A_boss_already_dead_on_sighting_does_not_count_as_a_kill()
+    {
+        var tracker = Tracker();
+        FightRecord? saved = null;
+        tracker.EncounterFinished += record => saved = record;
+        Setup(tracker);
+
+        tracker.Process(new DamageEvent(1_000, Me, Boss, 16040000, 1_000_000, HitFlags.None));
+        tracker.Process(new DeathEvent(2_000, Boss, AlreadyDead: true));
+
+        Assert.NotNull(saved);
+        Assert.Equal(EncounterEndReason.Idle, saved.Summary.Reason);
+        Assert.Equal(1_000_000, saved.Summary.TotalDamage);
+    }
+
+    [Fact]
     public void Snapshots_include_healing_only_players_and_five_second_burst()
     {
         var tracker = Tracker(TargetMode.All);

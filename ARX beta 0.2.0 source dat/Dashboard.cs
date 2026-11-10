@@ -30,6 +30,7 @@ public sealed partial class Dashboard : Window
         _catalog = catalog;
         Title = "ARX · Aion 2 Companion";
         Width = 1260;
+        Icon = AppIcon();
         Height = 830;
         MinWidth = 975;
         MinHeight = 610;

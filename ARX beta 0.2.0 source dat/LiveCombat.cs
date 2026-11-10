@@ -8,9 +8,12 @@ using AionMeter.Core.Game;
 
 namespace ArxBeta;
 
-public sealed record ExpeditionSegment(Guid FightId, string Target, double Seconds, long Damage, long Healing);
+public sealed record ExpeditionSegment(Guid FightId, string Target, double Seconds, long Damage, long Healing,
+    Fight? BossReport = null, EncounterEndReason? Outcome = null);
 public sealed record Expedition(Guid Id, string Name, string Build, DateTimeOffset StartedAt,
-    List<ExpeditionSegment> Segments, DateTimeOffset? EndedAt = null, bool Interrupted = false);
+    List<ExpeditionSegment> Segments, DateTimeOffset? EndedAt = null, bool Interrupted = false,
+    string? ActivityId = null, string? Character = null, int ServerId = 0, int MapId = 0,
+    bool Automatic = false, bool ConfirmedWin = false);
 public sealed record ObservedBoss(string Key, string Name, string Zone, bool Alive, DateTimeOffset When, string? CatalogId = null)
 {
     internal string SelectionId => CatalogId ?? Key;
@@ -22,7 +25,12 @@ internal sealed class LiveCombat : IDisposable
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly GameData _data;
     private readonly Dictionary<int, WorldBossCatalog.Zone> _bossMaps = [];
-    private readonly ConcurrentQueue<(FightRecord Record, PartyRosterEvent? Roster, bool HasSelf)> _completed = new();
+    private abstract record RunSignal;
+    private sealed record RecordedFight(FightRecord Record, PartyRosterEvent? Roster, CharacterIdentity? Player) : RunSignal;
+    private sealed record LoadedZone(ZoneChangedEvent Event) : RunSignal;
+    private sealed record SwitchedCharacter : RunSignal;
+    private readonly ConcurrentQueue<RunSignal> _completed = new();
+    private SmartExpeditions _runs;
     private readonly ConcurrentDictionary<(int Server, int Map), FieldBossListEvent> _bossLists = new();
     private readonly object _sessionGate = new();
     private PartyRosterEvent? _roster;
@@ -35,6 +43,7 @@ internal sealed class LiveCombat : IDisposable
     public LiveCombat(LegionStore store)
     {
         _store = store;
+        _runs = new SmartExpeditions(store);
         var folder = Path.Combine(AppContext.BaseDirectory, "GameData");
         _data = GameData.Load(folder, "ru");
         _clock.Tick += (_, _) => Refresh();
@@ -59,6 +68,8 @@ internal sealed class LiveCombat : IDisposable
         if (IsRunning || _stopping) return IsRunning;
         _stopTask = null;
         _error = null;
+        _runs.EndAutomatic(); // An automatic run from a previous process has no verified instance continuity.
+        _runs = new SmartExpeditions(_store);
         if (!NpcapAvailable)
         {
             _error = "Для живого режима установите Npcap.";
@@ -69,7 +80,8 @@ internal sealed class LiveCombat : IDisposable
 
         var tracker = new CombatTracker(_data, new MeterOptions { TargetMode = TargetMode.All, MinSavedFightMs = 0 });
         tracker.RosterReceived += roster => _roster = roster;
-        tracker.EncounterFinished += record => _completed.Enqueue((record, _roster, tracker.LocalCharacter.HasValue));
+        tracker.EncounterFinished += record => _completed.Enqueue(new RecordedFight(record, _roster,
+            tracker.LocalCharacter is { } player ? new CharacterIdentity(player.ActorId, player.Name, player.ServerId) : null));
         tracker.FieldBossListed += list =>
         {
             if (list.Complete && list.ServerId > 0) _bossLists[(list.ServerId, list.MapId)] = list;
@@ -97,6 +109,7 @@ internal sealed class LiveCombat : IDisposable
             _source = null;
             _tracker?.Reset();
             Drain();
+            _runs.EndAutomatic();
             _tracker = null;
             _roster = null;
             _stopping = false;
@@ -111,12 +124,19 @@ internal sealed class LiveCombat : IDisposable
         Refresh();
     }
 
+    public void EndExpedition(bool interrupted)
+    {
+        FinishSegment();
+        _runs.EndRun(interrupted);
+    }
+
     public void Dispose()
     {
         _clock.Stop();
         if (!_stopping) _source?.Dispose();
         _tracker?.Reset();
         Drain();
+        _runs.EndAutomatic();
     }
 
     private void Process(CombatTracker tracker, GameEvent e)
@@ -130,6 +150,7 @@ internal sealed class LiveCombat : IDisposable
             {
                 tracker.Reset();
                 _roster = null;
+                _completed.Enqueue(new SwitchedCharacter());
             }
             if (e is PartyRosterEvent updated && _roster is { } prior)
             {
@@ -138,6 +159,7 @@ internal sealed class LiveCombat : IDisposable
                     tracker.Reset();
             }
             tracker.Process(e);
+            if (e is ZoneChangedEvent zone) _completed.Enqueue(new LoadedZone(zone));
         }
     }
 
@@ -166,8 +188,8 @@ internal sealed class LiveCombat : IDisposable
                 character = new CharacterIdentity(actor, matched.Player, matched.ServerId, false);
         }
         var identity = character?.DisplayName;
-        if (identity is not null && character is { ServerId: > 0 } && _data.Servers.TryGetValue(character.ServerId, out var realm))
-            identity += $" · {realm}";
+        if (identity is not null && character is { ServerId: > 0 })
+            identity += $" · {_data.Servers.GetValueOrDefault(character.ServerId, $"S{character.ServerId}")}";
         var label = source is null ? _error ?? "Захват выключен" : StateText(source.Status.State);
         if (source?.Status.State == CaptureState.Capturing)
             label += roster switch { null => " · состав ожидается", { Members.Count: 0 } => " · вне группы",
@@ -179,11 +201,16 @@ internal sealed class LiveCombat : IDisposable
     {
         while (_completed.TryDequeue(out var item))
         {
-            var summary = item.Record.Summary;
-            if (summary.TotalDamage <= 0) continue;
-            var fight = ToFight(item.Record, item.Roster, _store.Profile.CurrentExpedition?.Build ?? _store.Profile.DeclaredBuild,
-                item.HasSelf ? null : _store.Profile.CombatCharacterHint);
-            if (fight.Captured!.Summary.Combatants.Any(c => c.Damage > 0 || c.Healing > 0)) _store.Archive(fight);
+            switch (item)
+            {
+                case LoadedZone zone: _runs.ZoneChanged(zone.Event); break;
+                case SwitchedCharacter: _runs.CharacterChanged(); break;
+                case RecordedFight capture:
+                    var fight = ToFight(capture.Record, capture.Roster, _store.Profile.CurrentExpedition?.Build ?? _store.Profile.DeclaredBuild,
+                        capture.Player is null ? _store.Profile.CombatCharacterHint : null);
+                    if (fight.Captured!.Summary.Combatants.Any(c => c.Damage > 0 || c.Healing > 0)) _runs.Archive(fight, capture.Player);
+                    break;
+            }
         }
     }
 

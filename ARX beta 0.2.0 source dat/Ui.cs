@@ -1,11 +1,14 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace ArxBeta;
 
 internal static class Ui
 {
+    public static ImageSource AppIcon() => new BitmapImage(new Uri("pack://application:,,,/ARX.Beta;component/Assets/ARX.ico"));
+
     public static Brush Brush(string name) => (Brush)Application.Current.FindResource(name);
 
     public static TextBlock Text(string value, double size = 13, string color = "Text", bool bold = false)

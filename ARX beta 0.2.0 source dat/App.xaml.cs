@@ -19,6 +19,7 @@ public partial class App : Application
     private AppUpdates? _updates;
     private DispatcherTimer? _updateTimer;
     private UpdateWindow? _updateWindow;
+    private ChangelogWindow? _changelogWindow;
     private string? _offeredUpdate;
     private string? _approvedUpdate;
     public static App CurrentApp => (App)Current;
@@ -61,7 +62,11 @@ public partial class App : Application
             _store = new LegionStore(true);
             _catalog = CatalogSync.Open(true);
             var section = e.Args.Length > 2 ? e.Args[2] : "combat";
-            if (section == "splash")
+            if (section == "changelog")
+            {
+                Render(new ChangelogWindow(null, AppUpdates.CurrentLabel), e.Args[1], new Size(575, 546));
+            }
+            else if (section == "splash")
             {
                 var splashPreview = new LaunchWindow();
                 splashPreview.Stage(76, "Сверка версии базы с репозиторием ARX", false);
@@ -133,6 +138,15 @@ public partial class App : Application
                 _store.Save();
             }
             _live.Start();
+            var version = AppUpdates.CurrentLabel;
+            if ((e.Args.Contains("--updated", StringComparer.OrdinalIgnoreCase) || !_store.NewProfile) &&
+                _store.Profile.LastSeenVersion != version)
+                ShowChangelog();
+            else if (_store.Profile.LastSeenVersion is null)
+            {
+                _store.Profile.LastSeenVersion = version;
+                _store.Save();
+            }
             StartAppUpdates();
         }
         catch (Exception ex)
@@ -149,6 +163,26 @@ public partial class App : Application
         if (!Mutex.TryOpenExisting("Local\\ARX.Setup", out var mutex)) return false;
         mutex.Dispose();
         return true;
+    }
+
+    internal void ShowChangelog()
+    {
+        if (_closing || _dashboard is null) return;
+        if (_changelogWindow is { } existing)
+        {
+            existing.Activate();
+            return;
+        }
+        var version = AppUpdates.CurrentLabel;
+        var window = new ChangelogWindow(_dashboard, version);
+        _changelogWindow = window;
+        window.Closed += (_, _) =>
+        {
+            _changelogWindow = null;
+            _store.Profile.LastSeenVersion = version;
+            _store.Save();
+        };
+        window.Show();
     }
 
     private void StartAppUpdates()

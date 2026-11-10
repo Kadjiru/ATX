@@ -6,13 +6,14 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ARX.Beta</AssemblyName>
-    <Version>1.0.2-beta</Version>
+    <Version>1.0.3-beta</Version>
     <Product>ARX · Aion 2 Companion</Product>
     <ApplicationIcon>Assets/ARX.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../src/AionMeter.Core/AionMeter.Core.csproj" />
     <Resource Include="Assets/Atreia.jpg" />
+    <Resource Include="Assets/ARX.ico" />
     <None Update="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../data/**/*"
              Link="GameData/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

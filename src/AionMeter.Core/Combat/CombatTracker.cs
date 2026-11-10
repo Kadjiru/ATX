@@ -348,7 +348,8 @@ public sealed class CombatTracker
         if (_current is { IsActive: true } enc && enc.BossId == e.ActorId)
         {
             enc.BossHp = 0;
-            Finish(EncounterEndReason.Kill, Math.Max(e.TimeMs, enc.LastDamageMs));
+            Finish(e.AlreadyDead ? EncounterEndReason.Idle : EncounterEndReason.Kill,
+                e.AlreadyDead ? enc.LastDamageMs : Math.Max(e.TimeMs, enc.LastDamageMs));
         }
     }
 

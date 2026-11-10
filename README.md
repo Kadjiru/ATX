@@ -1,4 +1,4 @@
-# ARX 1.0.2 beta
+# ARX 1.0.3 beta
 
 Общедоступный помощник для Aion 2 Global на Windows.
 
@@ -8,8 +8,10 @@
 
 Миникарта ARX работает поверх игры и использует метки Атласа. В боевом HUD показаны DPS и общий урон вашей группы. Статус обновления доступен из верхней строки клиента.
 
+Умные забеги распознают шесть экспедиций и засчитывают подтверждённые победы в привязанные цели персонажа. Из забега можно открыть разбор конкретного босса и выделить интервал на графике.
+
 В «Билдах и гайдах» можно сохранить PvE-сборку для каждого персонажа и найти подсказки по боям. Вкладка «Питомцы» содержит справочник, способы получения и памятку по развитию семейств.
 
 ![Атлас Aion 2 в ARX](docs/arx-beta-100-atlas.png)
 
-[Миникарта HUD](docs/arx-beta-102-minimap.png) · [Билды](docs/arx-beta-101-builds.png) · [Гайды по боям](docs/arx-beta-101-guides.png) · [Питомцы](docs/arx-beta-101-pets.png) · [Мастерская](docs/arx-beta-100-craft.png) · [Окно обновления](docs/arx-beta-100-update.png) · [HUD мировых боссов](docs/arx-beta-024-bosses.png)
+[Разбор босса](docs/arx-beta-103-boss-analysis.png) · [Что нового](docs/arx-beta-103-changelog.png) · [Миникарта HUD](docs/arx-beta-102-minimap.png) · [Билды](docs/arx-beta-101-builds.png) · [Гайды по боям](docs/arx-beta-101-guides.png) · [Питомцы](docs/arx-beta-101-pets.png) · [Мастерская](docs/arx-beta-100-craft.png) · [Окно обновления](docs/arx-beta-100-update.png) · [HUD мировых боссов](docs/arx-beta-024-bosses.png)

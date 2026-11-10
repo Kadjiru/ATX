@@ -44,7 +44,12 @@ public sealed partial class Dashboard
             var header = Stack(Space(currentTitle, 4), Space(Hint(
                 $"{(current.Demo ? "Демонстрация" : current.Captured is null ? "Локальный отчёт" : "Данные Npcap")}  ·  {Clock(TimeSpan.FromSeconds(current.Duration))}  ·  " +
                 $"{Number(result.Damage)} урона  ·  {Number(result.Healing)} лечения"), 10));
-            if (result.GroupCurve.Length > 0) header.Children.Add(Space(new BattleChart(result) { Height = 170 }, 10));
+            if (current.Captured?.Summary.Boss is { } boss)
+            {
+                header.Children.Add(Space(Hint($"{boss.Name}  ·  {OutcomeLabel(current.Captured.Summary.Reason)}"), 8));
+                header.Children.Add(Space(BossTimelinePanel(result), 10));
+            }
+            else if (result.GroupCurve.Length > 0) header.Children.Add(Space(new BattleChart(result) { Height = 170 }, 10));
             if (current.Build is { } build) header.Children.Add(Space(Hint($"Заявленный билд: {build}"), 8));
             if (current.Captured?.Summary.MostDamageUnsent == true) header.Children.Add(Space(Hint("Сервер прислал неполные данные об уроне."), 8));
             string[] labels = ["Участник", "Урон", "DPS", "Лечение", "HPS", "Крит", "Бурст", "Сила"];

@@ -272,7 +272,7 @@ public sealed partial class Dashboard
         }, true);
         page.Children.Insert(3, Space(Card(Stack(Space(Text("Обновление ARX", 20, bold: true), 6),
             Space(Hint($"Версия {AppUpdates.CurrentLabel}. После скачивания установщика ARX спросит, когда его запустить."), 8),
-            Space(autoUpdate, 8), Actions(checkUpdate, updateAction), updateStatus)), 12));
+            Space(autoUpdate, 8), Actions(checkUpdate, updateAction, Button("Что нового", app.ShowChangelog)), updateStatus)), 12));
         RefreshUpdate();
         var syncStatus = Text("", 13, "Mint", true);
         var folderLabel = Hint("");

@@ -243,6 +243,8 @@ public sealed class Profile
     public Guid? SelectedBuildCharacterId { get; set; }
     public HudDensity CombatHudDensity { get; set; } = HudDensity.Detailed;
     public bool AutoUpdate { get; set; } = true;
+    public string? LastSeenVersion { get; set; }
+    public bool AutoExpeditions { get; set; } = true;
     public double? CombatHudOpacity { get; set; }
     public bool CombatHudLocked { get; set; }
     public int CombatHudTextSize { get; set; } = 15;
@@ -347,18 +349,59 @@ public sealed class LegionStore
         LiveChanged?.Invoke();
     }
 
-    public void Archive(Fight fight)
+    public void Archive(Fight fight, bool attachToRun = true, bool confirmedWin = false)
     {
         if (Profile.History.Any(f => f.Id == fight.Id)) return;
         Profile.History.Insert(0, fight);
         if (Profile.History.Count > 30) Profile.History.RemoveAt(30);
-        if (Profile.CurrentExpedition is { } run)
+        var started = attachToRun && Profile.CurrentExpedition is { Automatic: true, Segments.Count: 0 };
+        if (attachToRun && Profile.CurrentExpedition is { } run)
         {
             var stats = new FightAnalysis(fight);
-            run.Segments.Add(new ExpeditionSegment(fight.Id, fight.Name, fight.Duration, stats.Damage, stats.Healing));
+            var captured = fight.Captured;
+            var bossReport = captured?.Summary.Boss is null ? null : fight with
+            {
+                Captured = captured with { Details = captured.Details.Select(detail => detail with { Casts = [] }).ToArray() }
+            };
+            run.Segments.Add(new ExpeditionSegment(fight.Id, fight.Name, fight.Duration, stats.Damage, stats.Healing,
+                bossReport, captured?.Summary.Reason));
+            if (confirmedWin)
+            {
+                CreditProgress(run);
+                FinishExpedition(run, interrupted: false, confirmedWin: true);
+            }
         }
         Save();
+        if (started || confirmedWin) Changed?.Invoke();
         LiveChanged?.Invoke();
+    }
+
+    public void EndExpedition(bool interrupted)
+    {
+        if (Profile.CurrentExpedition is not { } run) return;
+        FinishExpedition(run, interrupted, confirmedWin: false);
+        Commit();
+    }
+
+    private void FinishExpedition(Expedition run, bool interrupted, bool confirmedWin)
+    {
+        if (!run.Automatic || run.Segments.Count > 0)
+        {
+            Profile.Expeditions.Insert(0, run with { EndedAt = DateTimeOffset.Now, Interrupted = interrupted, ConfirmedWin = confirmedWin });
+            if (Profile.Expeditions.Count > 25) Profile.Expeditions.RemoveAt(25);
+        }
+        Profile.CurrentExpedition = null;
+    }
+
+    private void CreditProgress(Expedition run)
+    {
+        for (var i = 0; i < Profile.Goals.Count; i++)
+        {
+            var goal = Profile.Goals[i];
+            if (goal.ActivityId == run.ActivityId && goal.ServerId == run.ServerId &&
+                string.Equals(goal.OwnerName, run.Character, StringComparison.OrdinalIgnoreCase) && goal.Count < goal.Target)
+                Profile.Goals[i] = goal with { Count = goal.Count + 1 };
+        }
     }
 
     public void SetBossNotice(string? notice)

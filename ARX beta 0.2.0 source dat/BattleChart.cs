@@ -1,11 +1,56 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace ArxBeta;
 
 public sealed class BattleChart(FightAnalysis analysis) : FrameworkElement
 {
+    private int? _anchor;
+    private (int From, int To)? _range;
+    internal int SelectionSeconds { get; init; }
+    internal event Action<int, int>? RangeSelected;
+
+    internal void ShowRange(int from, int to)
+    {
+        _range = (from, to);
+        InvalidateVisual();
+    }
+
+    protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+    {
+        if (SelectionSeconds <= 0 || ActualWidth <= 44 || !CaptureMouse()) return;
+        _anchor = At(e.GetPosition(this).X);
+        SelectTo(_anchor.Value);
+        e.Handled = true;
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        if (_anchor.HasValue && IsMouseCaptured) SelectTo(At(e.GetPosition(this).X));
+    }
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        if (!_anchor.HasValue) return;
+        SelectTo(At(e.GetPosition(this).X));
+        ReleaseMouseCapture();
+        e.Handled = true;
+    }
+
+    protected override void OnLostMouseCapture(MouseEventArgs e) => _anchor = null;
+
+    private int At(double x) =>
+        Math.Clamp((int)Math.Floor((x - 39) / (ActualWidth - 44) * SelectionSeconds), 0, SelectionSeconds - 1);
+
+    private void SelectTo(int end)
+    {
+        if (_anchor is not { } start) return;
+        var next = (Math.Min(start, end), Math.Max(start, end) + 1);
+        if (_range != next) RangeSelected?.Invoke(next.Item1, next.Item2);
+    }
+
     public void Update(FightAnalysis value)
     {
         if (ReferenceEquals(analysis, value)) return;
@@ -19,6 +64,14 @@ public sealed class BattleChart(FightAnalysis analysis) : FrameworkElement
         var height = ActualHeight - 29;
         if (width <= 0 || height <= 0) return;
         const double left = 39, top = 7;
+        if (SelectionSeconds > 0)
+        {
+            dc.DrawRectangle(Brushes.Transparent, null, new Rect(RenderSize));
+            if (_range is { } range && (range.From > 0 || range.To < SelectionSeconds))
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(41, 111, 237, 209)), null,
+                    new Rect(left + width * range.From / SelectionSeconds, top,
+                        width * (range.To - range.From) / SelectionSeconds, height));
+        }
         var line = new Pen(Ui.Brush("Line"), 1);
         var data = analysis.GroupCurve;
         var max = Math.Max(1, data.Length == 0 ? 1 : data.Max());

@@ -5,8 +5,8 @@
 [Setup]
 AppId={{9F5CB164-814E-4346-A21A-E3171454CEFA}
 AppName=ARX
-AppVersion=1.0.2-beta
-AppVerName=ARX 1.0.2 beta
+AppVersion=1.0.3-beta
+AppVerName=ARX 1.0.3 beta
 AppPublisher=ARX
 AppPublisherURL=https://github.com/Kadjiru/ATX
 DefaultDirName={localappdata}\Programs\ARX
@@ -15,7 +15,7 @@ PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0.17763
 SetupMutex=Local\ARX.Setup
-OutputBaseFilename=ARX-Setup-1.0.2-beta
+OutputBaseFilename=ARX-Setup-1.0.3-beta
 SetupIconFile=Assets\ARX.ico
 UninstallDisplayIcon={app}\ARX.Beta.exe
 WizardStyle=modern dark hidebevels
@@ -71,7 +71,7 @@ Name: "{autodesktop}\ARX"; Filename: "{app}\ARX.Beta.exe"; WorkingDir: "{app}"; 
 
 [Run]
 Filename: "{app}\ARX.Beta.exe"; Description: "{cm:Launch}"; Flags: nowait postinstall skipifsilent unchecked
-Filename: "{app}\ARX.Beta.exe"; WorkingDir: "{app}"; Flags: nowait; Check: IsArxUpdate
+Filename: "{app}\ARX.Beta.exe"; Parameters: "--updated"; WorkingDir: "{app}"; Flags: nowait; Check: IsArxUpdate
 
 [Code]
 var
