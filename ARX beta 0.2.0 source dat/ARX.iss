@@ -5,8 +5,8 @@
 [Setup]
 AppId={{9F5CB164-814E-4346-A21A-E3171454CEFA}
 AppName=ARX
-AppVersion=1.0.6-beta
-AppVerName=ARX 1.0.6 beta
+AppVersion=1.0.7-beta
+AppVerName=ARX 1.0.7 beta
 AppPublisher=ARX
 AppPublisherURL=https://github.com/Kadjiru/ATX
 DefaultDirName={localappdata}\Programs\ARX
@@ -15,7 +15,7 @@ PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0.17763
 SetupMutex=Local\ARX.Setup
-OutputBaseFilename=ARX-Setup-1.0.6-beta
+OutputBaseFilename=ARX-Setup-1.0.7-beta
 SetupIconFile=Assets\ARX.ico
 UninstallDisplayIcon={app}\ARX.Beta.exe
 WizardStyle=modern dark hidebevels

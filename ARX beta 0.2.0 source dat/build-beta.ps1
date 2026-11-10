@@ -20,7 +20,7 @@ function Sign-PackageFile([string]$File) {
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Thumbprint -ne $SigningThumbprint -or
         !$signature.TimeStamperCertificate) { throw "Publisher signature or timestamp could not be verified: $File" }
 }
-$stage = Join-Path $out 'ARX-1.0.6-beta-win-x64'
+$stage = Join-Path $out 'ARX-1.0.7-beta-win-x64'
 New-Item -ItemType Directory -Force $stage | Out-Null
 
 dotnet publish (Join-Path $PSScriptRoot 'ARX.Beta.csproj') -c Release -r win-x64 --self-contained true -o $stage `
@@ -37,7 +37,7 @@ foreach ($path in 'ARX.Beta.exe', 'Data\Crafting.json', 'Data\CatalogManifest.js
 }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$archive = Join-Path $out 'ARX-1.0.6-beta-win-x64.zip'
+$archive = Join-Path $out 'ARX-1.0.7-beta-win-x64.zip'
 $temporary = $archive + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
 try {
     [IO.Compression.ZipFile]::CreateFromDirectory($stage, $temporary, [IO.Compression.CompressionLevel]::Optimal, $false)
@@ -52,4 +52,4 @@ if (!$compiler) {
 }
 & $compiler.Source /Qp "/DPayload=$stage" "/O$out" (Join-Path $PSScriptRoot 'ARX.iss')
 if ($LASTEXITCODE) { throw "Inno Setup failed ($LASTEXITCODE)" }
-Sign-PackageFile (Join-Path $out 'ARX-Setup-1.0.6-beta.exe')
+Sign-PackageFile (Join-Path $out 'ARX-Setup-1.0.7-beta.exe')

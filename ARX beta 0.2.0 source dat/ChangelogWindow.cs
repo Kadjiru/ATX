@@ -10,8 +10,8 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
-        (Loc.T("Управление HUD через Alt"),
-            Loc.T("Удерживайте Alt, чтобы щёлкать по закреплённому HUD или перетаскивать его за заголовок. Отпустите Alt, чтобы вернуть пропуск щелчков."))
+        (Loc.T("Карточки питомцев"),
+            Loc.T("Семейства получили свои значки. На карточке отдельно видны места обитания, бонусы и стоимость прокачки."))
     ];
 
     public ChangelogWindow(Window? owner, string version)
