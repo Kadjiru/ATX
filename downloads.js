@@ -1,35 +1,67 @@
 const downloadCount = document.getElementById("download-count");
 const arxPackage = /^ARX-(?:Setup-\d+\.\d+\.\d+(?:-beta)?\.exe|\d+\.\d+\.\d+(?:-beta)?-win-x64\.zip)$/i;
 
-async function updateDownloadCount() {
-  try {
-    let total = 0;
-    let page = 1;
-    let hasNextPage;
-    const signal = AbortSignal.timeout(10000);
+async function loadReleaseDownloads() {
+  let total = 0;
+  let newest;
+  let page = 1;
+  let hasNextPage;
+  const signal = AbortSignal.timeout(7000);
 
-    do {
-      const response = await fetch(
-        `https://api.github.com/repos/Kadjiru/ATX/releases?per_page=100&page=${page}`,
-        { signal },
-      );
-      if (!response.ok) throw new Error("GitHub releases are unavailable");
+  do {
+    const response = await fetch(
+      `https://api.github.com/repos/Kadjiru/ATX/releases?per_page=100&page=${page}`,
+      { signal },
+    );
+    if (!response.ok) throw new Error("GitHub releases are unavailable");
 
-      const releases = await response.json();
-      for (const { assets } of releases) {
-        for (const asset of assets) {
-          if (arxPackage.test(asset.name)) total += asset.download_count;
-        }
+    for (const release of await response.json()) {
+      if (release.draft || !release.published_at) continue;
+      const packages = release.assets.filter(asset => arxPackage.test(asset.name));
+      for (const asset of packages) total += asset.download_count;
+
+      if (packages.length && (!newest || release.published_at > newest.release.published_at)) {
+        newest = { release, packages };
       }
+    }
 
-      hasNextPage = response.headers.get("Link")?.includes('rel="next"');
-      page++;
-    } while (hasNextPage);
+    hasNextPage = response.headers.get("Link")?.includes('rel="next"');
+    page++;
+  } while (hasNextPage);
 
-    downloadCount.textContent = total.toLocaleString("ru-RU");
-  } catch {
-    downloadCount.textContent = "временно недоступны";
-  }
+  return { total, newest };
 }
 
-updateDownloadCount();
+const downloadLinks = document.querySelectorAll("[data-download]");
+let linksReady = false;
+
+const prepareDownloads = loadReleaseDownloads().then(({ total, newest }) => {
+  downloadCount.textContent = total.toLocaleString("ru-RU");
+  if (!newest) return;
+
+  const { release, packages } = newest;
+  const installer = packages.find(asset => /\.exe$/i.test(asset.name));
+  const portable = packages.find(asset => /\.zip$/i.test(asset.name));
+  const destinations = { installer, portable, preferred: installer ?? portable };
+
+  for (const link of downloadLinks) {
+    link.href = destinations[link.dataset.download]?.browser_download_url ?? release.html_url;
+  }
+
+  const releaseName = release.name || release.tag_name;
+  document.getElementById("hero-release").textContent = releaseName.toUpperCase();
+  document.getElementById("download-release").textContent = releaseName;
+}).catch(() => {
+  downloadCount.textContent = "временно недоступны";
+}).finally(() => {
+  linksReady = true;
+});
+
+for (const link of downloadLinks) {
+  link.addEventListener("click", async event => {
+    if (linksReady || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    await prepareDownloads;
+    window.location.assign(link.href);
+  });
+}
