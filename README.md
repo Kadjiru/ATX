@@ -1,6 +1,8 @@
-# ARX 1.0.4 beta
+# ARX 1.0.5 beta
 
 Общедоступный помощник для Aion 2 Global на Windows.
+
+Русский и английский интерфейс. Для смены языка откройте **Настройки → Язык / Language**, сохраните выбор и перезапустите ARX.
 
 [Бета-релизы](https://github.com/Kadjiru/ATX/releases) · [Установка и работа](ARX%20beta%200.2.0%20source%20dat/README.md) · [Код приложения](ARX%20beta%200.2.0%20source%20dat) · [Источники](ARX%20beta%200.2.0%20source%20dat/SOURCES.md)
 

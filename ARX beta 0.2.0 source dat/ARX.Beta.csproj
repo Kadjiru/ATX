@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ARX.Beta</AssemblyName>
-    <Version>1.0.4-beta</Version>
+    <Version>1.0.5-beta</Version>
     <Product>ARX · Aion 2 Companion</Product>
     <ApplicationIcon>Assets/ARX.ico</ApplicationIcon>
   </PropertyGroup>
@@ -15,6 +15,7 @@
     <Resource Include="Assets/Atreia.jpg" />
     <Resource Include="Assets/ARX.ico" />
     <None Update="Data/**/*" CopyToOutputDirectory="PreserveNewest" />
+    <EmbeddedResource Include="Localization/English.json" LogicalName="ARX.English.json" />
     <Content Include="../data/**/*"
              Link="GameData/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

@@ -14,14 +14,14 @@ internal sealed record AtlasZone(string Id, string Name, string Region)
 
     public static AtlasZone[] All { get; } =
     [
-        new("altgard", "Альтгард", "Асмодея"),
-        new("verteron", "Бертрон", "Элизея"),
-        new("ishalgen", "Ишальген", "Асмодея"),
-        new("poeta", "Поэта", "Элизея"),
-        new("lower", "Нижняя Решанта", "Бездна"),
-        new("middle", "Средняя Решанта", "Бездна"),
-        new("upper", "Верхняя Решанта", "Бездна"),
-        new("outer", "Внешняя Решанта", "Бездна")
+        new("altgard", Loc.T("Альтгард"), Loc.T("Асмодея")),
+        new("verteron", Loc.T("Бертрон"), Loc.T("Элизея")),
+        new("ishalgen", Loc.T("Ишальген"), Loc.T("Асмодея")),
+        new("poeta", Loc.T("Поэта"), Loc.T("Элизея")),
+        new("lower", Loc.T("Нижняя Решанта"), Loc.T("Бездна")),
+        new("middle", Loc.T("Средняя Решанта"), Loc.T("Бездна")),
+        new("upper", Loc.T("Верхняя Решанта"), Loc.T("Бездна")),
+        new("outer", Loc.T("Внешняя Решанта"), Loc.T("Бездна"))
     ];
 }
 

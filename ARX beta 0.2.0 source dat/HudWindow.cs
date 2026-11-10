@@ -37,8 +37,8 @@ public sealed class HudWindow : Window
     {
         _store = store;
         _kind = kind;
-        var name = kind switch { HudKind.Combat => "Урон", HudKind.Events => "События", HudKind.Bosses => "Боссы",
-            HudKind.Atlas => "Миникарта", _ => "Задачи" };
+        var name = kind switch { HudKind.Combat => Loc.T("Урон"), HudKind.Events => Loc.T("События"), HudKind.Bosses => Loc.T("Боссы"),
+            HudKind.Atlas => Loc.T("Миникарта"), _ => Loc.T("Задачи") };
         Title = $"ARX · {name}";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -67,16 +67,16 @@ public sealed class HudWindow : Window
         var actions = new List<Button> { Button("ARX", App.CurrentApp.ShowDashboard), Button("◐", ChangeOpacity) };
         if (kind == HudKind.Combat)
         {
-            _scopeButton = Button("Группа", () => App.CurrentApp.SetCombatScope(
+            _scopeButton = Button(Loc.T("Группа"), () => App.CurrentApp.SetCombatScope(
                 _store.Profile.CombatHudScope == CombatHudScope.Party ? CombatHudScope.Self : CombatHudScope.Party));
-            _scopeButton.ToolTip = "Переключить между своим уроном и уроном своей группы";
+            _scopeButton.ToolTip = Loc.T("Переключить между своим уроном и уроном своей группы");
             actions.Add(_scopeButton);
             var lockButton = Button("⇥", () => App.CurrentApp.SetCombatLock(!_store.Profile.CombatHudLocked));
-            lockButton.ToolTip = "Закрепить HUD и пропускать щелчки · Ctrl+Alt+L";
+            lockButton.ToolTip = Loc.T("Закрепить HUD и пропускать щелчки · Ctrl+Alt+L");
             actions.Add(lockButton);
             _modeButton = Button("↕", () => App.CurrentApp.SetCombatDensity((HudDensity)(((int)_density + 1) % 3)));
-            _modeButton.ToolTip = "Сменить плотность HUD · Ctrl+Alt+1/2/3";
-            System.Windows.Automation.AutomationProperties.SetName(_modeButton, "Сменить режим HUD");
+            _modeButton.ToolTip = Loc.T("Сменить плотность HUD · Ctrl+Alt+1/2/3");
+            System.Windows.Automation.AutomationProperties.SetName(_modeButton, Loc.T("Сменить режим HUD"));
             actions.Add(_modeButton);
         }
         if (kind == HudKind.Atlas)
@@ -161,9 +161,9 @@ public sealed class HudWindow : Window
         if (handle != 0) Hotkeys.SetClickThrough(handle, locked);
         _atlasLock.IsEnabled = available;
         _atlasLock.Foreground = Brush(locked ? "Mint" : "Text");
-        _atlasLock.ToolTip = !available ? "Закрепление недоступно: Ctrl+Alt+F11 занята." :
-            locked ? "Миникарта закреплена · Ctrl+Alt+F11 разблокирует" : "Закрепить миникарту · Ctrl+Alt+F11";
-        System.Windows.Automation.AutomationProperties.SetName(_atlasLock, locked ? "Разблокировать миникарту" : "Закрепить миникарту");
+        _atlasLock.ToolTip = !available ? Loc.T("Закрепление недоступно: Ctrl+Alt+F11 занята.") :
+            locked ? Loc.T("Миникарта закреплена · Ctrl+Alt+F11 разблокирует") : Loc.T("Закрепить миникарту · Ctrl+Alt+F11");
+        System.Windows.Automation.AutomationProperties.SetName(_atlasLock, locked ? Loc.T("Разблокировать миникарту") : Loc.T("Закрепить миникарту"));
     }
 
     private void ChangeOpacity()
@@ -224,8 +224,8 @@ public sealed class HudWindow : Window
         _clickThrough = _store.Profile.CombatHudLocked && app.ClickThroughAvailable;
         var handle = new WindowInteropHelper(this).Handle;
         if (handle != 0) Hotkeys.SetClickThrough(handle, _clickThrough);
-        _handle.ToolTip = app.ClickThroughAvailable ? "Пропуск щелчков · Ctrl+Alt+L" :
-            "Закрепление недоступно: Ctrl+Alt+L занята другим приложением.";
+        _handle.ToolTip = app.ClickThroughAvailable ? Loc.T("Пропуск щелчков · Ctrl+Alt+L") :
+            Loc.T("Закрепление недоступно: Ctrl+Alt+L занята другим приложением.");
         ApplySurface();
         Refresh();
     }
@@ -273,11 +273,11 @@ public sealed class HudWindow : Window
             if (_store.BossNotice is { } notice) _body.Children.Add(Space(Ink(Text(notice, 13, "Gold", true)), 7));
             var upcoming = _store.Upcoming(now).Take(5).ToArray();
             foreach (var item in upcoming)
-                _body.Children.Add(Space(EventRow(item.Rule.Name, Clock(item.Due - now), "Mint"), 5));
+                _body.Children.Add(Space(EventRow(item.Rule.DisplayName, Clock(item.Due - now), "Mint"), 5));
             var bosses = _store.LiveBosses.Where(b => !b.Alive && b.When > now).Take(3).ToArray();
             foreach (var boss in bosses)
                 _body.Children.Add(Space(EventRow(boss.Name, Clock(boss.When - now), "Coral"), 5));
-            if (upcoming.Length == 0 && bosses.Length == 0) _body.Children.Add(Ink(Hint("Нет активных таймеров")));
+            if (upcoming.Length == 0 && bosses.Length == 0) _body.Children.Add(Ink(Hint(Loc.T("Нет активных таймеров"))));
             return;
         }
 
@@ -285,16 +285,16 @@ public sealed class HudWindow : Window
         var scope = _store.Profile.CombatHudScope;
         var roster = _store.LiveRoster;
         var rows = PartyCombat.Rows(current, _store.LiveCharacter, roster, _store.Profile.CombatHudSelfFirst, scope);
-        if (_scopeButton is not null) _scopeButton.Content = scope == CombatHudScope.Self ? "Я" : "Группа";
+        if (_scopeButton is not null) _scopeButton.Content = scope == CombatHudScope.Self ? Loc.T("Я") : Loc.T("Группа");
         var minimal = _density == HudDensity.Minimal;
         var detailed = _density == HudDensity.Detailed;
         var font = Math.Clamp(_store.Profile.CombatHudTextSize, 12, 22);
-        var mode = current.Fight.Demo ? "ДЕМО" : scope == CombatHudScope.Self ? "ТОЛЬКО ВЫ" : roster switch
+        var mode = current.Fight.Demo ? Loc.T("ДЕМО") : scope == CombatHudScope.Self ? Loc.T("ТОЛЬКО ВЫ") : roster switch
         {
-            { Members.Count: > 0 } => $"СВОЯ ГРУППА · {rows.Count}",
-            _ => "ТОЛЬКО ВЫ"
+            { Members.Count: > 0 } => Loc.F($"СВОЯ ГРУППА · {rows.Count}"),
+            _ => Loc.T("ТОЛЬКО ВЫ")
         };
-        _handle.Text = minimal ? $"◇  ARX · {mode}" : _clickThrough ? "◇  БОЙ · закреплён" : "◇  БОЙ";
+        _handle.Text = minimal ? $"◇  ARX · {mode}" : _clickThrough ? Loc.T("◇  БОЙ · закреплён") : Loc.T("◇  БОЙ");
         _handle.FontSize = minimal ? 11 : 14;
         _handle.Foreground = Brush(minimal ? "Text" : "Mint");
         if (!minimal)
@@ -310,8 +310,8 @@ public sealed class HudWindow : Window
             var personal = own?.Stats is { } stats ? Compact(current.Rate(stats.Damage)) : "—";
             var totalDamage = rows.Any(r => r.Stats is not null) ? Compact(damage) : "—";
             var duration = Clock(TimeSpan.FromSeconds(current.Fight.Duration));
-            _body.Children.Add(Space(Ink(Hint(scope == CombatHudScope.Self ? $"Вы {personal} DPS · {totalDamage} DMG · {duration}"
-                : $"Группа {total} DPS · {totalDamage} DMG · {duration}")), 7));
+            _body.Children.Add(Space(Ink(Hint(scope == CombatHudScope.Self ? Loc.F($"Вы {personal} DPS · {totalDamage} DMG · {duration}")
+                : Loc.F($"Группа {total} DPS · {totalDamage} DMG · {duration}"))), 7));
             if (current.Fight.Captured?.Summary.Boss is { MaxHpKnown: true } boss)
                 _body.Children.Add(Space(Ink(Hint($"{boss.Name} · {boss.HpFraction:P0} HP")), 7));
         }
@@ -319,7 +319,7 @@ public sealed class HudWindow : Window
             _body.Children.Add(Space(CombatRow(current, rows, member, minimal, detailed, font, damage), minimal ? 2 : 5));
         if (rows.Count == 0)
         {
-            _body.Children.Add(Ink(Text("Ожидание вашего персонажа", font, "Text", true)));
+            _body.Children.Add(Ink(Text(Loc.T("Ожидание вашего персонажа"), font, "Text", true)));
         }
         if (minimal)
         {
@@ -358,9 +358,9 @@ public sealed class HudWindow : Window
         {
             var share = damage > 0 ? $"{(double)player.Damage / damage:P0}" : "—";
             var crit = player.CritRate is { } value ? $"{value:P0}" : "—";
-            content.Children.Add(Ink(Hint($"{share} · крит {crit} · пик " +
+            content.Children.Add(Ink(Hint(Loc.F($"{share} · крит {crit} · пик ") +
                 (player.Burst is { } peak ? Compact(peak) : "—") +
-                (player.CombatPower > 0 ? $" · сила {Compact(player.CombatPower)}" : ""))));
+                (player.CombatPower > 0 ? Loc.F($" · сила {Compact(player.CombatPower)}") : ""))));
         }
         return Plate(content, member.Color);
     }

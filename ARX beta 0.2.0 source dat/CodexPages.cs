@@ -15,18 +15,18 @@ public sealed partial class Dashboard
 {
     private UIElement CraftPage()
     {
-        var page = Heading("Мастерская", "Поиск по локальной базе предметов, рецепты и расчёт недостающих ресурсов");
+        var page = Heading(Loc.T("Мастерская"), Loc.T("Поиск по локальной базе предметов, рецепты и расчёт недостающих ресурсов"));
         var catalog = _catalog.Crafting;
 
         var search = Input("", 240);
         var professions = catalog.Recipes.Select(r => r.Profession).Distinct().OrderBy(ProfessionName).ToArray();
-        var profession = Choice(new[] { "Все профессии" }.Concat(professions.Select(ProfessionName)), 168);
-        var mode = Choice(["Рецепты", "Предметы"], 105);
+        var profession = Choice(new[] { Loc.T("Все профессии") }.Concat(professions.Select(ProfessionName)), 168);
+        var mode = Choice([Loc.T("Рецепты"), Loc.T("Предметы")], 105);
         var results = new ListBox { Height = 212, DisplayMemberPath = nameof(Recipe.Name) };
         var tally = Hint("");
         page.Children.Add(Space(Card(Stack(
-            Space(Hint($"Срез Global LST от {_catalog.Reference.CraftingDate}. Английские названия сохранены из таблицы. Сверьте количества в клиенте после патчей."), 9),
-            Actions(Field("Поиск по названию", search), Field("Профессия", profession), Field("Раздел", mode)),
+            Space(Hint(Loc.F($"Срез Global LST от {_catalog.Reference.CraftingDate}. Английские названия сохранены из таблицы. Сверьте количества в клиенте после патчей.")), 9),
+            Actions(Field(Loc.T("Поиск по названию"), search), Field(Loc.T("Профессия"), profession), Field(Loc.T("Раздел"), mode)),
             Space(tally, 5), results)), 12));
         var detail = new ContentControl();
         page.Children.Add(detail);
@@ -52,7 +52,7 @@ public sealed partial class Dashboard
             {
                 var items = catalog.Items.Values.Where(i => i.Name.Contains(term, StringComparison.OrdinalIgnoreCase)).OrderBy(i => i.Name).ToArray();
                 results.ItemsSource = items;
-                tally.Text = $"Найдено предметов: {items.Length}";
+                tally.Text = Loc.F($"Найдено предметов: {items.Length}");
             }
             else
             {
@@ -61,7 +61,7 @@ public sealed partial class Dashboard
                     (profession.SelectedIndex <= 0 || r.Profession == professions[profession.SelectedIndex - 1]))
                     .OrderBy(r => r.Name).ToArray();
                 results.ItemsSource = recipes;
-                tally.Text = $"Найдено рецептов: {recipes.Length}";
+                tally.Text = Loc.F($"Найдено рецептов: {recipes.Length}");
             }
             results.SelectedIndex = results.Items.Count > 0 ? 0 : -1;
         }
@@ -69,16 +69,16 @@ public sealed partial class Dashboard
 
     private static string ItemSource(string source) => source switch
     {
-        "craft" => "Источник в базе: крафт",
-        "gather" or "gathering" => "Источник в базе: сбор",
-        "vendor" or "shop" => "Источник в базе: торговец",
-        _ => "Проверьте источник в игре"
+        "craft" => Loc.T("Источник в базе: крафт"),
+        "gather" or "gathering" => Loc.T("Источник в базе: сбор"),
+        "vendor" or "shop" => Loc.T("Источник в базе: торговец"),
+        _ => Loc.T("Проверьте источник в игре")
     };
 
     private static string ProfessionName(string profession) => profession switch
     {
-        "alchemy" => "Алхимия", "blacksmithing" => "Кузнечное дело", "cooking" => "Кулинария",
-        "jewelcrafting" => "Ювелирное дело", "tailoring" => "Портняжное дело", _ => profession
+        "alchemy" => Loc.T("Алхимия"), "blacksmithing" => Loc.T("Кузнечное дело"), "cooking" => Loc.T("Кулинария"),
+        "jewelcrafting" => Loc.T("Ювелирное дело"), "tailoring" => Loc.T("Портняжное дело"), _ => profession
     };
 
     private static Border Calculator(CraftCatalog catalog, Recipe recipe)
@@ -91,17 +91,17 @@ public sealed partial class Dashboard
         var illustration = new ItemIllustration(recipe.Type) { Width = 70, Height = 70, Margin = new Thickness(0, 0, 13, 0) };
         DockPanel.SetDock(illustration, Dock.Left);
         result.Children.Add(illustration);
-        result.Children.Add(Stack(Space(Label("РЕЗУЛЬТАТ КРАФТА"), 4), Space(Text(output, 19, bold: true), 4),
-            produced, Hint($"{ProfessionName(recipe.Profession)} · {recipe.Yield:N0} за изготовление" +
-                (recipe.Faction == 1 ? " · вариант фракции 1" : ""))));
+        result.Children.Add(Stack(Space(Label(Loc.T("РЕЗУЛЬТАТ КРАФТА")), 4), Space(Text(output, 19, bold: true), 4),
+            produced, Hint(Loc.F($"{ProfessionName(recipe.Profession)} · {recipe.Yield:N0} за изготовление") +
+                (recipe.Faction == 1 ? Loc.T(" · вариант фракции 1") : ""))));
         var outputCard = Card(result, 12);
         outputCard.Background = Ui.Brush("Base");
         var panel = Stack(Space(outputCard, 11),
-            Space(Field("Сколько предметов нужно", count), 10));
+            Space(Field(Loc.T("Сколько предметов нужно"), count), 10));
         var grid = new Grid();
         foreach (var width in new[] { 3.0, 1.0, 1.0, 1.0, 1.0 })
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(width, GridUnitType.Star) });
-        string[] columns = ["Материал", "Нужно", "В наличии", "Цена за 1", "Докупить"];
+        string[] columns = [Loc.T("Материал"), Loc.T("Нужно"), Loc.T("В наличии"), Loc.T("Цена за 1"), Loc.T("Докупить")];
         grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         for (var i = 0; i < columns.Length; i++) Place(grid, Space(Label(columns[i]), 5), 0, i);
         var inputRows = new List<(int PerBatch, TextBlock Total, TextBox Have, TextBox Price, TextBlock Missing)>();
@@ -109,14 +109,14 @@ public sealed partial class Dashboard
         {
             var row = grid.RowDefinitions.Count;
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            var label = catalog.Items.TryGetValue(ingredient.Key, out var item) ? item.Name : $"Предмет {ingredient.Key}";
+            var label = catalog.Items.TryGetValue(ingredient.Key, out var item) ? item.Name : Loc.F($"Предмет {ingredient.Key}");
             var required = Text("", 13, "Gold", true);
             var have = Input("0", double.NaN, 8);
             var price = Input("0", double.NaN, 9);
             var missing = Text("", 13, "Mint", true);
             have.Margin = price.Margin = new Thickness(0, 0, 7, 4);
-            System.Windows.Automation.AutomationProperties.SetName(have, "В наличии · " + label);
-            System.Windows.Automation.AutomationProperties.SetName(price, "Цена · " + label);
+            System.Windows.Automation.AutomationProperties.SetName(have, Loc.T("В наличии · ") + label);
+            System.Windows.Automation.AutomationProperties.SetName(price, Loc.T("Цена · ") + label);
             Place(grid, Text(label), row, 0);
             Place(grid, required, row, 1);
             Place(grid, have, row, 2);
@@ -136,13 +136,13 @@ public sealed partial class Dashboard
         {
             if (!int.TryParse(count.Text, out var target) || target is < 1 or > 100000)
             {
-                produced.Text = "Количество —";
-                summary.Text = "Введите количество от 1 до 100 000.";
+                produced.Text = Loc.T("Количество —");
+                summary.Text = Loc.T("Введите количество от 1 до 100 000.");
                 foreach (var row in inputRows) row.Total.Text = row.Missing.Text = "—";
                 return;
             }
             var batches = (target + recipe.Yield - 1) / recipe.Yield;
-            produced.Text = $"Получите ×{batches * recipe.Yield:N0}";
+            produced.Text = Loc.F($"Получите ×{batches * recipe.Yield:N0}");
             decimal cost = 0;
             var valid = true;
             foreach (var row in inputRows)
@@ -161,8 +161,8 @@ public sealed partial class Dashboard
                 cost += (decimal)missing * price;
             }
             summary.Text = valid
-                ? $"Изготовлений: {batches:N0}  ·  Получите: {batches * recipe.Yield:N0}  ·  Закупка: {cost:N0} кина"
-                : "Укажите целые неотрицательные остатки и цены.";
+                ? Loc.F($"Изготовлений: {batches:N0}  ·  Получите: {batches * recipe.Yield:N0}  ·  Закупка: {cost:N0} кина")
+                : Loc.T("Укажите целые неотрицательные остатки и цены.");
         }
     }
 }

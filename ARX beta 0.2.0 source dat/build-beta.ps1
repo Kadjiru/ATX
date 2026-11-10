@@ -20,7 +20,7 @@ function Sign-PackageFile([string]$File) {
     if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Thumbprint -ne $SigningThumbprint -or
         !$signature.TimeStamperCertificate) { throw "Publisher signature or timestamp could not be verified: $File" }
 }
-$stage = Join-Path $out 'ARX-1.0.4-beta-win-x64'
+$stage = Join-Path $out 'ARX-1.0.5-beta-win-x64'
 New-Item -ItemType Directory -Force $stage | Out-Null
 
 dotnet publish (Join-Path $PSScriptRoot 'ARX.Beta.csproj') -c Release -r win-x64 --self-contained true -o $stage `
@@ -32,12 +32,12 @@ Sign-PackageFile (Join-Path $stage 'ARX.Beta.exe')
 Copy-Item (Join-Path $PSScriptRoot 'LICENSE'), (Join-Path $PSScriptRoot 'INSTALL.txt'), (Join-Path $PSScriptRoot 'SOURCES.md') $stage
 foreach ($path in 'ARX.Beta.exe', 'Data\Crafting.json', 'Data\CatalogManifest.json', 'Data\Reference.json', 'Data\Atlas.json.gz',
     'Data\WorldBosses.json', 'Data\Pets.json', 'Data\MIT-SkeeveTV.txt',
-    'GameData\skills\ru.json', 'GameData\NOTICE.md') {
+    'GameData\skills\ru.json', 'GameData\skills\en.json', 'GameData\npcs\en.json', 'GameData\NOTICE.md') {
     if (!(Test-Path -LiteralPath (Join-Path $stage $path))) { throw "Missing package file: $path" }
 }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$archive = Join-Path $out 'ARX-1.0.4-beta-win-x64.zip'
+$archive = Join-Path $out 'ARX-1.0.5-beta-win-x64.zip'
 $temporary = $archive + '.' + [Guid]::NewGuid().ToString('N') + '.tmp'
 try {
     [IO.Compression.ZipFile]::CreateFromDirectory($stage, $temporary, [IO.Compression.CompressionLevel]::Optimal, $false)
@@ -52,4 +52,4 @@ if (!$compiler) {
 }
 & $compiler.Source /Qp "/DPayload=$stage" "/O$out" (Join-Path $PSScriptRoot 'ARX.iss')
 if ($LASTEXITCODE) { throw "Inno Setup failed ($LASTEXITCODE)" }
-Sign-PackageFile (Join-Path $out 'ARX-Setup-1.0.4-beta.exe')
+Sign-PackageFile (Join-Path $out 'ARX-Setup-1.0.5-beta.exe')

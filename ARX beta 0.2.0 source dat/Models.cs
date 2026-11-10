@@ -12,7 +12,7 @@ public sealed record Totals(string Player, long Damage, long Healing);
 public sealed record Fight(Guid Id, string Name, DateTimeOffset Date, double Duration, string Self,
     Hit[] Hits, Totals[] Entered, bool Demo = false, FightRecord? Captured = null, string? Build = null)
 {
-    public static Fight Empty { get; } = new(Guid.Empty, "Ожидание отчёта", DateTimeOffset.MinValue, 0, "", [], []);
+    public static Fight Empty { get; } = new(Guid.Empty, Loc.T("Ожидание отчёта"), DateTimeOffset.MinValue, 0, "", [], []);
 }
 
 public sealed record PlayerStats(string Player, long Damage, long Healing, int? Hits, int? Crits, double? Burst,
@@ -149,10 +149,10 @@ public static class FightImport
     public static Fight Csv(string path, string name, string self)
     {
         using var stream = File.OpenRead(path);
-        if (stream.Length > 5 * 1024 * 1024) throw new InvalidDataException("Файл больше 5 МБ.");
+        if (stream.Length > 5 * 1024 * 1024) throw new InvalidDataException(Loc.T("Файл больше 5 МБ."));
         using var parser = new TextFieldParser(stream) { Delimiters = [","], HasFieldsEnclosedInQuotes = true };
         if (parser.ReadFields() is not { } header || !header.SequenceEqual(Header, StringComparer.OrdinalIgnoreCase))
-            throw new InvalidDataException("Заголовок CSV: seconds,player,skill,damage,healing,critical");
+            throw new InvalidDataException(Loc.T("Заголовок CSV: seconds,player,skill,damage,healing,critical"));
         var rows = new List<Hit>();
         while (!parser.EndOfData)
         {
@@ -165,10 +165,10 @@ public static class FightImport
                 !long.TryParse(fields[3], out var damage) || damage is < 0 or > 100_000_000_000 ||
                 !long.TryParse(fields[4], out var healing) || healing is < 0 or > 100_000_000_000 ||
                 !ParseCrit(fields[5], out var crit) || (damage == 0 && healing == 0))
-                throw new InvalidDataException($"Проверьте данные в строке {line}.");
+                throw new InvalidDataException(Loc.F($"Проверьте данные в строке {line}."));
             rows.Add(new Hit(time, fields[1], fields[2], damage, healing, crit));
         }
-        if (rows.Count == 0) throw new InvalidDataException("В CSV нет событий.");
+        if (rows.Count == 0) throw new InvalidDataException(Loc.T("В CSV нет событий."));
         var duration = Math.Max(1, Math.Ceiling(rows.Max(h => h.Second)));
         return new Fight(Guid.NewGuid(), name, DateTimeOffset.Now, duration, self, rows.ToArray(), []);
     }
@@ -183,7 +183,7 @@ public static class FightImport
     {
         var rng = new Random(45);
         string[] players = ["Aster", "Liora", "Kestrel", "Mira", "Riven"];
-        string[] skills = ["Первый удар", "Удар по области", "Серия атак", "Завершающий удар"];
+        string[] skills = [Loc.T("Первый удар"), Loc.T("Удар по области"), Loc.T("Серия атак"), Loc.T("Завершающий удар")];
         var rows = new List<Hit>();
         for (var second = 0; second < 96; second++)
         {
@@ -196,12 +196,19 @@ public static class FightImport
                     player == 3 ? rng.Next(2500, 15000) : 0, crit));
             }
         }
-        return new Fight(Guid.NewGuid(), "Тренировочная экспедиция", DateTimeOffset.Now, 96, "Aster", rows.ToArray(), [], true);
+        return new Fight(Guid.NewGuid(), Loc.T("Тренировочная экспедиция"), DateTimeOffset.Now, 96, "Aster", rows.ToArray(), [], true);
     }
 }
 
 public sealed record EventRule(Guid Id, string Name, DateTimeOffset AnchorUtc, int RepeatMinutes, bool Enabled = true)
 {
+    internal static readonly Guid RiftId = new("55025e60-21df-42de-9e89-a22f94b8c426");
+    internal static readonly Guid ShugoFestivalId = new("c885ed94-84c1-47e1-b8aa-11ff600f4c16");
+
+    internal string DisplayName =>
+        (Id == RiftId && Name == "Пространственный разлом") || (Id == ShugoFestivalId && Name == "Фестиваль шуго")
+            ? Loc.T(Name) : Name;
+
     public DateTimeOffset? Next(DateTimeOffset now)
     {
         if (!Enabled) return null;
@@ -228,6 +235,7 @@ public sealed class Profile
     public Guid SessionId { get; set; } = Guid.NewGuid();
     public string Character { get; set; } = "";
     public string Server { get; set; } = "";
+    public string Language { get; set; } = "ru";
     public List<Fight> History { get; set; } = [];
     public List<SessionTask> Tasks { get; set; } = [];
     public List<KinaEntry> Ledger { get; set; } = [];
@@ -266,8 +274,8 @@ public sealed class Profile
     public HashSet<Guid> TeamDisabled { get; set; } = [];
     public List<EventRule> Events { get; set; } =
     [
-        new(new Guid("55025e60-21df-42de-9e89-a22f94b8c426"), "Пространственный разлом", DateTimeOffset.UnixEpoch, 180),
-        new(new Guid("c885ed94-84c1-47e1-b8aa-11ff600f4c16"), "Фестиваль шуго", DateTimeOffset.UnixEpoch, 60)
+        new(EventRule.RiftId, "Пространственный разлом", DateTimeOffset.UnixEpoch, 180),
+        new(EventRule.ShugoFestivalId, "Фестиваль шуго", DateTimeOffset.UnixEpoch, 60)
     ];
 }
 
@@ -280,14 +288,14 @@ public sealed class LegionStore
     public string? LoadError { get; }
     public bool Preview { get; }
     public bool NewProfile { get; }
-    public string TeamStatus { get; set; } = "Общая папка не подключена";
+    public string TeamStatus { get; set; } = Loc.T("Общая папка не подключена");
     public FightAnalysis Analysis { get; private set; }
     public FightAnalysis? LiveAnalysis { get; private set; }
     private static readonly FightAnalysis NoFight = new(Fight.Empty);
     public bool FollowLive { get; private set; }
     public FightAnalysis DisplayAnalysis => FollowLive ? LiveAnalysis ?? NoFight : Analysis;
     internal FightAnalysis OverlayAnalysis => LiveAnalysis ?? (DisplayAnalysis.Fight.Demo ? DisplayAnalysis : NoFight);
-    public string CaptureLabel { get; private set; } = "Захват выключен";
+    public string CaptureLabel { get; private set; } = Loc.T("Захват выключен");
     public string? LiveIdentity { get; private set; }
     internal CharacterIdentity? LiveCharacter { get; private set; }
     internal PartyRosterEvent? LiveRoster { get; private set; }

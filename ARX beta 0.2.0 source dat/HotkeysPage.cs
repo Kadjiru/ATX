@@ -8,7 +8,7 @@ public sealed partial class Dashboard
 {
     private UIElement HotkeysPage()
     {
-        var page = Heading("Горячие клавиши", "Управление боевым HUD, миникартой и таймерами");
+        var page = Heading(Loc.T("Горячие клавиши"), Loc.T("Управление боевым HUD, миникартой и таймерами"));
         var entries = new StackPanel();
         foreach (var shortcut in Hotkeys.Shortcuts)
         {
@@ -27,7 +27,7 @@ public sealed partial class Dashboard
             var description = Text(shortcut.Description);
             description.VerticalAlignment = VerticalAlignment.Center;
             description.Margin = new Thickness(0, 4, 8, 4);
-            var status = Text(active switch { true => "Доступно", false => "Занято", null => "При запуске" },
+            var status = Text(active switch { true => Loc.T("Доступно"), false => Loc.T("Занято"), null => Loc.T("При запуске") },
                 12, active == false ? "Coral" : "Muted");
             status.VerticalAlignment = VerticalAlignment.Center;
             Place(row, key, 0, 0);
@@ -35,9 +35,9 @@ public sealed partial class Dashboard
             Place(row, status, 0, 2);
             entries.Children.Add(new Border { BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 0, 1), Child = row });
         }
-        page.Children.Add(Card(Stack(Space(Label("СОЧЕТАНИЯ ARX"), 6), Space(entries, 14),
-            Space(Hint("При конфликте с другой программой воспользуйтесь кнопками ARX. Если HUD закреплён, Ctrl+Alt+L возвращает управление мышью."), 10),
-            Actions(Button("К настройкам HUD", () => Navigate("settings"))))));
+        page.Children.Add(Card(Stack(Space(Label(Loc.T("СОЧЕТАНИЯ ARX")), 6), Space(entries, 14),
+            Space(Hint(Loc.T("При конфликте с другой программой воспользуйтесь кнопками ARX. Если HUD закреплён, Ctrl+Alt+L возвращает управление мышью.")), 10),
+            Actions(Button(Loc.T("К настройкам HUD"), () => Navigate("settings"))))));
         return page;
     }
 }

@@ -29,8 +29,8 @@ public partial class App : Application
     internal bool UpdateApproved => _approvedUpdate is not null && _approvedUpdate == _updates?.ReadyIdentity;
     internal bool ClickThroughAvailable => _hotkeys?.ClickThroughRegistered == true;
     internal bool AtlasLockAvailable => _hotkeys?.AtlasLockRegistered == true;
-    internal string HotkeyStatus => _hotkeys is null ? "Глобальные сочетания проверяются при запуске" :
-        _hotkeys.Unavailable.Count > 0 ? "Заняты сочетания: " + string.Join(", ", _hotkeys.Unavailable) : "Глобальные сочетания готовы";
+    internal string HotkeyStatus => _hotkeys is null ? Loc.T("Глобальные сочетания проверяются при запуске") :
+        _hotkeys.Unavailable.Count > 0 ? Loc.T("Заняты сочетания: ") + string.Join(", ", _hotkeys.Unavailable) : Loc.T("Глобальные сочетания готовы");
     internal bool? IsHotkeyRegistered(Hotkeys.Shortcut shortcut) => _hotkeys?.IsRegistered(shortcut);
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -43,7 +43,7 @@ public partial class App : Application
             {
                 if (attempt >= 120)
                 {
-                    MessageBox.Show("Установщик ARX ещё работает. Запустите приложение после завершения установки.", "ARX");
+                    MessageBox.Show(Loc.T("Установщик ARX ещё работает. Запустите приложение после завершения установки."), "ARX");
                     Shutdown();
                     return;
                 }
@@ -52,24 +52,30 @@ public partial class App : Application
             _instance = new Mutex(true, "Local\\ARX.Legion.Beta", out var first);
             if (!first)
             {
-                MessageBox.Show("ARX уже запущен. Главное окно можно открыть из любого HUD кнопкой ARX.", "ARX");
+                MessageBox.Show(Loc.T("ARX уже запущен. Главное окно можно открыть из любого HUD кнопкой ARX."), "ARX");
                 Shutdown();
                 return;
             }
         }
         if (render)
         {
+            Loc.Configure(e.Args.Length > 3 ? e.Args[3] : null);
             _store = new LegionStore(true);
+            _store.Profile.Language = Loc.Language;
             _catalog = CatalogSync.Open(true);
             var section = e.Args.Length > 2 ? e.Args[2] : "combat";
             if (section == "changelog")
             {
                 Render(new ChangelogWindow(null, AppUpdates.CurrentLabel), e.Args[1], new Size(575, 546));
             }
+            else if (section == "update")
+            {
+                Render(new UpdateWindow(null, AppUpdates.CurrentLabel, _ => { }), e.Args[1], new Size(470, 250));
+            }
             else if (section == "splash")
             {
                 var splashPreview = new LaunchWindow();
-                splashPreview.Stage(76, "Сверка версии базы с репозиторием ARX", false);
+                splashPreview.Stage(76, Loc.T("Сверка версии базы с репозиторием ARX"), false);
                 Render(splashPreview, e.Args[1], new Size(720, 360));
             }
             else if (section.StartsWith("hud-", StringComparison.Ordinal))
@@ -86,11 +92,11 @@ public partial class App : Application
                 if (kind == HudKind.Bosses && WorldBossCatalog.Choices.FirstOrDefault() is { } boss)
                 {
                     _store.Profile.BossHudSelection = boss.Id;
-                    _store.UpdateLive(null, "Демонстрация", null,
+                    _store.UpdateLive(null, Loc.T("Демонстрация"), null,
                         [new ObservedBoss("preview", boss.Name, boss.Zone, false, DateTimeOffset.UtcNow.AddMinutes(38), boss.Id)]);
                 }
                 if (kind == HudKind.Tasks)
-                    _store.Profile.Tasks.Add(new SessionTask(Guid.NewGuid(), _store.Profile.SessionId, "Проверить задания Бездны", false));
+                    _store.Profile.Tasks.Add(new SessionTask(Guid.NewGuid(), _store.Profile.SessionId, Loc.T("Проверить задания Бездны"), false));
                 var hudPreview = new HudWindow(_store, kind);
                 if (kind == HudKind.Atlas && AtlasCatalog.For(AtlasZone.All[0])?.Pins.FirstOrDefault(pin => pin.Category == "Телепорт") is { } marker)
                     hudPreview.OpenAtlas(new AtlasSelection(marker.Zone, marker.Layer, marker.Id));
@@ -105,20 +111,22 @@ public partial class App : Application
             Shutdown();
             return;
         }
-        var splash = new LaunchWindow();
-        splash.Show();
+        LaunchWindow? splash = null;
         try
         {
-            splash.Stage(24, "Загрузка локального профиля");
             _store = await Task.Run(() => new LegionStore(false));
-            splash.Stage(48, "Проверка базы Aion 2 Global");
+            Loc.Configure(_store.Profile.Language);
+            splash = new LaunchWindow();
+            splash.Show();
+            splash.Stage(24, Loc.T("Загрузка локального профиля"));
+            splash.Stage(48, Loc.T("Проверка базы Aion 2 Global"));
             _catalog = await Task.Run(() => CatalogSync.Open(false));
             _live = new LiveCombat(_store);
             _store.LiveChanged += CheckBossAlerts;
-            splash.Stage(76, "Сверка версии базы с репозиторием ARX");
+            splash.Stage(76, Loc.T("Сверка версии базы с репозиторием ARX"));
             await Task.WhenAll(_catalog.RefreshAsync(), Task.Delay(620));
             if (_store.NewProfile) _store.Profile.Events = [.. _catalog.Reference.Presets];
-            splash.Stage(100, $"{_catalog.Status} · ревизия {_catalog.Revision}");
+            splash.Stage(100, Loc.F($"{_catalog.Status} · ревизия {_catalog.Revision}"));
             await Task.Delay(290);
             ShowDashboard();
             splash.Close();
@@ -152,8 +160,8 @@ public partial class App : Application
         catch (Exception ex)
         {
             _closing = true;
-            splash.Close();
-            MessageBox.Show("Не удалось запустить ARX. " + ex.Message, "ARX", MessageBoxButton.OK, MessageBoxImage.Error);
+            splash?.Close();
+            MessageBox.Show(Loc.T("Не удалось запустить ARX. ") + ex.Message, "ARX", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown(1);
         }
     }
@@ -215,7 +223,7 @@ public partial class App : Application
             }
             catch (System.ComponentModel.Win32Exception)
             {
-                MessageBox.Show("Не удалось открыть страницу релиза.", "Обновление ARX");
+                MessageBox.Show(Loc.T("Не удалось открыть страницу релиза."), Loc.T("Обновление ARX"));
             }
         }
         else await CheckAppUpdatesAsync();
@@ -366,8 +374,8 @@ public partial class App : Application
             foreach (var hud in _huds.Values.ToArray()) hud.Close();
             if (_live is { } live) await live.StopAsync();
             if (UpdateApproved && _updates?.InstallAfterClose() != true)
-                MessageBox.Show("Не удалось запустить проверенный установщик. Откройте ARX и повторите обновление.",
-                    "Обновление ARX", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(Loc.T("Не удалось запустить проверенный установщик. Откройте ARX и повторите обновление."),
+                    Loc.T("Обновление ARX"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally { Shutdown(); }
     }

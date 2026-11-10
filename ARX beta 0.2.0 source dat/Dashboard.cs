@@ -61,7 +61,7 @@ public sealed partial class Dashboard : Window
         _status.Margin = new Thickness(22, 0, 0, 0);
         _status.TextTrimming = TextTrimming.CharacterEllipsis;
         _status.TextWrapping = TextWrapping.NoWrap;
-        _updateBadge = Button("Обновление", () => _ = App.CurrentApp.OpenUpdateAsync());
+        _updateBadge = Button(Loc.T("Обновление"), () => _ = App.CurrentApp.OpenUpdateAsync());
         _updateBadge.Margin = new Thickness(11, 0, 0, 0);
         _updateBadge.MinHeight = 28;
         _updateBadge.Padding = new Thickness(9, 4, 9, 4);
@@ -94,21 +94,21 @@ public sealed partial class Dashboard : Window
         Place(shell, topFrame, 0, 0);
 
         var nav = new StackPanel();
-        NavHeading("БОЕВОЙ ЖУРНАЛ");
-        AddNav(nav, "combat", "◇", "Монитор");
-        AddNav(nav, "analysis", "≋", "Отчёты");
-        AddNav(nav, "expeditions", "▤", "Забеги");
-        NavHeading("МИР И СЕССИЯ");
-        AddNav(nav, "atlas", "⌖", "Атлас");
-        AddNav(nav, "events", "◷", "События");
-        AddNav(nav, "session", "☰", "Сессия");
-        AddNav(nav, "progress", "✓", "Прогресс");
-        AddNav(nav, "codex", "✧", "Билды и гайды");
-        AddNav(nav, "pets", "♧", "Питомцы");
-        AddNav(nav, "craft", "⬡", "Крафт");
-        NavHeading("УПРАВЛЕНИЕ");
-        AddNav(nav, "hotkeys", "⌨", "Горячие клавиши");
-        AddNav(nav, "settings", "⚙", "Настройки");
+        NavHeading(Loc.T("БОЕВОЙ ЖУРНАЛ"));
+        AddNav(nav, "combat", "◇", Loc.T("Монитор"));
+        AddNav(nav, "analysis", "≋", Loc.T("Отчёты"));
+        AddNav(nav, "expeditions", "▤", Loc.T("Забеги"));
+        NavHeading(Loc.T("МИР И СЕССИЯ"));
+        AddNav(nav, "atlas", "⌖", Loc.T("Атлас"));
+        AddNav(nav, "events", "◷", Loc.T("События"));
+        AddNav(nav, "session", "☰", Loc.T("Сессия"));
+        AddNav(nav, "progress", "✓", Loc.T("Прогресс"));
+        AddNav(nav, "codex", "✧", Loc.T("Билды и гайды"));
+        AddNav(nav, "pets", "♧", Loc.T("Питомцы"));
+        AddNav(nav, "craft", "⬡", Loc.T("Крафт"));
+        NavHeading(Loc.T("УПРАВЛЕНИЕ"));
+        AddNav(nav, "hotkeys", "⌨", Loc.T("Горячие клавиши"));
+        AddNav(nav, "settings", "⚙", Loc.T("Настройки"));
         var sidebar = new Border { Background = Ui.Brush("Surface"), Padding = new Thickness(12, 8, 11, 5),
             BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 1, 0),
             Child = new ScrollViewer { Content = nav, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -121,7 +121,7 @@ public sealed partial class Dashboard : Window
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, CanContentScroll = false
         };
         Place(shell, _scroll, 1, 1);
-        var footer = Label($"ARX {AppUpdates.CurrentLabel.ToUpperInvariant().Replace('-', ' ')}     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD");
+        var footer = Label(Loc.F($"ARX {AppUpdates.CurrentLabel.ToUpperInvariant().Replace('-', ' ')}     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD"));
         var footerFrame = new Border { Child = footer, Padding = new Thickness(18, 7, 0, 0),
             Background = Ui.Brush("Surface"), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 0) };
         Grid.SetColumnSpan(footerFrame, 2);
@@ -182,26 +182,26 @@ public sealed partial class Dashboard : Window
 
     private void UpdateStatus()
     {
-        _status.Text = "●  " + (_store.Preview ? "Предпросмотр" : _store.CaptureLabel);
+        _status.Text = "●  " + (_store.Preview ? Loc.T("Предпросмотр") : Loc.T(_store.CaptureLabel));
     }
 
     internal void RefreshUpdateStatus()
     {
         var app = App.CurrentApp;
         var updates = app.Updates;
-        _updateBadge.Content = app.UpdateApproved ? "Обновление · при выходе" : updates?.Phase switch
+        _updateBadge.Content = app.UpdateApproved ? Loc.T("Обновление · при выходе") : updates?.Phase switch
         {
-            UpdatePhase.Checking => "Обновление · проверка",
-            UpdatePhase.Downloading => $"Обновление · {updates.DownloadPercent}%",
-            UpdatePhase.Verifying => "Обновление · проверка файла",
-            UpdatePhase.Current => "Обновление · актуально",
-            UpdatePhase.Available => "Обновление · доступно",
-            UpdatePhase.Ready => "Обновление · установить",
-            UpdatePhase.Failed => "Обновление · повторить",
-            _ => "Обновление"
+            UpdatePhase.Checking => Loc.T("Обновление · проверка"),
+            UpdatePhase.Downloading => Loc.F($"Обновление · {updates.DownloadPercent}%"),
+            UpdatePhase.Verifying => Loc.T("Обновление · проверка файла"),
+            UpdatePhase.Current => Loc.T("Обновление · актуально"),
+            UpdatePhase.Available => Loc.T("Обновление · доступно"),
+            UpdatePhase.Ready => Loc.T("Обновление · установить"),
+            UpdatePhase.Failed => Loc.T("Обновление · повторить"),
+            _ => Loc.T("Обновление")
         };
-        _updateBadge.ToolTip = app.UpdateApproved ? "Установится при закрытии ARX. Нажмите, чтобы изменить выбор." :
-            updates?.Status ?? "Проверить обновление ARX";
+        _updateBadge.ToolTip = app.UpdateApproved ? Loc.T("Установится при закрытии ARX. Нажмите, чтобы изменить выбор.") :
+            updates?.Status ?? Loc.T("Проверить обновление ARX");
         _updateBadge.Foreground = Brush(updates?.Phase is UpdatePhase.Available or UpdatePhase.Ready ? "Mint" : "Text");
         _updateBadge.IsEnabled = updates?.Phase is not (UpdatePhase.Checking or UpdatePhase.Downloading or UpdatePhase.Verifying);
     }
@@ -255,9 +255,9 @@ public sealed partial class Dashboard : Window
 
     private UIElement CombatPage()
     {
-        var page = Stack(Space(Label("БОЕВОЙ ЖУРНАЛ    /    01"), 4), Space(Text("Монитор боя", 29, bold: true), 13));
-        var controls = Actions(Button("Живой бой", () => _store.SetFollowLive(true), true),
-            Button("Боевой HUD", () => Hud(HudKind.Combat)), Button("Демо", () => _store.SetFight(FightImport.Sample(), false)));
+        var page = Stack(Space(Label(Loc.T("БОЕВОЙ ЖУРНАЛ    /    01")), 4), Space(Text(Loc.T("Монитор боя"), 29, bold: true), 13));
+        var controls = Actions(Button(Loc.T("Живой бой"), () => _store.SetFollowLive(true), true),
+            Button(Loc.T("Боевой HUD"), () => Hud(HudKind.Combat)), Button(Loc.T("Демо"), () => _store.SetFight(FightImport.Sample(), false)));
 
         var title = Text("", 30, bold: true);
         var source = Text("", 11, "Mint", true);
@@ -285,14 +285,14 @@ public sealed partial class Dashboard : Window
         var identity = Label("");
         var context = Label("");
         var metrics = new UniformGrid { Columns = 4 };
-        AddMetric("ВАШ DPS", personal, identity);
-        AddMetric("СУММА DPS", numbers, context);
-        AddMetric("УРОН", damage, Label("За боевой сегмент"));
-        AddMetric("БУРСТ", burst, Label("Пиковые 5 секунд"));
+        AddMetric(Loc.T("ВАШ DPS"), personal, identity);
+        AddMetric(Loc.T("СУММА DPS"), numbers, context);
+        AddMetric(Loc.T("УРОН"), damage, Label(Loc.T("За боевой сегмент")));
+        AddMetric(Loc.T("БУРСТ"), burst, Label(Loc.T("Пиковые 5 секунд")));
         page.Children.Add(Space(metrics, 12));
 
         var chart = new BattleChart(_store.DisplayAnalysis) { Height = 213 };
-        var report = Button("Открыть отчёт", () =>
+        var report = Button(Loc.T("Открыть отчёт"), () =>
         {
             var fight = _store.DisplayAnalysis.Fight;
             if (fight.Id != Guid.Empty)
@@ -303,14 +303,14 @@ public sealed partial class Dashboard : Window
             }
             Navigate("analysis");
         });
-        var battle = Card(Stack(Space(Text("Темп боя", 18, bold: true), 4),
-            Space(Actions(Text("●  Сумма", 12, "Mint"), Text("●  Вы", 12, "Coral")), 6),
+        var battle = Card(Stack(Space(Text(Loc.T("Темп боя"), 18, bold: true), 4),
+            Space(Actions(Text(Loc.T("●  Сумма"), 12, "Mint"), Text(Loc.T("●  Вы"), 12, "Coral")), 6),
             Space(chart, 12), Actions(report)), 15);
         battle.Margin = new Thickness(0, 0, 11, 0);
 
         var party = new StackPanel();
         var partyStatus = Label("");
-        var stats = Card(Stack(Space(Text("Участники", 18, bold: true), 4), Space(partyStatus, 11), party), 15);
+        var stats = Card(Stack(Space(Text(Loc.T("Участники"), 18, bold: true), 4), Space(partyStatus, 11), party), 15);
         var split = new Grid();
         split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.5, GridUnitType.Star) });
         split.ColumnDefinitions.Add(new ColumnDefinition { MinWidth = 268 });
@@ -319,10 +319,10 @@ public sealed partial class Dashboard : Window
         page.Children.Add(Space(split, 12));
 
         var runInfo = Hint("");
-        page.Children.Add(Card(Stack(Space(Label("ЗАБЕГ И АТЛАС"), 6), Space(runInfo, 8),
-            Actions(Button("Забеги", () => Navigate("expeditions")), Button("Атлас", () => Navigate("atlas")),
-                Button("HUD событий", () => Hud(HudKind.Events)), Button("HUD задач", () => Hud(HudKind.Tasks)),
-                Button("HUD боссов", () => Hud(HudKind.Bosses)), Button("Миникарта HUD", () => Hud(HudKind.Atlas)))), 15));
+        page.Children.Add(Card(Stack(Space(Label(Loc.T("ЗАБЕГ И АТЛАС")), 6), Space(runInfo, 8),
+            Actions(Button(Loc.T("Забеги"), () => Navigate("expeditions")), Button(Loc.T("Атлас"), () => Navigate("atlas")),
+                Button(Loc.T("HUD событий"), () => Hud(HudKind.Events)), Button(Loc.T("HUD задач"), () => Hud(HudKind.Tasks)),
+                Button(Loc.T("HUD боссов"), () => Hud(HudKind.Bosses)), Button(Loc.T("Миникарта HUD"), () => Hud(HudKind.Atlas)))), 15));
         _refreshLive = Refresh;
         Refresh();
         return page;
@@ -345,20 +345,20 @@ public sealed partial class Dashboard : Window
             var character = _store.FollowLive ? _store.LiveCharacter : null;
             var rows = PartyCombat.Rows(current, character, roster, scope: _store.FollowLive ? CombatHudScope.Party : null);
             var own = rows.FirstOrDefault(r => r.IsSelf);
-            source.Text = fight.Demo ? "01   /   ДЕМОНСТРАЦИЯ" : snapshot is not null
-                ? snapshot.IsActive && _store.FollowLive ? "01   /   В БОЮ" : "01   /   ЗАПИСЬ БОЯ"
-                : fight.Id == Guid.Empty ? "01   /   ОЖИДАНИЕ БОЯ" : "01   /   ЛОКАЛЬНЫЙ ОТЧЁТ";
-            title.Text = fight.Id == Guid.Empty ? "Оперативный обзор" : fight.Name;
-            sub.Text = snapshot?.MostDamageUnsent == true ? "Сервер прислал только часть урона участников."
-                : snapshot?.Boss is { MaxHpKnown: true } boss ? $"Цель: {boss.HpFraction:P0} HP   ·   {Clock(TimeSpan.FromSeconds(fight.Duration))}"
-                : fight.Id == Guid.Empty ? "ARX автоматически ждёт данные игры и состав группы."
-                : $"{Clock(TimeSpan.FromSeconds(fight.Duration))}    /    {rows.Count} участников";
+            source.Text = fight.Demo ? Loc.T("01   /   ДЕМОНСТРАЦИЯ") : snapshot is not null
+                ? snapshot.IsActive && _store.FollowLive ? Loc.T("01   /   В БОЮ") : Loc.T("01   /   ЗАПИСЬ БОЯ")
+                : fight.Id == Guid.Empty ? Loc.T("01   /   ОЖИДАНИЕ БОЯ") : Loc.T("01   /   ЛОКАЛЬНЫЙ ОТЧЁТ");
+            title.Text = fight.Id == Guid.Empty ? Loc.T("Оперативный обзор") : fight.Name;
+            sub.Text = snapshot?.MostDamageUnsent == true ? Loc.T("Сервер прислал только часть урона участников.")
+                : snapshot?.Boss is { MaxHpKnown: true } boss ? Loc.F($"Цель: {boss.HpFraction:P0} HP   ·   {Clock(TimeSpan.FromSeconds(fight.Duration))}")
+                : fight.Id == Guid.Empty ? Loc.T("ARX автоматически ждёт данные игры и состав группы.")
+                : Loc.F($"{Clock(TimeSpan.FromSeconds(fight.Duration))}    /    {rows.Count} участников");
             var self = _store.FollowLive ? _store.LiveIdentity : own?.Name;
-            identity.Text = self is null ? "Персонаж ещё не определён" : self + (character?.Confirmed == false ? " · по имени" : "");
+            identity.Text = self is null ? Loc.T("Персонаж ещё не определён") : self + (character?.Confirmed == false ? Loc.T(" · по имени") : "");
             identity.ToolTip = identity.Text;
             personal.Text = own?.Stats is { } ownStats ? Compact(current.Rate(ownStats.Damage)) : "—";
-            context.Text = _store.FollowLive && roster is null ? "Только вы · ждём состав"
-                : roster?.Members.Count == 0 ? "Одиночный бой" : "За боевой сегмент";
+            context.Text = _store.FollowLive && roster is null ? Loc.T("Только вы · ждём состав")
+                : roster?.Members.Count == 0 ? Loc.T("Одиночный бой") : Loc.T("За боевой сегмент");
             numbers.Text = rows.Any(r => r.Stats is not null) ? Compact(current.Dps) : "—";
             damage.Text = rows.Any(r => r.Stats is not null) ? Compact(current.Damage) : "—";
             burst.Text = current.Burst is { } peak ? Compact(peak) : "—";
@@ -366,9 +366,9 @@ public sealed partial class Dashboard : Window
 
             partyStatus.Text = roster switch
             {
-                { Members.Count: > 0 } => $"СОСТАВ ГРУППЫ  ·  {rows.Count}   /   DPS",
-                { Members.Count: 0 } => "ВНЕ ГРУППЫ   /   DPS",
-                _ => _store.FollowLive ? "СОСТАВ ОЖИДАЕТСЯ   /   DPS" : "ОТЧЁТ   /   DPS"
+                { Members.Count: > 0 } => Loc.F($"СОСТАВ ГРУППЫ  ·  {rows.Count}   /   DPS"),
+                { Members.Count: 0 } => Loc.T("ВНЕ ГРУППЫ   /   DPS"),
+                _ => _store.FollowLive ? Loc.T("СОСТАВ ОЖИДАЕТСЯ   /   DPS") : Loc.T("ОТЧЁТ   /   DPS")
             };
             party.Children.Clear();
             foreach (var member in rows)
@@ -392,11 +392,11 @@ public sealed partial class Dashboard : Window
                 party.Children.Add(Space(new Border { Child = Stack(Space(row, 6), meter), Padding = new Thickness(8, 5, 8, 7),
                     CornerRadius = new CornerRadius(5), Background = Ui.Brush(member.IsSelf ? "Raised" : "Surface") }, 3));
             }
-            if (rows.Count == 0) party.Children.Add(Hint("Имена и DPS появятся после получения данных игры."));
+            if (rows.Count == 0) party.Children.Add(Hint(Loc.T("Имена и DPS появятся после получения данных игры.")));
             var pins = _store.AllPins.ToArray();
             runInfo.Text = (_store.Profile.CurrentExpedition is { } expedition
-                ? $"Активный забег: {expedition.Name} · {expedition.Segments.Count} завершённых боёв" : "Активный забег не начат") +
-                $"     /     Атлас: {pins.Count(p => p.Found)} из {pins.Length} меток";
+                ? Loc.F($"Активный забег: {expedition.Name} · {expedition.Segments.Count} завершённых боёв") : Loc.T("Активный забег не начат")) +
+                Loc.F($"     /     Атлас: {pins.Count(p => p.Found)} из {pins.Length} меток");
         }
     }
 }

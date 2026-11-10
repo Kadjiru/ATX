@@ -20,7 +20,7 @@ public sealed class CatalogSync
     private Bundle _bundle;
     public CraftCatalog Crafting { get; private set; }
     public GameReference Reference { get; private set; }
-    public string Status { get; private set; } = "Локальная база";
+    public string Status { get; private set; } = Loc.T("Локальная база");
     public int Revision => _bundle.Manifest.Revision;
 
     private CatalogSync(Bundle bundle)
@@ -43,7 +43,7 @@ public sealed class CatalogSync
                 {
                     var bundle = Parse<Bundle>(File.ReadAllText(cache.FullName));
                     if (bundle.Manifest.Revision > bundled.Manifest.Revision)
-                        return new CatalogSync(bundle) { Status = "Сохранённая копия базы" };
+                        return new CatalogSync(bundle) { Status = Loc.T("Сохранённая копия базы") };
                 }
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or JsonException or UnauthorizedAccessException)
@@ -61,10 +61,10 @@ public sealed class CatalogSync
         try
         {
             var manifest = Parse<CatalogManifest>(await Download(client, "CatalogManifest.json", 8192, timeout.Token));
-            if (manifest.Schema != 1 || manifest.Revision < 1) throw new InvalidDataException("Версия базы не поддерживается.");
+            if (manifest.Schema != 1 || manifest.Revision < 1) throw new InvalidDataException(Loc.T("Версия базы не поддерживается."));
             if (manifest == _bundle.Manifest)
             {
-                Status = "База синхронизирована";
+                Status = Loc.T("База синхронизирована");
                 return;
             }
             if (manifest.Revision <= Revision) return;
@@ -79,11 +79,11 @@ public sealed class CatalogSync
             File.Move(temporary, CachePath, overwrite: true);
             _bundle = candidate;
             (Crafting, Reference) = content;
-            Status = "База обновлена";
+            Status = Loc.T("База обновлена");
         }
         catch (Exception ex) when (ex is IOException or InvalidDataException or JsonException or HttpRequestException or OperationCanceledException or UnauthorizedAccessException)
         {
-            Status = "Локальная база · обновление недоступно";
+            Status = Loc.T("Локальная база · обновление недоступно");
         }
     }
 
@@ -91,14 +91,14 @@ public sealed class CatalogSync
     {
         using var response = await client.GetAsync(Remote + name, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
-        if (response.Content.Headers.ContentLength > limit) throw new InvalidDataException("Файл базы слишком большой.");
+        if (response.Content.Headers.ContentLength > limit) throw new InvalidDataException(Loc.T("Файл базы слишком большой."));
         await using var body = await response.Content.ReadAsStreamAsync(ct);
         using var buffer = new MemoryStream();
         var chunk = new byte[8192];
         int count;
         while ((count = await body.ReadAsync(chunk, ct)) != 0)
         {
-            if (buffer.Length + count > limit) throw new InvalidDataException("Файл базы слишком большой.");
+            if (buffer.Length + count > limit) throw new InvalidDataException(Loc.T("Файл базы слишком большой."));
             buffer.Write(chunk, 0, count);
         }
         return Encoding.UTF8.GetString(buffer.ToArray()).TrimStart('\uFEFF');
@@ -109,7 +109,7 @@ public sealed class CatalogSync
         var (manifest, recipes, reference) = bundle;
         if (manifest is not { Schema: 1, Revision: > 0 } ||
             !Verify(recipes, manifest.CraftingSha256) || !Verify(reference, manifest.ReferenceSha256))
-            throw new InvalidDataException("Контрольные суммы базы не совпали.");
+            throw new InvalidDataException(Loc.T("Контрольные суммы базы не совпали."));
         var catalog = Parse<CraftCatalog>(recipes);
         var info = Parse<GameReference>(reference);
         if (catalog.Recipes is null || catalog.Items is null || catalog.Recipes.Length == 0 ||
@@ -118,7 +118,7 @@ public sealed class CatalogSync
             !DateOnly.TryParse(info.CraftingDate, out _) || !DateOnly.TryParse(info.ReferenceDate, out _) ||
             info.Gear is null || info.Raid is null || info.Presets is null ||
             info.Presets.Any(rule => rule is null || rule.RepeatMinutes is < 0 or > 44640))
-            throw new InvalidDataException("Формат справочника не поддерживается.");
+            throw new InvalidDataException(Loc.T("Формат справочника не поддерживается."));
         return (catalog, info);
     }
 
@@ -127,5 +127,5 @@ public sealed class CatalogSync
             digest, StringComparison.OrdinalIgnoreCase);
 
     private static T Parse<T>(string content) => JsonSerializer.Deserialize<T>(content)
-        ?? throw new InvalidDataException("Пустая база.");
+        ?? throw new InvalidDataException(Loc.T("Пустая база."));
 }

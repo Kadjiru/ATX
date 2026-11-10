@@ -12,10 +12,10 @@ public sealed partial class Dashboard
 
     private UIElement CodexPage()
     {
-        var page = Heading("Билды и гайды", "Сборки для восьми классов и подсказки перед боем · Aion 2 Global");
+        var page = Heading(Loc.T("Билды и гайды"), Loc.T("Сборки для восьми классов и подсказки перед боем · Aion 2 Global"));
         var body = new ContentControl();
-        var buildTab = new Button { Content = "Мой билд" };
-        var guideTab = new Button { Content = "Гайды по боям" };
+        var buildTab = new Button { Content = Loc.T("Мой билд") };
+        var guideTab = new Button { Content = Loc.T("Гайды по боям") };
         buildTab.Click += (_, _) => Show(false);
         guideTab.Click += (_, _) => Show(true);
         page.Children.Add(Space(Actions(buildTab, guideTab), 7));
@@ -38,10 +38,10 @@ public sealed partial class Dashboard
         var choices = profile.CharacterBuilds;
         var classes = BuildLibrary.Classes;
         var character = new ComboBox { Width = 225, MinHeight = 31 };
-        var savedCharacters = Actions(Field("Сохранённые персонажи", character));
+        var savedCharacters = Actions(Field(Loc.T("Сохранённые персонажи"), character));
         var name = Input(width: 182, max: 40);
         var server = Input(width: 145, max: 40);
-        var mode = Choice(["Группа · экспедиции и рейды", "Соло · кошмар и возвышение"], 240);
+        var mode = Choice([Loc.T("Группа · экспедиции и рейды"), Loc.T("Соло · кошмар и возвышение")], 240);
         var status = Hint("");
         var detail = new ContentControl();
         var classButtons = new List<Button>();
@@ -50,12 +50,12 @@ public sealed partial class Dashboard
         CharacterBuild? selected = null;
         var resettingPicker = false;
         var adding = choices.Count == 0;
-        var addCharacter = new Button { Content = "+ Персонаж" };
-        var cancel = new Button { Content = "Отмена" };
-        var fields = Actions(Field("Имя персонажа", name), Field("Сервер (если нужно)", server));
+        var addCharacter = new Button { Content = Loc.T("+ Персонаж") };
+        var cancel = new Button { Content = Loc.T("Отмена") };
+        var fields = Actions(Field(Loc.T("Имя персонажа"), name), Field(Loc.T("Сервер (если нужно)"), server));
         var save = new Button
         {
-            Content = "Сохранить билд", Background = Brush("Mint"), BorderBrush = Brush("Mint"), Foreground = Brush("Base")
+            Content = Loc.T("Сохранить билд"), Background = Brush("Mint"), BorderBrush = Brush("Mint"), Foreground = Brush("Base")
         };
         addCharacter.Click += (_, _) => BeginAdd();
         cancel.Click += (_, _) => LoadCharacter(character.SelectedItem as CharacterBuild);
@@ -79,11 +79,11 @@ public sealed partial class Dashboard
             classGrid.Children.Add(button);
         }
         var panel = Stack(Space(Card(Stack(
-            Space(Text("1   Персонаж", 17, bold: true), 8),
+            Space(Text(Loc.T("1   Персонаж"), 17, bold: true), 8),
             savedCharacters,
-            fields, Space(Text("2   Класс и тип боя", 17, bold: true), 8),
-            Space(classGrid, 5), Actions(Field("Тип боя", mode), save), status)), 13), detail);
-        AutomationName(classGrid, "Класс персонажа");
+            fields, Space(Text(Loc.T("2   Класс и тип боя"), 17, bold: true), 8),
+            Space(classGrid, 5), Actions(Field(Loc.T("Тип боя"), mode), save), status)), 13), detail);
+        AutomationName(classGrid, Loc.T("Класс персонажа"));
 
         ResetPicker(choices.FirstOrDefault(x => x.Id == profile.SelectedBuildCharacterId) ?? choices.FirstOrDefault());
         if (choices.Count == 0) BeginAdd();
@@ -110,7 +110,7 @@ public sealed partial class Dashboard
             name.Text = choices.Any(x => SameName(x.Name, detected)) ? "" : detected;
             server.Text = name.Text.Length > 0 && SameName(name.Text, profile.Character) ? profile.Server : "";
             mode.SelectedIndex = 0;
-            status.Text = "Введите имя и выберите класс. ARX запомнит сборку для этого персонажа.";
+            status.Text = Loc.T("Введите имя и выберите класс. ARX запомнит сборку для этого персонажа.");
             RefreshBuild();
         }
 
@@ -129,7 +129,7 @@ public sealed partial class Dashboard
             adding = value is null;
             build = classes.FirstOrDefault(x => x.Id == value?.ClassId);
             mode.SelectedIndex = value?.Solo == true ? 1 : 0;
-            status.Text = value is null ? "" : "Измените класс или тип боя и сохраните новый выбор.";
+            status.Text = value is null ? "" : Loc.T("Измените класс или тип боя и сохраните новый выбор.");
             RefreshBuild();
         }
 
@@ -142,7 +142,7 @@ public sealed partial class Dashboard
             for (var i = 0; i < classes.Length; i++)
                 Highlight(classButtons[i], classes[i] == build);
             detail.Content = build is null
-                ? Card(Stack(Text("Выберите класс", 19, bold: true), Hint("Появятся приоритеты характеристик, умения и план на бой.")))
+                ? Card(Stack(Text(Loc.T("Выберите класс"), 19, bold: true), Hint(Loc.T("Появятся приоритеты характеристик, умения и план на бой."))))
                 : BuildDetails(build, mode.SelectedIndex == 1);
         }
 
@@ -153,13 +153,13 @@ public sealed partial class Dashboard
             var characterServer = adding ? server.Text.Trim() : selected!.Server;
             if (characterName.Length == 0)
             {
-                status.Text = "Укажите имя персонажа.";
+                status.Text = Loc.T("Укажите имя персонажа.");
                 name.Focus();
                 return;
             }
             if (adding && choices.Any(x => SameName(x.Name, characterName) && SameName(x.Server, characterServer)))
             {
-                status.Text = "Этот персонаж уже есть в списке. Откройте его, чтобы обновить билд.";
+                status.Text = Loc.T("Этот персонаж уже есть в списке. Откройте его, чтобы обновить билд.");
                 return;
             }
             var next = new CharacterBuild(selected?.Id ?? Guid.NewGuid(), characterName, characterServer,
@@ -168,20 +168,20 @@ public sealed partial class Dashboard
             else choices[choices.IndexOf(selected)] = next;
             profile.SelectedBuildCharacterId = next.Id;
             ResetPicker(next);
-            if (SaveProfile()) status.Text = $"Сохранено для {next}.";
+            if (SaveProfile()) status.Text = Loc.F($"Сохранено для {next}.");
         }
 
         bool SaveProfile()
         {
             if (_store.LoadError is not null)
             {
-                status.Text = "Локальный профиль не удалось прочитать. Выбор доступен в текущем сеансе.";
+                status.Text = Loc.T("Локальный профиль не удалось прочитать. Выбор доступен в текущем сеансе.");
                 return false;
             }
             try { _store.Save(); return true; }
             catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
             {
-                status.Text = "Не удалось сохранить локальный профиль. Попробуйте ещё раз.";
+                status.Text = Loc.T("Не удалось сохранить локальный профиль. Попробуйте ещё раз.");
                 return false;
             }
         }
@@ -198,19 +198,19 @@ public sealed partial class Dashboard
             priorities.Children.Add(tile);
         }
         var hero = Card(Stack(
-            Space(Label(solo ? "СОЛО PVE" : "ГРУППОВОЕ PVE"), 5),
+            Space(Label(solo ? Loc.T("СОЛО PVE") : Loc.T("ГРУППОВОЕ PVE")), 5),
             Space(Text(build.Name, 24, "Mint", true), 4),
             Hint($"{(solo ? build.SoloRole : build.Role)}   ·   {build.Weapon}")), 15);
         hero.Background = Brush("Raised");
         return Stack(Space(hero, 12),
-            Space(Text("Характеристики по приоритету", 17, bold: true), 6),
+            Space(Text(Loc.T("Характеристики по приоритету"), 17, bold: true), 6),
             Space(priorities, 6),
-            Space(BuildPair(GuideCard("Ключевые умения", solo ? build.SoloSkills : build.Skills),
-                GuideCard("Четыре стигмы", solo ? build.SoloStigmas : build.Stigmas)), 8),
-            Space(BuildPair(GuideCard("Первые секунды", solo ? build.SoloOpening : build.Opening),
-                GuideCard("Что повторять в бою", solo ? build.SoloLoop : build.Loop)), 8),
-            Space(GuideCard("Оружие, броня и камни", solo ? build.SoloGear : build.Gear), 8),
-            Hint("Поднимайте уровни стигм до ближайшего бонуса, указанного в подсказке игры. Сравнивайте изменения на одной цели, в одинаковой сложности и с теми же баффами."));
+            Space(BuildPair(GuideCard(Loc.T("Ключевые умения"), solo ? build.SoloSkills : build.Skills),
+                GuideCard(Loc.T("Четыре стигмы"), solo ? build.SoloStigmas : build.Stigmas)), 8),
+            Space(BuildPair(GuideCard(Loc.T("Первые секунды"), solo ? build.SoloOpening : build.Opening),
+                GuideCard(Loc.T("Что повторять в бою"), solo ? build.SoloLoop : build.Loop)), 8),
+            Space(GuideCard(Loc.T("Оружие, броня и камни"), solo ? build.SoloGear : build.Gear), 8),
+            Hint(Loc.T("Поднимайте уровни стигм до ближайшего бонуса, указанного в подсказке игры. Сравнивайте изменения на одной цели, в одинаковой сложности и с теми же баффами.")));
     }
 
     private static UniformGrid BuildPair(Border left, Border right)
@@ -226,16 +226,16 @@ public sealed partial class Dashboard
     private UIElement FightGuidesPanel()
     {
         var search = Input(width: 230);
-        var category = Choice(["Все активности", .. FightGuideLibrary.Categories], 175);
+        var category = Choice([Loc.T("Все активности"), .. FightGuideLibrary.Categories], 175);
         var list = new ListBox { Height = 340, DisplayMemberPath = nameof(FightGuide.Title),
             ItemContainerStyle = (Style)FindResource("ReferenceRow") };
-        AutomationName(list, "Гайды по боям");
+        AutomationName(list, Loc.T("Гайды по боям"));
         var count = Hint("");
         var detail = new ContentControl();
         var columns = new Grid();
         columns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(232) });
         columns.ColumnDefinitions.Add(new ColumnDefinition());
-        var index = Card(Stack(Space(Label("ВЫБЕРИТЕ БОЙ"), 6), Space(count, 6), list), 9);
+        var index = Card(Stack(Space(Label(Loc.T("ВЫБЕРИТЕ БОЙ")), 6), Space(count, 6), list), 9);
         index.VerticalAlignment = VerticalAlignment.Top;
         index.Margin = new Thickness(0, 0, 9, 0);
         Place(columns, index, 0, 0);
@@ -243,11 +243,11 @@ public sealed partial class Dashboard
         var reference = _catalog.Reference;
         var referenceCard = Card(new Expander
         {
-            Header = "Мета и снаряжение · справочный срез",
+            Header = Loc.T("Мета и снаряжение · справочный срез"),
             Foreground = Brush("Text"),
-            Content = Stack(Space(Hint($"Состав из загруженных боёв AionFlex · {reference.MetaWindow}"), 5),
-                Space(Text(reference.Composition, 15, "Mint", true), 6),
-                Hint(string.Join("\n", reference.Gear)))
+            Content = Stack(Space(Hint(Loc.F($"Состав из загруженных боёв AionFlex · {Loc.T(reference.MetaWindow)}")), 5),
+                Space(Text(Loc.T(reference.Composition), 15, "Mint", true), 6),
+                Hint(string.Join("\n", reference.Gear.Select(Loc.T))))
         }, 12);
 
         category.SelectionChanged += (_, _) => Filter();
@@ -259,7 +259,7 @@ public sealed partial class Dashboard
                 list.Focus();
         };
         Filter();
-        return Stack(Space(Actions(Field("Активность", category), Field("Поиск по боссу или месту", search)), 5),
+        return Stack(Space(Actions(Field(Loc.T("Активность"), category), Field(Loc.T("Поиск по боссу или месту"), search)), 5),
             Space(columns, 12), referenceCard);
 
         void Filter()
@@ -272,7 +272,7 @@ public sealed partial class Dashboard
                  Matches(x.Category, query) || Matches(x.Brief, query))).ToArray();
             list.ItemsSource = matches;
             list.SelectedItem = matches.Contains(current) ? current : matches.FirstOrDefault();
-            count.Text = $"Найдено: {matches.Length}";
+            count.Text = Loc.F($"Найдено: {matches.Length}");
             ShowDetail();
         }
 
@@ -280,19 +280,19 @@ public sealed partial class Dashboard
         {
             if (list.SelectedItem is not FightGuide guide)
             {
-                detail.Content = GuideCard("Ничего не найдено", "Попробуйте другое имя босса или выберите все активности.");
+                detail.Content = GuideCard(Loc.T("Ничего не найдено"), Loc.T("Попробуйте другое имя босса или выберите все активности."));
                 return;
             }
             var hero = Card(Stack(Space(Label(guide.Category.ToUpperInvariant()), 4),
                 Space(Text(guide.Title, 23, "Mint", true), 4),
                 Space(Hint($"{guide.English} · {guide.Target}"), 6), Text(guide.Brief, 14, bold: true)), 15);
             hero.Background = Brush("Raised");
-            var mechanics = Stack(Space(Text("Что увидите → что делать", 17, bold: true), 8));
+            var mechanics = Stack(Space(Text(Loc.T("Что увидите → что делать"), 17, bold: true), 8));
             foreach (var (step, i) in guide.Steps.Select((step, i) => (step, i)))
                 mechanics.Children.Add(Space(GuideCard($"{i + 1:00} · {step.Cue}", step.Action), 6));
-            detail.Content = Stack(Space(hero, 8), Space(GuideCard("До входа", guide.Preparation), 10),
-                Space(mechanics, 4), Space(GuideCard("По ролям", guide.Roles), 6),
-                Space(GuideCard("Если попытка сорвалась", guide.Recovery), 6));
+            detail.Content = Stack(Space(hero, 8), Space(GuideCard(Loc.T("До входа"), guide.Preparation), 10),
+                Space(mechanics, 4), Space(GuideCard(Loc.T("По ролям"), guide.Roles), 6),
+                Space(GuideCard(Loc.T("Если попытка сорвалась"), guide.Recovery), 6));
         }
     }
 

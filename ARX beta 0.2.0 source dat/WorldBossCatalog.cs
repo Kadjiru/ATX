@@ -15,7 +15,7 @@ internal static class WorldBossCatalog
 
     private static readonly Lazy<Zone[]> Zones = new(Load);
     internal static IReadOnlyList<Choice> Choices { get; } = Zones.Value.SelectMany(zone =>
-        zone.Bosses.Select(entry => new Choice(Key(zone, entry), entry.Name, zone.Name))).ToArray();
+        zone.Bosses.Select(entry => new Choice(Key(zone, entry), Loc.Name(entry.Name, entry.En), Loc.T(zone.Name)))).ToArray();
 
     internal static string Key(Zone zone, Entry boss) => $"{zone.Key}/{boss.Npc}";
 

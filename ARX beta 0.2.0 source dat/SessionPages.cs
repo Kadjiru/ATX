@@ -10,24 +10,24 @@ public sealed partial class Dashboard
 {
     private UIElement EventsPage()
     {
-        var page = Heading("События", "Таймеры работают по расписанию, даже когда игра закрыта");
+        var page = Heading(Loc.T("События"), Loc.T("Таймеры работают по расписанию, даже когда игра закрыта"));
         var rows = new StackPanel();
         var clocks = new List<(EventRule Rule, TextBlock Clock)>();
         page.Children.Add(Space(Card(Stack(
-            Space(Text("Ближайшие активности", 20, bold: true), 7),
-            Space(Hint("Стартовые пресеты Global основаны на расписаниях сообщества. Сверьте якорь UTC с вашим сервером."), 10),
-            Actions(Button("Открыть отдельный HUD", () => Hud(HudKind.Events), true)), rows)), 12));
+            Space(Text(Loc.T("Ближайшие активности"), 20, bold: true), 7),
+            Space(Hint(Loc.T("Стартовые пресеты Global основаны на расписаниях сообщества. Сверьте якорь UTC с вашим сервером.")), 10),
+            Actions(Button(Loc.T("Открыть отдельный HUD"), () => Hud(HudKind.Events), true)), rows)), 12));
         page.Children.Add(Space(ObservedBossPanel(), 12));
         var name = Input();
         var anchor = Input(DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm"), 155);
         var minutes = Input("60", 92, 6);
         var note = Text("", 12, "Coral");
         Guid? editing = null;
-        var caption = Text("Добавить таймер", 19, bold: true);
+        var caption = Text(Loc.T("Добавить таймер"), 19, bold: true);
         page.Children.Add(Card(Stack(Space(caption, 10),
-            Space(Hint("Введите дату и время UTC в формате ГГГГ-ММ-ДД ЧЧ:ММ. Интервал 0 создаёт одноразовый таймер."), 8),
-            Actions(Field("Название", name), Field("Якорь UTC", anchor), Field("Повтор, мин", minutes)),
-            Actions(Button("Сохранить", SaveRule, true), Button("Новый таймер", ResetEditor)), note)));
+            Space(Hint(Loc.T("Введите дату и время UTC в формате ГГГГ-ММ-ДД ЧЧ:ММ. Интервал 0 создаёт одноразовый таймер.")), 8),
+            Actions(Field(Loc.T("Название"), name), Field(Loc.T("Якорь UTC"), anchor), Field(Loc.T("Повтор, мин"), minutes)),
+            Actions(Button(Loc.T("Сохранить"), SaveRule, true), Button(Loc.T("Новый таймер"), ResetEditor)), note)));
         _refreshTime = RefreshClocks;
         _refreshShared = Refresh;
         Refresh();
@@ -41,14 +41,14 @@ public sealed partial class Dashboard
             foreach (var item in _store.AllEvents.OrderBy(e => e.Next(now) ?? DateTimeOffset.MaxValue))
             {
                 var shared = _store.SharedEvents.FirstOrDefault(e => e.Id == item.Id);
-                var toggle = new CheckBox { IsChecked = item.Enabled, Content = shared is null ? item.Name : item.Name + " · ARX",
+                var toggle = new CheckBox { IsChecked = item.Enabled, Content = shared is null ? item.DisplayName : item.DisplayName + " · ARX",
                     MinWidth = 205, IsEnabled = shared?.Enabled != false };
                 var label = Text("", 15, "Mint", true);
                 clocks.Add((item, label));
-                var edit = Button("Изменить", () =>
+                var edit = Button(Loc.T("Изменить"), () =>
                 {
                     editing = item.Id;
-                    caption.Text = $"Настроить · {item.Name}";
+                    caption.Text = Loc.F($"Настроить · {item.DisplayName}");
                     name.Text = item.Name;
                     anchor.Text = item.AnchorUtc.ToString("yyyy-MM-dd HH:mm");
                     minutes.Text = item.RepeatMinutes.ToString();
@@ -80,13 +80,13 @@ public sealed partial class Dashboard
             var now = DateTimeOffset.UtcNow;
             foreach (var (rule, label) in clocks)
                 label.Text = rule.Next(now) is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}"
-                    : rule.Enabled ? "Завершён" : "Выключен";
+                    : rule.Enabled ? Loc.T("Завершён") : Loc.T("Выключен");
         }
 
         void ResetEditor()
         {
             editing = null;
-            caption.Text = "Добавить таймер";
+            caption.Text = Loc.T("Добавить таймер");
             name.Clear();
             anchor.Text = DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm");
             minutes.Text = "60";
@@ -100,7 +100,7 @@ public sealed partial class Dashboard
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var utc) ||
                 utc.Year is < 1970 or > 2100 || !int.TryParse(minutes.Text, out var period) || period is < 0 or > 44640)
             {
-                note.Text = "Проверьте название, дату UTC и интервал от 0 до 44 640 минут.";
+                note.Text = Loc.T("Проверьте название, дату UTC и интервал от 0 до 44 640 минут.");
                 return;
             }
             var index = editing is { } id ? _store.Profile.Events.FindIndex(e => e.Id == id) : -1;
@@ -116,10 +116,10 @@ public sealed partial class Dashboard
     private UIElement SessionPage()
     {
         var profile = _store.Profile;
-        var page = Heading("Игровая сессия", "Задачи и учёт кина для текущего выхода в Атрею");
+        var page = Heading(Loc.T("Игровая сессия"), Loc.T("Задачи и учёт кина для текущего выхода в Атрею"));
         var summary = Stack(
-            Space(Hint("Новая сессия начнёт отдельный список. Предыдущие записи останутся в профиле и сводке кина."), 7),
-            Actions(Button("HUD задач", () => Hud(HudKind.Tasks), true), Button("Новая сессия", () =>
+            Space(Hint(Loc.T("Новая сессия начнёт отдельный список. Предыдущие записи останутся в профиле и сводке кина.")), 7),
+            Actions(Button(Loc.T("HUD задач"), () => Hud(HudKind.Tasks), true), Button(Loc.T("Новая сессия"), () =>
             {
                 profile.SessionId = Guid.NewGuid();
                 _store.Commit();
@@ -134,15 +134,15 @@ public sealed partial class Dashboard
         var note = Input("", 240, 100);
         var amount = Input("", 136, 15);
         var error = Text("", 12, "Coral");
-        var kina = Stack(Space(Text("Учёт кина", 20, bold: true), 5),
-            Space(Hint($"Расходы {Number(spending)}   ·   Доходы {Number(revenue)}   ·   Баланс всех записей {Number(allTime)}"), 9),
-            Space(Hint("Записывайте сделки вручную. Для расхода используйте минус, например −1500."), 7),
-            Actions(Field("Описание", note), Field("Сумма", amount)),
-            Actions(Button("Добавить операцию", AddKina, true)), error);
+        var kina = Stack(Space(Text(Loc.T("Учёт кина"), 20, bold: true), 5),
+            Space(Hint(Loc.F($"Расходы {Number(spending)}   ·   Доходы {Number(revenue)}   ·   Баланс всех записей {Number(allTime)}")), 9),
+            Space(Hint(Loc.T("Записывайте сделки вручную. Для расхода используйте минус, например −1500.")), 7),
+            Actions(Field(Loc.T("Описание"), note), Field(Loc.T("Сумма"), amount)),
+            Actions(Button(Loc.T("Добавить операцию"), AddKina, true)), error);
         if (profile.Ledger.Count > 0)
-            kina.Children.Add(MakeTable(["Операция", "Кина", "Дата", "Сессия"],
+            kina.Children.Add(MakeTable([Loc.T("Операция"), Loc.T("Кина"), Loc.T("Дата"), Loc.T("Сессия")],
                 profile.Ledger.OrderByDescending(e => e.Date).Take(50),
-                e => [e.Note, Number(e.Amount), e.Date.ToLocalTime().ToString("dd.MM HH:mm"), e.SessionId == profile.SessionId ? "Текущая" : "Прошлая"]));
+                e => [e.Note, Number(e.Amount), e.Date.ToLocalTime().ToString("dd.MM HH:mm"), e.SessionId == profile.SessionId ? Loc.T("Текущая") : Loc.T("Прошлая")]));
         page.Children.Add(Card(kina));
         return page;
 
@@ -152,7 +152,7 @@ public sealed partial class Dashboard
                 !long.TryParse(amount.Text.Trim().Replace('−', '-'), out var value) ||
                 value is 0 or < -1_000_000_000_000 or > 1_000_000_000_000)
             {
-                error.Text = "Введите описание и ненулевую целую сумму.";
+                error.Text = Loc.T("Введите описание и ненулевую целую сумму.");
                 return;
             }
             profile.Ledger.Add(new KinaEntry(Guid.NewGuid(), profile.SessionId, DateTimeOffset.Now, note.Text.Trim(), value));
@@ -162,53 +162,82 @@ public sealed partial class Dashboard
 
     private UIElement SettingsPage()
     {
-        var page = Heading("Настройки", "Профиль ARX");
+        var page = Heading(Loc.T("Настройки"), Loc.T("Профиль ARX"));
         var name = Input(_store.Profile.Character, 200, 80);
         var server = Input(_store.Profile.Server, 200, 80);
         var saved = Text("", 12, "Mint");
+        var language = Choice(["Русский", "English"], 165, localize: false);
+        language.SelectedIndex = _store.Profile.Language == "en" ? 1 : 0;
+        var languageStatus = Hint("");
         page.Children.Add(Space(Card(Stack(
-            Actions(Field("Персонаж", name), Field("Регион или сервер", server)),
-            Actions(Button("Сохранить профиль", () =>
+            Space(Text("Язык / Language", 20, bold: true), 7),
+            Actions(language, Button(Loc.T("Сохранить язык"), () =>
+            {
+                var selected = language.SelectedIndex == 1 ? "en" : "ru";
+                if (_store.LoadError is not null)
+                {
+                    languageStatus.Text = Loc.T("Язык не сохранён. Файл профиля недоступен.");
+                    return;
+                }
+
+                var previous = _store.Profile.Language;
+                try
+                {
+                    _store.Profile.Language = selected;
+                    _store.Save();
+                    languageStatus.Text = selected == Loc.Language ? Loc.T("Язык сохранён.")
+                        : selected == "en" ? "Language saved. Restart ARX to switch to English."
+                        : "Язык сохранён. Перезапустите ARX, чтобы переключиться на русский.";
+                }
+                catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+                {
+                    _store.Profile.Language = previous;
+                    languageStatus.Text = Loc.T("Язык не сохранён. Файл профиля недоступен.");
+                }
+            }, true)), languageStatus)), 12));
+        page.Children.Add(Space(Card(Stack(
+            Actions(Field(Loc.T("Персонаж"), name), Field(Loc.T("Регион или сервер"), server)),
+            Actions(Button(Loc.T("Сохранить профиль"), () =>
             {
                 _store.Profile.Character = name.Text.Trim();
                 _store.Profile.Server = server.Text.Trim();
                 _store.Commit();
-                saved.Text = _store.LoadError is null ? "Профиль сохранён." : "Профиль доступен только в этой сессии.";
+                saved.Text = _store.LoadError is null ? Loc.T("Профиль сохранён.") : Loc.T("Профиль доступен только в этой сессии.");
             }, true)), saved)), 12));
-        page.Children.Add(Space(Card(Stack(Space(Text("Хранение данных", 20, bold: true), 7),
-            Space(Hint($"Профиль, карты и отчёты сохраняются на этом компьютере. Папка: {LegionStore.Folder}"), 10),
-            Hint(_store.LoadError is null ? "Положение и прозрачность каждого HUD сохраняются отдельно."
-                : "Файл профиля повреждён или недоступен. Сделайте копию исходного файла и исправьте его перед следующим запуском."))), 12));
+        page.Children.Add(Space(Card(Stack(Space(Text(Loc.T("Хранение данных"), 20, bold: true), 7),
+            Space(Hint(Loc.F($"Профиль, карты и отчёты сохраняются на этом компьютере. Папка: {LegionStore.Folder}")), 10),
+            Hint(_store.LoadError is null ? Loc.T("Положение и прозрачность каждого HUD сохраняются отдельно.")
+                : Loc.T("Файл профиля повреждён или недоступен. Сделайте копию исходного файла и исправьте его перед следующим запуском.")))), 12));
         var captureStatus = Hint("");
         var devices = App.CurrentApp.Live?.Adapters().ToArray() ?? [];
-        var adapter = Choice(new[] { "Автоматически" }.Concat(devices.Select(d => d.Description)), 270);
+        var adapter = Choice(new[] { Loc.T("Автоматически") }.Concat(devices.Select(d => d.Description)), 270, localize: false);
         adapter.SelectedIndex = Math.Max(0, Array.FindIndex(devices, d => d.Name == _store.Profile.CaptureAdapter) + 1);
         var character = Input(_store.Profile.CombatCharacterHint, 235, 40);
         var detection = Text("", 13, "Coral", true);
         var identityFeedback = Hint("");
-        page.Children.Add(Space(Card(Stack(Space(Text("Подключение Aion 2", 20, bold: true), 7),
-            Space(Hint("Считывание через Npcap включается при запуске ARX. Для определения персонажа лучше открыть ARX перед входом в игру или сменить локацию."), 8),
-            Space(captureStatus, 7), Actions(Field("Сетевой адаптер", adapter)),
-            Actions(Button("Применить адаптер", () => _ = ApplyAdapter()),
-                Button("Экспорт диагностики", () => ExportJson(new
+        page.Children.Add(Space(Card(Stack(Space(Text(Loc.T("Подключение Aion 2"), 20, bold: true), 7),
+            Space(Hint(Loc.T("Считывание через Npcap включается при запуске ARX. Для определения персонажа лучше открыть ARX перед входом в игру или сменить локацию.")), 8),
+            Space(captureStatus, 7), Actions(Field(Loc.T("Сетевой адаптер"), adapter)),
+            Actions(Button(Loc.T("Применить адаптер"), () => _ = ApplyAdapter()),
+                Button(Loc.T("Экспорт диагностики"), () => ExportJson(new
                 {
                     Version = AppUpdates.CurrentLabel, Windows = Environment.OSVersion.VersionString,
                     Npcap = LiveCombat.NpcapAvailable, State = App.CurrentApp.Live?.Diagnostic, AdapterCount = devices.Length
                 }, "arx-diagnostics.json"))),
-            Space(Hint("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят."), 10),
+            Space(Hint(Loc.T("Диагностика содержит счётчики. Персонажи, адреса, отчёты и пакеты в экспорт не входят.")), 10),
             Space(detection, 6),
-            Actions(Field("Точное имя для резервного поиска", character), Button("Сохранить имя", () =>
+            Actions(Field(Loc.T("Точное имя для резервного поиска"), character), Button(Loc.T("Сохранить имя"), () =>
             {
                 _store.Profile.CombatCharacterHint = character.Text.Trim();
                 _store.Save();
-                identityFeedback.Text = "Сохранено в локальном профиле.";
+                identityFeedback.Text = Loc.T("Сохранено в локальном профиле.");
             })),
-            Hint("Имя используется, если собственный персонаж ещё не определён по данным игры и среди участников найдено ровно одно совпадение."),
+            Hint(Loc.T("Имя используется, если собственный персонаж ещё не определён по данным игры и среди участников найдено ровно одно совпадение.")),
             identityFeedback)), 12));
         _refreshLive = RefreshCapture;
         RefreshCapture();
         var app = App.CurrentApp;
-        var density = Choice(["Минимальный", "Средний", "Подробный"], 166);
+        var density = Choice([Loc.T("Минимальный"), Loc.T("Средний"), Loc.T("Подробный")], 166);
         density.SelectedIndex = Math.Clamp((int)_store.Profile.CombatHudDensity, 0, 2);
         var opacity = new Slider
         {
@@ -219,26 +248,26 @@ public sealed partial class Dashboard
         opacity.ValueChanged += (_, _) => percent.Text = $"{opacity.Value:0}%";
         var font = new Slider { Width = 152, Minimum = 12, Maximum = 22, TickFrequency = 1,
             IsSnapToTickEnabled = true, Value = Math.Clamp(_store.Profile.CombatHudTextSize, 12, 22) };
-        var size = Hint($"{font.Value:0} пт");
-        font.ValueChanged += (_, _) => size.Text = $"{font.Value:0} пт";
-        var selfFirst = new CheckBox { Content = "Мой персонаж сверху", IsChecked = _store.Profile.CombatHudSelfFirst };
-        var scope = Choice(["Только мой персонаж", "Я и моя группа"], 175);
+        var size = Hint(Loc.F($"{font.Value:0} пт"));
+        font.ValueChanged += (_, _) => size.Text = Loc.F($"{font.Value:0} пт");
+        var selfFirst = new CheckBox { Content = Loc.T("Мой персонаж сверху"), IsChecked = _store.Profile.CombatHudSelfFirst };
+        var scope = Choice([Loc.T("Только мой персонаж"), Loc.T("Я и моя группа")], 175);
         scope.SelectedIndex = _store.Profile.CombatHudScope == CombatHudScope.Self ? 0 : 1;
         var lockHud = new CheckBox
         {
-            Content = "Закрепить и пропускать щелчки",
+            Content = Loc.T("Закрепить и пропускать щелчки"),
             IsChecked = _store.Profile.CombatHudLocked,
             IsEnabled = app.ClickThroughAvailable
         };
         var hotkeys = Hint(app.HotkeyStatus);
         var activeHud = Hint("");
-        page.Children.Insert(2, Space(Card(Stack(Space(Label("ОКНО ПОВЕРХ ИГРЫ"), 4),
-            Space(Text("Боевой HUD", 22, bold: true), 7),
-            Space(Hint("Пока игра не прислала состав, HUD показывает только вашего персонажа. Прозрачность меняет фон и обводку. В минимальном режиме фон всегда прозрачный."), 9),
-            Actions(Field("Кого показывать", scope), Field("Режим", density)),
-            Actions(Field("Непрозрачность фона", opacity), percent, Field("Размер текста", font), size),
+        page.Children.Insert(3, Space(Card(Stack(Space(Label(Loc.T("ОКНО ПОВЕРХ ИГРЫ")), 4),
+            Space(Text(Loc.T("Боевой HUD"), 22, bold: true), 7),
+            Space(Hint(Loc.T("Пока игра не прислала состав, HUD показывает только вашего персонажа. Прозрачность меняет фон и обводку. В минимальном режиме фон всегда прозрачный.")), 9),
+            Actions(Field(Loc.T("Кого показывать"), scope), Field(Loc.T("Режим"), density)),
+            Actions(Field(Loc.T("Непрозрачность фона"), opacity), percent, Field(Loc.T("Размер текста"), font), size),
             Actions(selfFirst, lockHud),
-            Actions(Button("Применить HUD", () =>
+            Actions(Button(Loc.T("Применить HUD"), () =>
             {
                 _store.Profile.CombatHudTextSize = (int)font.Value;
                 _store.Profile.CombatHudSelfFirst = selfFirst.IsChecked == true;
@@ -247,45 +276,45 @@ public sealed partial class Dashboard
                 app.SetCombatOpacity(opacity.Value / 100);
                 app.SetCombatLock(lockHud.IsChecked == true);
                 RefreshHudStatus();
-            }, true), Button("Показать / скрыть HUD", () => Hud(HudKind.Combat)),
-                Button("Горячие клавиши", () => Navigate("hotkeys"))),
+            }, true), Button(Loc.T("Показать / скрыть HUD"), () => Hud(HudKind.Combat)),
+                Button(Loc.T("Горячие клавиши"), () => Navigate("hotkeys"))),
             Space(activeHud, 6),
             hotkeys)), 12));
         RefreshHudStatus();
         var updateStatus = Text("", 13, "Mint", true);
-        var autoUpdate = new CheckBox { Content = "Проверять обновления автоматически", IsChecked = _store.Profile.AutoUpdate };
+        var autoUpdate = new CheckBox { Content = Loc.T("Проверять обновления автоматически"), IsChecked = _store.Profile.AutoUpdate };
         autoUpdate.Click += (_, _) =>
         {
             _store.Profile.AutoUpdate = autoUpdate.IsChecked == true;
             _store.Save();
             if (_store.Profile.AutoUpdate) _ = app.CheckAppUpdatesAsync();
         };
-        var checkUpdate = Button("Проверить сейчас", () => _ = app.CheckAppUpdatesAsync());
-        var updateAction = Button("Обновление", () =>
+        var checkUpdate = Button(Loc.T("Проверить сейчас"), () => _ = app.CheckAppUpdatesAsync());
+        var updateAction = Button(Loc.T("Обновление"), () =>
         {
             if (app.Updates?.Ready == true) app.ShowUpdateOffer();
             else if (app.Updates?.ReleasePage is { } pageUrl)
             {
                 try { using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pageUrl) { UseShellExecute = true }); }
-                catch (System.ComponentModel.Win32Exception) { updateStatus.Text = "Не удалось открыть страницу релиза."; }
+                catch (System.ComponentModel.Win32Exception) { updateStatus.Text = Loc.T("Не удалось открыть страницу релиза."); }
             }
         }, true);
-        page.Children.Insert(3, Space(Card(Stack(Space(Text("Обновление ARX", 20, bold: true), 6),
-            Space(Hint($"Версия {AppUpdates.CurrentLabel}. После скачивания установщика ARX спросит, когда его запустить."), 8),
-            Space(autoUpdate, 8), Actions(checkUpdate, updateAction, Button("Что нового", app.ShowChangelog)), updateStatus)), 12));
+        page.Children.Insert(4, Space(Card(Stack(Space(Text(Loc.T("Обновление ARX"), 20, bold: true), 6),
+            Space(Hint(Loc.F($"Версия {AppUpdates.CurrentLabel}. После скачивания установщика ARX спросит, когда его запустить.")), 8),
+            Space(autoUpdate, 8), Actions(checkUpdate, updateAction, Button(Loc.T("Что нового"), app.ShowChangelog)), updateStatus)), 12));
         RefreshUpdate();
         var syncStatus = Text("", 13, "Mint", true);
         var folderLabel = Hint("");
         var feedback = Hint("");
         var publishing = false;
-        var publish = new Button { Content = "Опубликовать мои метки и таймеры", Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
+        var publish = new Button { Content = Loc.T("Опубликовать мои метки и таймеры"), Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
         publish.Click += (_, _) => _ = Publish();
-        page.Children.Add(Card(Stack(Space(Text("Синхронизация группы", 20, bold: true), 7),
-            Space(Hint("Выберите папку, к которой участники уже имеют доступ. Один редактор публикует общий набор. У остальных ARX проверяет его каждые 15 секунд."), 8),
-            Space(Hint("При публикации в папку попадут названия и позиции ваших меток и настройки таймеров. Отметки о находках и остальные данные профиля остаются локальными."), 8),
+        page.Children.Add(Card(Stack(Space(Text(Loc.T("Синхронизация группы"), 20, bold: true), 7),
+            Space(Hint(Loc.T("Выберите папку, к которой участники уже имеют доступ. Один редактор публикует общий набор. У остальных ARX проверяет его каждые 15 секунд.")), 8),
+            Space(Hint(Loc.T("При публикации в папку попадут названия и позиции ваших меток и настройки таймеров. Отметки о находках и остальные данные профиля остаются локальными.")), 8),
             Space(folderLabel, 4), Space(syncStatus, 8),
-            Actions(Button("Выбрать общую папку", PickFolder), publish, Button("Отключить", Disconnect)),
-            feedback, Hint($"{_catalog.Status} · ревизия {_catalog.Revision}"))));
+            Actions(Button(Loc.T("Выбрать общую папку"), PickFolder), publish, Button(Loc.T("Отключить"), Disconnect)),
+            feedback, Hint(Loc.F($"{_catalog.Status} · ревизия {_catalog.Revision}")))));
         _refreshTime = () => { UpdateTeam(); RefreshHudStatus(); RefreshUpdate(); };
         UpdateTeam();
         return page;
@@ -296,27 +325,27 @@ public sealed partial class Dashboard
             checkUpdate.IsEnabled = updates is not null;
             updateAction.Visibility = updates?.Ready == true || updates?.ReleasePage is not null
                 ? Visibility.Visible : Visibility.Collapsed;
-            updateAction.Content = updates?.Ready == true ? "Открыть окно установки" : "Открыть релиз";
-            updateStatus.Text = app.UpdateApproved ? "Обновление установится при закрытии ARX."
-                : updates?.Status ?? "Предпросмотр";
+            updateAction.Content = updates?.Ready == true ? Loc.T("Открыть окно установки") : Loc.T("Открыть релиз");
+            updateStatus.Text = app.UpdateApproved ? Loc.T("Обновление установится при закрытии ARX.")
+                : updates?.Status ?? Loc.T("Предпросмотр");
         }
 
         void RefreshHudStatus()
         {
-            var mode = _store.Profile.CombatHudDensity switch { HudDensity.Minimal => "минимальный",
-                HudDensity.Detailed => "подробный", _ => "средний" };
-            var audience = _store.Profile.CombatHudScope == CombatHudScope.Self ? "только вы" : "вы и ваша группа";
-            activeHud.Text = $"Применено: {mode} · {audience} · фон {app.CombatOpacity:P0} · текст {_store.Profile.CombatHudTextSize}" +
-                (_store.Profile.CombatHudLocked ? " · закреплён" : "");
+            var mode = _store.Profile.CombatHudDensity switch { HudDensity.Minimal => Loc.T("минимальный"),
+                HudDensity.Detailed => Loc.T("подробный"), _ => Loc.T("средний") };
+            var audience = _store.Profile.CombatHudScope == CombatHudScope.Self ? Loc.T("только вы") : Loc.T("вы и ваша группа");
+            activeHud.Text = Loc.F($"Применено: {mode} · {audience} · фон {app.CombatOpacity:P0} · текст {_store.Profile.CombatHudTextSize}") +
+                (_store.Profile.CombatHudLocked ? Loc.T(" · закреплён") : "");
         }
 
         void RefreshCapture()
         {
             var live = App.CurrentApp.Live;
-            captureStatus.Text = live?.Diagnostic ?? "Предпросмотр";
+            captureStatus.Text = live?.Diagnostic ?? Loc.T("Предпросмотр");
             detection.Text = _store.LiveIdentity is { } identity
-                ? $"ВЫ · {identity}" + (_store.LiveCharacter?.Confirmed == false ? " · совпадение по имени" : " · данные игры")
-                : "Ваш персонаж ещё не определён";
+                ? Loc.F($"ВЫ · {identity}") + (_store.LiveCharacter?.Confirmed == false ? Loc.T(" · совпадение по имени") : Loc.T(" · данные игры"))
+                : Loc.T("Ваш персонаж ещё не определён");
         }
 
         async Task ApplyAdapter()
@@ -331,18 +360,18 @@ public sealed partial class Dashboard
 
         void UpdateTeam()
         {
-            folderLabel.Text = string.IsNullOrEmpty(_store.Profile.TeamFolder) ? "Общая папка не выбрана" : _store.Profile.TeamFolder;
-            syncStatus.Text = _store.TeamStatus;
+            folderLabel.Text = string.IsNullOrEmpty(_store.Profile.TeamFolder) ? Loc.T("Общая папка не выбрана") : _store.Profile.TeamFolder;
+            syncStatus.Text = Loc.T(_store.TeamStatus);
             publish.IsEnabled = !string.IsNullOrEmpty(_store.Profile.TeamFolder) && !publishing;
         }
 
         void PickFolder()
         {
-            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Общая папка ARX" };
+            var dialog = new Microsoft.Win32.OpenFolderDialog { Title = Loc.T("Общая папка ARX") };
             if (dialog.ShowDialog(this) != true || dialog.FolderName == _store.Profile.TeamFolder) return;
             _store.Profile.TeamFolder = dialog.FolderName;
             _store.Profile.Team = null;
-            _store.TeamStatus = "Поиск набора группы…";
+            _store.TeamStatus = Loc.T("Поиск набора группы…");
             _store.Commit();
             UpdateTeam();
             App.CurrentApp.PollTeam();
@@ -352,7 +381,7 @@ public sealed partial class Dashboard
         {
             _store.Profile.TeamFolder = "";
             _store.Profile.Team = null;
-            _store.TeamStatus = "Общая папка не подключена";
+            _store.TeamStatus = Loc.T("Общая папка не подключена");
             _store.Commit();
             UpdateTeam();
         }
@@ -367,12 +396,12 @@ public sealed partial class Dashboard
             {
                 var snapshot = TeamShare.Prepare(_store.Profile);
                 await Task.Run(() => TeamShare.Publish(folder, snapshot));
-                feedback.Text = $"Опубликовано: {snapshot.Pins.Length} меток и {snapshot.Events.Length} таймеров.";
+                feedback.Text = Loc.F($"Опубликовано: {snapshot.Pins.Length} меток и {snapshot.Events.Length} таймеров.");
                 App.CurrentApp.PollTeam();
             }
             catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException)
             {
-                feedback.Text = "Публикация не удалась. " + ex.Message;
+                feedback.Text = Loc.T("Публикация не удалась. ") + ex.Message;
             }
             finally { publishing = false; UpdateTeam(); }
         }
@@ -393,10 +422,10 @@ internal sealed class TaskPanel : StackPanel
         _store = store;
         _compact = compact;
         _note = Input("", 175, 140);
-        System.Windows.Automation.AutomationProperties.SetName(_note, "Новая задача");
+        System.Windows.Automation.AutomationProperties.SetName(_note, Loc.T("Новая задача"));
         _note.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) Add(); };
-        if (!compact) Children.Add(Space(Text("Задачи сессии", 17, bold: true), 7));
-        _add = Button("Добавить", Add, !compact);
+        if (!compact) Children.Add(Space(Text(Loc.T("Задачи сессии"), 17, bold: true), 7));
+        _add = Button(Loc.T("Добавить"), Add, !compact);
         Children.Add(Actions(_note, _add));
         Children.Add(_rows);
         Refresh();
@@ -425,7 +454,7 @@ internal sealed class TaskPanel : StackPanel
     {
         _rows.Children.Clear();
         var tasks = _store.SessionTasks.ToArray();
-        if (tasks.Length == 0) _rows.Children.Add(_compact ? HudWindow.Ink(Hint("Добавьте первую задачу.")) : Hint("Добавьте первую задачу."));
+        if (tasks.Length == 0) _rows.Children.Add(_compact ? HudWindow.Ink(Hint(Loc.T("Добавьте первую задачу."))) : Hint(Loc.T("Добавьте первую задачу.")));
         foreach (var task in tasks.OrderBy(t => t.Done))
         {
             var label = Text(task.Text, 13, task.Done ? "Muted" : "Text");

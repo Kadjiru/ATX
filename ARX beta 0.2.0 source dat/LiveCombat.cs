@@ -45,7 +45,7 @@ internal sealed class LiveCombat : IDisposable
         _store = store;
         _runs = new SmartExpeditions(store);
         var folder = Path.Combine(AppContext.BaseDirectory, "GameData");
-        _data = GameData.Load(folder, "ru");
+        _data = GameData.Load(folder, Loc.Language);
         _clock.Tick += (_, _) => Refresh();
     }
 
@@ -53,8 +53,8 @@ internal sealed class LiveCombat : IDisposable
     public bool IsStopping => _stopping;
     public static bool NpcapAvailable => LiveCapture.IsNpcapInstalled();
     public string Diagnostic => _source?.Status is { } s
-        ? $"Состояние: {StateText(s.State)} · TCP-пакеты: {s.Packets:N0} · События игры: {s.Events:N0}"
-        : _error ?? (NpcapAvailable ? "Npcap найден. Захват остановлен." : "Npcap не установлен.");
+        ? Loc.F($"Состояние: {StateText(s.State)} · TCP-пакеты: {s.Packets:N0} · События игры: {s.Events:N0}")
+        : _error ?? (NpcapAvailable ? Loc.T("Npcap найден. Захват остановлен.") : Loc.T("Npcap не установлен."));
 
     public IReadOnlyList<(string Name, string Description)> Adapters()
     {
@@ -72,7 +72,7 @@ internal sealed class LiveCombat : IDisposable
         _runs = new SmartExpeditions(_store);
         if (!NpcapAvailable)
         {
-            _error = "Для живого режима установите Npcap.";
+            _error = Loc.T("Для живого режима установите Npcap.");
             _store.SetFollowLive(true);
             Refresh();
             return false;
@@ -190,10 +190,10 @@ internal sealed class LiveCombat : IDisposable
         var identity = character?.DisplayName;
         if (identity is not null && character is { ServerId: > 0 })
             identity += $" · {_data.Servers.GetValueOrDefault(character.ServerId, $"S{character.ServerId}")}";
-        var label = source is null ? _error ?? "Захват выключен" : StateText(source.Status.State);
+        var label = source is null ? _error ?? Loc.T("Захват выключен") : StateText(source.Status.State);
         if (source?.Status.State == CaptureState.Capturing)
-            label += roster switch { null => " · состав ожидается", { Members.Count: 0 } => " · вне группы",
-                _ => $" · группа: {roster.Members.Count}" };
+            label += roster switch { null => Loc.T(" · состав ожидается"), { Members.Count: 0 } => Loc.T(" · вне группы"),
+                _ => Loc.F($" · группа: {roster.Members.Count}") };
         _store.UpdateLive(analysis, label, identity, Bosses(server), character, roster);
     }
 
@@ -249,13 +249,13 @@ internal sealed class LiveCombat : IDisposable
             var mapping = _bossMaps.GetValueOrDefault(list.MapId);
             if (mapping?.Bosses.Length != list.Count && WorldBossCatalog.Identify(list) is { } identified)
                 _bossMaps[list.MapId] = mapping = identified;
-            var zone = mapping?.Name ?? $"Карта {list.MapId}";
+            var zone = mapping is null ? Loc.F($"Карта {list.MapId}") : Loc.T(mapping.Name);
             foreach (var slot in list.Slots)
             {
                 var position = slot.SlotId - list.MapId * 100 - 1;
                 var entry = mapping?.Bosses.Length == list.Count && position >= 0 && position < list.Count
                     ? mapping.Bosses[position] : null;
-                var name = entry?.Name ?? $"Босс #{slot.SlotId}";
+                var name = entry is null ? Loc.F($"Босс #{slot.SlotId}") : Loc.Name(entry.Name, entry.En);
                 if (slot.AtMs <= 0 || slot.AtMs > 253402300799999L) continue;
                 results.Add(new ObservedBoss($"{server}/{slot.SlotId}", name, zone, slot.Alive,
                     DateTimeOffset.FromUnixTimeMilliseconds(slot.AtMs),
@@ -267,11 +267,11 @@ internal sealed class LiveCombat : IDisposable
 
     private static string StateText(CaptureState state) => state switch
     {
-        CaptureState.Capturing => "Aion 2 Global обнаружена",
-        CaptureState.WaitingForGame => "Ожидание пакетов Aion 2 Global",
-        CaptureState.Starting => "Открытие сетевого адаптера",
-        CaptureState.Error => "Ошибка захвата · проверьте Npcap и адаптер",
-        _ => "Захват выключен"
+        CaptureState.Capturing => Loc.T("Aion 2 Global обнаружена"),
+        CaptureState.WaitingForGame => Loc.T("Ожидание пакетов Aion 2 Global"),
+        CaptureState.Starting => Loc.T("Открытие сетевого адаптера"),
+        CaptureState.Error => Loc.T("Ошибка захвата · проверьте Npcap и адаптер"),
+        _ => Loc.T("Захват выключен")
     };
 
 }

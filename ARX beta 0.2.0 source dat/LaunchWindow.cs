@@ -14,7 +14,7 @@ internal sealed class LaunchWindow : Window
 
     public LaunchWindow()
     {
-        Title = "ARX · Загрузка";
+        Title = Loc.T("ARX · Загрузка");
         Width = 720;
         Height = 360;
         AllowsTransparency = true;
@@ -41,7 +41,7 @@ internal sealed class LaunchWindow : Window
         var pane = Stack(
             Space(Label("ARX  /  AION 2 GLOBAL"), 11),
             Space(Text("◈  ARX", 55, "Mint", true), 4),
-            Space(Text("Врата Атреи", 22, "Text", true), 29),
+            Space(Text(Loc.T("Врата Атреи"), 22, "Text", true), 29),
             Space(_progress, 10), _message);
         pane.Width = 328;
         pane.Margin = new Thickness(35, 0, 0, 0);

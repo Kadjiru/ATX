@@ -51,11 +51,11 @@ public sealed partial class Dashboard
     private FrameworkElement BossTimelinePanel(FightAnalysis analysis)
     {
         var timeline = new BossTimeline(analysis);
-        if (!timeline.HasSamples) return Hint("Посекундные данные для этой записи отсутствуют.");
+        if (!timeline.HasSamples) return Hint(Loc.T("Посекундные данные для этой записи отсутствуют."));
         var chart = new BattleChart(analysis) { Height = 170, SelectionSeconds = timeline.Seconds };
         var summary = Text("", 14, "Mint", true);
         var details = new ContentControl();
-        var peak = Button("Пик за 5 секунд", () =>
+        var peak = Button(Loc.T("Пик за 5 секунд"), () =>
         {
             if (timeline.BestStart is { } start) Show(start, start + 5);
         });
@@ -63,9 +63,9 @@ public sealed partial class Dashboard
         chart.RangeSelected += Show;
         Show(0, timeline.Seconds);
         return Stack(Space(chart, 6),
-            Actions(Button("Весь бой", () => Show(0, timeline.Seconds)), peak),
-            Space(Hint(timeline.Partial ? "Данные таймлайна неполные. Сводка боя ниже сохраняет все доступные итоги." :
-                "Перетащите по графику, чтобы выбрать интервал. Данные сгруппированы по секундам."), 6),
+            Actions(Button(Loc.T("Весь бой"), () => Show(0, timeline.Seconds)), peak),
+            Space(Hint(timeline.Partial ? Loc.T("Данные таймлайна неполные. Сводка боя ниже сохраняет все доступные итоги.") :
+                Loc.T("Перетащите по графику, чтобы выбрать интервал. Данные сгруппированы по секундам.")), 6),
             Space(summary, 4), details);
 
         void Show(int from, int to)
@@ -75,10 +75,10 @@ public sealed partial class Dashboard
             var duration = Math.Max(0.001, Math.Min(analysis.Fight.Duration, to) - from);
             var selectedDamage = rows.Sum(row => row.Damage);
             summary.Text = $"{Clock(TimeSpan.FromSeconds(from))} – {Clock(TimeSpan.FromSeconds(Math.Min(to, analysis.Fight.Duration)))}" +
-                $"  ·  {Compact(selectedDamage)} урона";
-            details.Content = rows.Length == 0 ? Hint("За этот интервал урон не зарегистрирован.") :
-                MakeTable(["Участник", "Урон за интервал", "DPS за интервал"], rows, row =>
-                    [row.Member.IsSelf ? $"ВЫ · {row.Member.Name}" : row.Member.Name, Compact(row.Damage), Compact(row.Damage / duration)]);
+                Loc.F($"  ·  {Compact(selectedDamage)} урона");
+            details.Content = rows.Length == 0 ? Hint(Loc.T("За этот интервал урон не зарегистрирован.")) :
+                MakeTable([Loc.T("Участник"), Loc.T("Урон за интервал"), Loc.T("DPS за интервал")], rows, row =>
+                    [row.Member.IsSelf ? Loc.F($"ВЫ · {row.Member.Name}") : row.Member.Name, Compact(row.Damage), Compact(row.Damage / duration)]);
         }
     }
 }

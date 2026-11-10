@@ -66,7 +66,7 @@ internal sealed class AppUpdates : IDisposable
 
     internal static string CurrentLabel => typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
         ?.InformationalVersion.Split('+')[0] ?? "1.0.0-beta";
-    public string Status { get; private set; } = "Проверка обновлений ещё не выполнялась.";
+    public string Status { get; private set; } = Loc.T("Проверка обновлений ещё не выполнялась.");
     public UpdatePhase Phase { get; private set; }
     public int DownloadPercent { get; private set; }
     public event Action? StatusChanged;
@@ -84,7 +84,7 @@ internal sealed class AppUpdates : IDisposable
     {
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(40) };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("ARX-Updater");
-        _current = ReleaseVersion.TryParse(current, out var version) ? version : throw new ArgumentException("Неизвестная версия ARX.");
+        _current = ReleaseVersion.TryParse(current, out var version) ? version : throw new ArgumentException(Loc.T("Неизвестная версия ARX."));
         _installFolder = installFolder;
         _cache = cache;
     }
@@ -98,7 +98,7 @@ internal sealed class AppUpdates : IDisposable
         var ct = timeout.Token;
         try
         {
-            SetStatus(UpdatePhase.Checking, "Проверяем обновления…");
+            SetStatus(UpdatePhase.Checking, Loc.T("Проверяем обновления…"));
             await using var feed = await _http.GetStreamAsync(Feed, ct);
             var releases = await JsonSerializer.DeserializeAsync<Release[]>(feed, cancellationToken: ct) ?? [];
             var update = releases.Select(FromRelease).OfType<Update>().OrderByDescending(u => u.Version)
@@ -107,13 +107,13 @@ internal sealed class AppUpdates : IDisposable
             {
                 _ready = null;
                 ReleasePage = null;
-                SetStatus(UpdatePhase.Current, "Установлена актуальная версия.");
+                SetStatus(UpdatePhase.Current, Loc.T("Установлена актуальная версия."));
                 return;
             }
             ReleasePage = update.Page;
             if (!Installed)
             {
-                SetStatus(UpdatePhase.Available, $"Доступна версия {update.Version.Label}. Для переносимой копии скачайте новый ZIP.");
+                SetStatus(UpdatePhase.Available, Loc.F($"Доступна версия {update.Version.Label}. Для переносимой копии скачайте новый ZIP."));
                 return;
             }
             if (_ready == update)
@@ -124,11 +124,11 @@ internal sealed class AppUpdates : IDisposable
             _ready = null;
             Directory.CreateDirectory(_cache);
             var path = Path.Combine(_cache, update.Asset.Name);
-            if (File.Exists(path)) SetStatus(UpdatePhase.Verifying, "Проверяем целостность установщика…");
+            if (File.Exists(path)) SetStatus(UpdatePhase.Verifying, Loc.T("Проверяем целостность установщика…"));
             if (!await VerifyExistingAsync(update, path, ct))
             {
                 DownloadPercent = 0;
-                SetStatus(UpdatePhase.Downloading, $"Загружаем ARX {update.Version.Label}…");
+                SetStatus(UpdatePhase.Downloading, Loc.F($"Загружаем ARX {update.Version.Label}…"));
                 await DownloadAsync(update, path, ct);
             }
             _ready = update;
@@ -140,7 +140,7 @@ internal sealed class AppUpdates : IDisposable
             if (!_shutdown.IsCancellationRequested)
             {
                 if (_ready is { } ready) SetStatus(UpdatePhase.Ready, ReadyStatus(ready));
-                else SetStatus(UpdatePhase.Failed, "Не удалось проверить или загрузить обновление. Повторите позже.");
+                else SetStatus(UpdatePhase.Failed, Loc.T("Не удалось проверить или загрузить обновление. Повторите позже."));
             }
             Debug.WriteLine(ex);
         }
@@ -155,8 +155,8 @@ internal sealed class AppUpdates : IDisposable
     }
 
     private string ReadyStatus(Update update) => File.Exists(AttemptPath(update))
-        ? $"ARX {update.Version.Label} скачана. Если установка прервалась, её можно повторить."
-        : $"ARX {update.Version.Label} скачана и проверена.";
+        ? Loc.F($"ARX {update.Version.Label} скачана. Если установка прервалась, её можно повторить.")
+        : Loc.F($"ARX {update.Version.Label} скачана и проверена.");
 
     private static Update? FromRelease(Release? release)
     {
@@ -193,7 +193,7 @@ internal sealed class AppUpdates : IDisposable
                     if (location is null || !location.IsAbsoluteUri || location.Scheme != Uri.UriSchemeHttps ||
                         !location.IsDefaultPort || location.UserInfo.Length != 0 ||
                         location.Host is not ("release-assets.githubusercontent.com" or "objects.githubusercontent.com"))
-                        throw new InvalidDataException("Неожиданный адрес загрузки ARX.");
+                        throw new InvalidDataException(Loc.T("Неожиданный адрес загрузки ARX."));
                     url = location;
                     continue;
                 }
@@ -208,7 +208,7 @@ internal sealed class AppUpdates : IDisposable
                     while ((read = await source.ReadAsync(buffer, ct)) > 0)
                     {
                         size += read;
-                        if (size > update.Asset.Size) throw new InvalidDataException("Установщик больше объявленного размера.");
+                        if (size > update.Asset.Size) throw new InvalidDataException(Loc.T("Установщик больше объявленного размера."));
                         hash.AppendData(buffer, 0, read);
                         await file.WriteAsync(buffer.AsMemory(0, read), ct);
                         var percent = (int)(size * 100 / update.Asset.Size);
@@ -219,13 +219,13 @@ internal sealed class AppUpdates : IDisposable
                         }
                     }
                 }
-                SetStatus(UpdatePhase.Verifying, "Проверяем целостность установщика…");
+                SetStatus(UpdatePhase.Verifying, Loc.T("Проверяем целостность установщика…"));
                 if (size != update.Asset.Size || !CheckHash(update, hash.GetHashAndReset()))
-                    throw new InvalidDataException("Установщик ARX не прошёл проверку SHA-256.");
+                    throw new InvalidDataException(Loc.T("Установщик ARX не прошёл проверку SHA-256."));
                 File.Move(part, target, true);
                 return;
             }
-            throw new InvalidDataException("Слишком много перенаправлений.");
+            throw new InvalidDataException(Loc.T("Слишком много перенаправлений."));
         }
         finally { if (File.Exists(part)) File.Delete(part); }
     }
@@ -241,7 +241,8 @@ internal sealed class AppUpdates : IDisposable
             if (file.Length != update.Asset.Size || !CheckHash(update, SHA256.HashData(file))) return false;
             var launch = new ProcessStartInfo(path) { UseShellExecute = false, CreateNoWindow = true, WindowStyle = ProcessWindowStyle.Hidden };
             foreach (var arg in new[] { "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCLOSEAPPLICATIONS",
-                "/NORESTARTAPPLICATIONS", "/ARXUPDATE", "/SP-", $"/DIR={folder}", $"/LOG={Path.Combine(_cache, "install.log")}" })
+                "/NORESTARTAPPLICATIONS", "/ARXUPDATE", "/SP-", $"/LANG={Loc.Language}", $"/DIR={folder}",
+                $"/LOG={Path.Combine(_cache, "install.log")}" })
                 launch.ArgumentList.Add(arg);
             File.WriteAllText(attempt, DateTimeOffset.UtcNow.ToString("O"));
             using var process = Process.Start(launch);

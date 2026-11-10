@@ -6,7 +6,7 @@ namespace ArxBeta;
 
 internal sealed class BossHudPanel : StackPanel
 {
-    private static readonly WorldBossCatalog.Choice Placeholder = new("", "Выберите босса", "");
+    private static readonly WorldBossCatalog.Choice Placeholder = new("", Loc.T("Выберите босса"), "");
     private readonly LegionStore _store;
     private readonly ComboBox _picker = new() { MinHeight = 32 };
     private readonly TextBlock _time = HudWindow.Ink(Text("—", 28, "Mint", true));
@@ -19,7 +19,7 @@ internal sealed class BossHudPanel : StackPanel
     public BossHudPanel(LegionStore store)
     {
         _store = store;
-        System.Windows.Automation.AutomationProperties.SetName(_picker, "Мировой босс");
+        System.Windows.Automation.AutomationProperties.SetName(_picker, Loc.T("Мировой босс"));
         _picker.SelectionChanged += (_, _) =>
         {
             if (_updating || _picker.SelectedItem is not WorldBossCatalog.Choice choice) return;
@@ -61,23 +61,23 @@ internal sealed class BossHudPanel : StackPanel
         var now = DateTimeOffset.UtcNow;
         if (boss is null)
         {
-            _state.Text = selectedId is null ? "ВЫБЕРИТЕ БОССА" : "ОЖИДАНИЕ ДАННЫХ";
+            _state.Text = selectedId is null ? Loc.T("ВЫБЕРИТЕ БОССА") : Loc.T("ОЖИДАНИЕ ДАННЫХ");
             _time.Text = "—";
-            _detail.Text = "В игре откройте карту → Исследование → Полевые монстры.";
+            _detail.Text = Loc.T("В игре откройте карту → Исследование → Полевые монстры.");
         }
         else if (boss.Alive)
         {
-            _state.Text = "СТАТУС ПО ДАННЫМ ИГРЫ";
-            _time.Text = "В мире";
-            _detail.Text = $"Появился {boss.When.ToLocalTime():dd.MM HH:mm}";
+            _state.Text = Loc.T("СТАТУС ПО ДАННЫМ ИГРЫ");
+            _time.Text = Loc.T("В мире");
+            _detail.Text = Loc.F($"Появился {boss.When.ToLocalTime():dd.MM HH:mm}");
         }
         else
         {
             var remaining = boss.When - now;
-            _state.Text = remaining > TimeSpan.Zero ? "ДО РЕСПАВНА" : "ВРЕМЯ ПОДОШЛО";
+            _state.Text = remaining > TimeSpan.Zero ? Loc.T("ДО РЕСПАВНА") : Loc.T("ВРЕМЯ ПОДОШЛО");
             _time.Text = Clock(remaining);
-            _detail.Text = remaining > TimeSpan.Zero ? $"Ожидается {boss.When.ToLocalTime():dd.MM HH:mm}"
-                : "Ждём подтверждения от игры.";
+            _detail.Text = remaining > TimeSpan.Zero ? Loc.F($"Ожидается {boss.When.ToLocalTime():dd.MM HH:mm}")
+                : Loc.T("Ждём подтверждения от игры.");
         }
     }
 }

@@ -84,7 +84,7 @@ public sealed class BattleChart(FightAnalysis analysis) : FrameworkElement
         }
         if (data.Length == 0)
         {
-            Caption(dc, "Ожидание событий боя", new Point(left + 10, top + height / 2));
+            Caption(dc, Loc.T("Ожидание событий боя"), new Point(left + 10, top + height / 2));
             return;
         }
         DrawCurve(dc, data, "Mint", left, top, width, height, max);

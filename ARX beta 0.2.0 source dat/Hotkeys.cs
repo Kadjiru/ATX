@@ -10,17 +10,17 @@ internal sealed class Hotkeys : IDisposable
 
     internal static IReadOnlyList<Shortcut> Shortcuts { get; } =
     [
-        new(1, 0x0001, 0x77, "Alt+F8", "Показать или скрыть боевой HUD"),
-        new(9, 0x0003, 0x78, "Ctrl+Alt+F9", "Показать или скрыть HUD мировых боссов"),
-        new(10, 0x0003, 0x79, "Ctrl+Alt+F10", "Показать или скрыть миникарту"),
-        new(AtlasLockId, 0x0003, 0x7A, "Ctrl+Alt+F11", "Закрепить или разблокировать миникарту"),
-        new(4, 0x0003, 0x31, "Ctrl+Alt+1", "Открыть минимальный HUD с прозрачным фоном"),
-        new(5, 0x0003, 0x32, "Ctrl+Alt+2", "Открыть средний HUD со списком участников"),
-        new(6, 0x0003, 0x33, "Ctrl+Alt+3", "Открыть подробный HUD"),
-        new(7, 0x0003, 0x21, "Ctrl+Alt+PgUp", "Увеличить непрозрачность фона HUD на 5 п. п."),
-        new(8, 0x0003, 0x22, "Ctrl+Alt+PgDn", "Уменьшить непрозрачность фона HUD на 5 п. п."),
-        new(2, 0x0003, 0x4C, "Ctrl+Alt+L", "Закрепить HUD с пропуском щелчков или разблокировать"),
-        new(3, 0x0001, 0x52, "Alt+R", "Завершить текущий боевой сегмент")
+        new(1, 0x0001, 0x77, "Alt+F8", Loc.T("Показать или скрыть боевой HUD")),
+        new(9, 0x0003, 0x78, "Ctrl+Alt+F9", Loc.T("Показать или скрыть HUD мировых боссов")),
+        new(10, 0x0003, 0x79, "Ctrl+Alt+F10", Loc.T("Показать или скрыть миникарту")),
+        new(AtlasLockId, 0x0003, 0x7A, "Ctrl+Alt+F11", Loc.T("Закрепить или разблокировать миникарту")),
+        new(4, 0x0003, 0x31, "Ctrl+Alt+1", Loc.T("Открыть минимальный HUD с прозрачным фоном")),
+        new(5, 0x0003, 0x32, "Ctrl+Alt+2", Loc.T("Открыть средний HUD со списком участников")),
+        new(6, 0x0003, 0x33, "Ctrl+Alt+3", Loc.T("Открыть подробный HUD")),
+        new(7, 0x0003, 0x21, "Ctrl+Alt+PgUp", Loc.T("Увеличить непрозрачность фона HUD на 5 п. п.")),
+        new(8, 0x0003, 0x22, "Ctrl+Alt+PgDn", Loc.T("Уменьшить непрозрачность фона HUD на 5 п. п.")),
+        new(2, 0x0003, 0x4C, "Ctrl+Alt+L", Loc.T("Закрепить HUD с пропуском щелчков или разблокировать")),
+        new(3, 0x0001, 0x52, "Alt+R", Loc.T("Завершить текущий боевой сегмент"))
     ];
 
     private readonly HwndSource _window = new(new HwndSourceParameters("ARX Hotkeys") { ParentWindow = new IntPtr(-3) });

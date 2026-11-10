@@ -68,7 +68,7 @@ internal static class PartyCombat
     {
         var suffix = rows.Count(r => string.Equals(r.Name, member.Name, StringComparison.OrdinalIgnoreCase)) > 1
             ? member.ServerId > 0 ? $" · S{member.ServerId}" : $" · #{member.Stats?.ActorId}" : "";
-        return member.IsSelf ? $"ВЫ  ·  {member.Name}{suffix}" : member.Name + suffix;
+        return member.IsSelf ? Loc.F($"ВЫ  ·  {member.Name}{suffix}") : member.Name + suffix;
     }
 
     private static Brush Tint(uint rgb)

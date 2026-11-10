@@ -14,11 +14,11 @@ internal static class AtlasMarks
 
     public static IReadOnlyList<AtlasLayer> Layers(LegionStore store, AtlasZone zone)
     {
-        var layers = new List<AtlasLayer> { new(AtlasCatalog.WorldLayer, "Игровые координаты") };
+        var layers = new List<AtlasLayer> { new(AtlasCatalog.WorldLayer, Loc.T("Игровые координаты")) };
         var custom = store.Profile.AtlasLayers.GetValueOrDefault(zone.Id);
-        if (AtlasLayers.Exists(custom)) layers.Add(new AtlasLayer(custom, "Мой снимок"));
+        if (AtlasLayers.Exists(custom)) layers.Add(new AtlasLayer(custom, Loc.T("Мой снимок")));
         if (store.AllPins.Any(pin => pin.Zone == zone.Id && pin.Layer is null))
-            layers.Add(new AtlasLayer(null, "Архив старых меток"));
+            layers.Add(new AtlasLayer(null, Loc.T("Архив старых меток")));
         return layers;
     }
 
@@ -32,6 +32,9 @@ internal static class AtlasMarks
 
     public static bool Matches(MapPin pin, AtlasCatalog.AtlasMap? world, string query) =>
         query.Length == 0 || Contains(pin.Name, query) || Contains(world?.English(pin.Id) ?? "", query);
+
+    public static string DisplayName(MapPin pin, AtlasCatalog.AtlasMap? world) =>
+        Loc.English ? Loc.Name(pin.Name, world?.English(pin.Id)) : pin.Name;
 
     private static bool Contains(string value, string query) =>
         value.Replace('ё', 'е').Replace('Ё', 'Е')

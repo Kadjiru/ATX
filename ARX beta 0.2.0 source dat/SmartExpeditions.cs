@@ -5,7 +5,7 @@ namespace ArxBeta;
 
 internal sealed record ExpeditionActivity(string Id, string Name, int[] Maps, int[] Finals)
 {
-    public override string ToString() => Name;
+    public override string ToString() => Loc.T(Name);
 
     // The bundled Global map and NPC tables use different IDs for some difficulty variants.
     public static readonly ExpeditionActivity[] All =

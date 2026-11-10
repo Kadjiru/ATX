@@ -7,18 +7,19 @@ namespace ArxBeta;
 
 internal sealed class AtlasHudPanel : DockPanel
 {
-    private sealed record MarkerRow(MapPin Pin)
+    private sealed record MarkerRow(MapPin Pin, string Name)
     {
-        public override string ToString() => $"{(Pin.Found ? "✓" : "•")}  {Pin.Name}  ·  {Pin.Category}";
+        public override string ToString() => $"{(Pin.Found ? "✓" : "•")}  {Name}  ·  {Loc.T(Pin.Category)}";
     }
 
     private readonly LegionStore _store;
     private readonly AtlasCanvas _map = new() { Compact = true, MinHeight = 90 };
     private readonly ComboBox _zone = new() { ItemsSource = AtlasZone.All, Width = 158, MinHeight = 29 };
     private readonly ComboBox _layers = new() { Width = 153, MinHeight = 29 };
-    private readonly ComboBox _category = new() { ItemsSource = AtlasMarks.Categories, SelectedIndex = 0, Width = 130, MinHeight = 29 };
-    private readonly TextBox _search = new() { MinHeight = 30, MaxLength = 120, ToolTip = "Русское или английское имя точки" };
-    private readonly CheckBox _personal = new() { Content = "Только мои метки" };
+    private readonly ComboBox _category = Loc.LocalizeItems(new ComboBox
+        { ItemsSource = AtlasMarks.Categories, SelectedIndex = 0, Width = 130, MinHeight = 29 });
+    private readonly TextBox _search = new() { MinHeight = 30, MaxLength = 120, ToolTip = Loc.T("Русское или английское имя точки") };
+    private readonly CheckBox _personal = new() { Content = Loc.T("Только мои метки") };
     private readonly ListBox _results = new() { Height = 90, MaxHeight = 90 };
     private readonly TextBlock _status = Hint("");
     private readonly TextBlock _point = Text("", 13, "Mint", true);
@@ -38,33 +39,33 @@ internal sealed class AtlasHudPanel : DockPanel
     {
         _store = store;
         var filters = Stack(
-            Actions(Field("Зона", _zone), Field("Категория", _category)),
+            Actions(Field(Loc.T("Зона"), _zone), Field(Loc.T("Категория"), _category)),
             Space(Actions(_layers, _personal), 2),
-            Space(Label("ПОИСК ПО МЕТКАМ"), 4), Space(_search, 5), Space(_status, 4), Space(_results, 6));
+            Space(Label(Loc.T("ПОИСК ПО МЕТКАМ")), 4), Space(_search, 5), Space(_status, 4), Space(_results, 6));
         _results.ItemContainerStyle = (Style)Application.Current.FindResource("ReferenceRow");
-        System.Windows.Automation.AutomationProperties.SetName(_search, "Поиск по меткам миникарты");
-        System.Windows.Automation.AutomationProperties.SetName(_layers, "Слой миникарты");
-        var searchToggle = new Button { Content = "Поиск ▾" };
+        System.Windows.Automation.AutomationProperties.SetName(_search, Loc.T("Поиск по меткам миникарты"));
+        System.Windows.Automation.AutomationProperties.SetName(_layers, Loc.T("Слой миникарты"));
+        var searchToggle = new Button { Content = Loc.T("Поиск ▾") };
         searchToggle.Click += (_, _) =>
         {
             var show = filters.Visibility != Visibility.Visible;
             filters.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
-            searchToggle.Content = show ? "Поиск ▾" : "Поиск ▸";
+            searchToggle.Content = show ? Loc.T("Поиск ▾") : Loc.T("Поиск ▸");
             if (show) _search.Focus();
         };
         var tools = Actions(searchToggle, Button("−", () => _map.Zoom(1 / 1.3)),
-            Button("+", () => _map.Zoom(1.3)), Button("Вписать", _map.Fit));
+            Button("+", () => _map.Zoom(1.3)), Button(Loc.T("Вписать"), _map.Fit));
         var top = Stack(tools, filters);
         SetDock(top, Dock.Top);
         Children.Add(top);
 
-        _found = Button("Найдено", () =>
+        _found = Button(Loc.T("Найдено"), () =>
         {
             if (Selected() is { } pin) AtlasMarks.ToggleFound(_store, pin, _world);
         });
-        _center = Button("К метке", () => { if (Selected() is { } pin) _map.FocusPin(pin); });
+        _center = Button(Loc.T("К метке"), () => { if (Selected() is { } pin) _map.FocusPin(pin); });
         var footer = Stack(Space(_point, 4),
-            Actions(_center, _found, Button("В Атлас ↗", () => openAtlas(View))));
+            Actions(_center, _found, Button(Loc.T("В Атлас ↗"), () => openAtlas(View))));
         footer.Margin = new Thickness(0, 7, 0, 0);
         SetDock(footer, Dock.Bottom);
         Children.Add(footer);
@@ -132,14 +133,14 @@ internal sealed class AtlasHudPanel : DockPanel
         var current = Selected();
         _selected = current?.Id;
         _updating = true;
-        var rows = query.Length == 0 ? [] : _visible.OrderBy(pin => pin.Name, StringComparer.CurrentCultureIgnoreCase)
-            .ThenBy(pin => pin.Id).Take(150).Select(pin => new MarkerRow(pin)).ToArray();
+        var rows = query.Length == 0 ? [] : _visible.Select(pin => new MarkerRow(pin, AtlasMarks.DisplayName(pin, _world)))
+            .OrderBy(row => row.Name, StringComparer.CurrentCultureIgnoreCase).ThenBy(row => row.Pin.Id).Take(150).ToArray();
         _results.ItemsSource = rows;
         _results.SelectedItem = rows.FirstOrDefault(row => row.Pin.Id == _selected);
         _results.Visibility = rows.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
-        _status.Text = query.Length == 0 ? $"{Zone.Name}  ·  меток: {_visible.Length}" :
-            _visible.Length > rows.Length ? $"Совпадений: {_visible.Length} · уточните поиск" :
-            _visible.Length == 0 ? "Нет совпадений в этой зоне" : $"Совпадений: {_visible.Length} · Enter к первой метке";
+        _status.Text = query.Length == 0 ? Loc.F($"{Zone.Name}  ·  меток: {_visible.Length}") :
+            _visible.Length > rows.Length ? Loc.F($"Совпадений: {_visible.Length} · уточните поиск") :
+            _visible.Length == 0 ? Loc.T("Нет совпадений в этой зоне") : Loc.F($"Совпадений: {_visible.Length} · Enter к первой метке");
         _updating = false;
         _map.SetPins(_visible, []);
         UpdateSelection(current);
@@ -165,7 +166,7 @@ internal sealed class AtlasHudPanel : DockPanel
         var image = AtlasLayers.Open(layer);
         _map.SetLayer(_world, image);
         _empty.Text = _world is not null || image is not null ? "" : layer is null
-            ? "Архив старых меток" : "Добавьте снимок этой зоны в Атласе";
+            ? Loc.T("Архив старых меток") : Loc.T("Добавьте снимок этой зоны в Атласе");
         Refresh();
         if (Selected() is { } pin) _map.FocusPin(pin);
     }
@@ -186,10 +187,10 @@ internal sealed class AtlasHudPanel : DockPanel
     private void UpdateSelection(MapPin? pin)
     {
         _center.IsEnabled = _found.IsEnabled = pin is not null;
-        _found.Content = pin?.Found == true ? "Снять отметку" : "Найдено";
+        _found.Content = pin?.Found == true ? Loc.T("Снять отметку") : Loc.T("Найдено");
         var coordinate = pin is null ? null : _world?.ToGame(new Point(pin.X, pin.Y));
-        _point.Text = pin is null ? "Выберите метку · колесо меняет масштаб" : pin.Name +
-            (coordinate is { } c ? $"\nX {c.X / 100:0} м · Y {c.Y / 100:0} м" : "");
+        _point.Text = pin is null ? Loc.T("Выберите метку · колесо меняет масштаб") : AtlasMarks.DisplayName(pin, _world) +
+            (coordinate is { } c ? Loc.F($"\nX {c.X / 100:0} м · Y {c.Y / 100:0} м") : "");
         _map.Selected = pin?.Id;
         _map.InvalidateVisual();
     }

@@ -317,7 +317,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         {
             if (pin.Id == Selected || pin.Id == _hover?.Id) continue;
             var at = Position(pin) + new Vector(8, -9);
-            var label = Caption(pin.Name, 11);
+            var label = Caption(AtlasMarks.DisplayName(pin, _map), 11);
             var box = new Rect(at, new Size(label.Width + 10, label.Height + 4));
             if (!view.Contains(box) || occupied.Any(other => other.IntersectsWith(box))) continue;
             occupied.Add(box);
@@ -331,7 +331,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         var point = Position(pin);
         if (!view.Contains(point)) return;
         dc.DrawEllipse(null, new Pen(Ui.Brush("Text"), 1.6), point, 9, 9);
-        var label = Caption(pin.Name, 12);
+        var label = Caption(AtlasMarks.DisplayName(pin, _map), 12);
         var x = Math.Clamp(point.X + 12, 5, Math.Max(5, ActualWidth - label.Width - 21));
         var y = Math.Clamp(point.Y - 12, 5, Math.Max(5, ActualHeight - label.Height - 14));
         dc.DrawRoundedRectangle(Plate, new Pen(GridLine, 1), new Rect(x, y, label.Width + 14, label.Height + 8), 5, 5);
@@ -352,7 +352,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         dc.DrawLine(pen, new Point(x, y), new Point(x + length, y));
         dc.DrawLine(pen, new Point(x, y - 3), new Point(x, y + 3));
         dc.DrawLine(pen, new Point(x + length, y - 3), new Point(x + length, y + 3));
-        dc.DrawText(Caption(distance >= 1000 ? $"{distance / 1000:g} км" : $"{distance:g} м", 11), new Point(x, y - 19));
+        dc.DrawText(Caption(distance >= 1000 ? Loc.F($"{distance / 1000:g} км") : Loc.F($"{distance:g} м"), 11), new Point(x, y - 19));
         dc.DrawText(Caption("↑ N", 14), new Point(Math.Max(0, ActualWidth - 43), 12));
     }
 

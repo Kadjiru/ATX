@@ -11,7 +11,7 @@ internal static class AtlasLayers
     public static string Import(string path)
     {
         using var source = File.OpenRead(path);
-        if (source.Length is < 1 or > 30 * 1024 * 1024) throw new InvalidDataException("Изображение должно занимать не более 30 МБ.");
+        if (source.Length is < 1 or > 30 * 1024 * 1024) throw new InvalidDataException(Loc.T("Изображение должно занимать не более 30 МБ."));
         var bitmap = new BitmapImage();
         bitmap.BeginInit();
         bitmap.StreamSource = source;

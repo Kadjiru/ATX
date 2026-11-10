@@ -10,14 +10,14 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
-        ("Установка Npcap", "Если драйвера нет, установщик ARX предложит скачать его и открыть официальный мастер установки."),
-        ("Можно продолжить без драйвера", "Если вы пропустите этот шаг, Атлас, справочники и сохранённые отчёты будут доступны.")
+        (Loc.T("Английский интерфейс"), Loc.T("Откройте «Язык / Language» в настройках, выберите English и перезапустите ARX.")),
+        (Loc.T("HUD и справочники"), Loc.T("Выбранный язык используется в окнах HUD, Атласе, справочниках и окнах обновления."))
     ];
 
     public ChangelogWindow(Window? owner, string version)
     {
         if (owner is not null) Owner = owner;
-        Title = $"Что нового в ARX {version}";
+        Title = Loc.F($"Что нового в ARX {version}");
         Width = 585;
         SizeToContent = SizeToContent.Height;
         WindowStartupLocation = owner is null ? WindowStartupLocation.CenterScreen : WindowStartupLocation.CenterOwner;
@@ -38,14 +38,14 @@ internal sealed class ChangelogWindow : Window
                 Background = new LinearGradientBrush(Color.FromArgb(250, 9, 22, 25), Color.FromArgb(44, 9, 22, 25), 0),
                 CornerRadius = new CornerRadius(12), Padding = new Thickness(17, 20, 17, 18),
                 Child = Stack(Space(Text("ARX  /  AION 2 GLOBAL", 11, "Mint", true), 5),
-                    Space(Text($"Что нового в {version.Replace("-beta", " beta")}", 24, bold: true), 3),
-                    Hint("Обновление ARX"))
+                    Space(Text(Loc.F($"Что нового в {version.Replace("-beta", " beta")}"), 24, bold: true), 3),
+                    Hint(Loc.T("Обновление ARX")))
             }
         };
         var body = Stack(Space(hero, 13));
         foreach (var (title, summary) in Notes)
             body.Children.Add(Space(Card(Stack(Space(Text(title, 15, "Mint", true), 4), Hint(summary)), 10), 7));
-        var close = Button("Открыть ARX", Close, true);
+        var close = Button(Loc.T("Открыть ARX"), Close, true);
         close.IsDefault = true;
         close.IsCancel = true;
         close.HorizontalAlignment = HorizontalAlignment.Right;
