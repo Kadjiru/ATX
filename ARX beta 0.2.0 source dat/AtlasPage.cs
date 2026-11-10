@@ -52,7 +52,8 @@ public sealed partial class Dashboard
         string? layer = AtlasCatalog.WorldLayer;
 
         var import = new Button { Content = Loc.T("Снимок зоны…") };
-        var add = new Button { Content = Loc.T("Новая метка"), Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
+        var add = new Button { Content = Loc.T("Новая метка") }
+            .UseBrush(Control.BackgroundProperty, "Mint").UseBrush(Control.ForegroundProperty, "Base");
         var found = new Button { Content = Loc.T("Найдено") };
         var delete = new Button { Content = Loc.T("Удалить") };
         var center = Button(Loc.T("На карте"), () => { if (Selected() is { } pin) map.FocusPin(pin); });

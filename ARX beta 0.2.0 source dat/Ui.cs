@@ -9,14 +9,25 @@ internal static class Ui
 {
     public static ImageSource AppIcon() => new BitmapImage(new Uri("pack://application:,,,/ARX.Beta;component/Assets/ARX.ico"));
 
-    public static Brush Brush(string name) => (Brush)Application.Current.FindResource(name);
+    public static SolidColorBrush Brush(string name, FrameworkElement? scope = null) =>
+        (SolidColorBrush)(scope?.TryFindResource(name) ?? Application.Current.FindResource(name));
+
+    public static T UseBrush<T>(this T element, DependencyProperty property, string name) where T : FrameworkElement
+    {
+        element.SetResourceReference(property, name);
+        return element;
+    }
 
     public static TextBlock Text(string value, double size = 13, string color = "Text", bool bold = false)
-        => new()
+    {
+        var text = new TextBlock
         {
-            Text = value, FontSize = size, Foreground = Brush(color),
+            Text = value, FontSize = size,
             FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal, TextWrapping = TextWrapping.Wrap
         };
+        text.SetResourceReference(TextBlock.ForegroundProperty, color);
+        return text;
+    }
 
     public static TextBlock Label(string value) => Text(value, 11, "Muted", true);
 
@@ -40,20 +51,26 @@ internal static class Ui
         return panel;
     }
 
-    public static Border Card(UIElement child, double padding = 18) => new()
+    public static Border Card(UIElement child, double padding = 18)
     {
-        Background = Brush("Surface"), BorderBrush = Brush("Line"), BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(17), Padding = new Thickness(padding), Child = child
-    };
+        var card = new Border
+        {
+            BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(17),
+            Padding = new Thickness(padding), Child = child
+        };
+        card.SetResourceReference(Border.BackgroundProperty, "Surface");
+        card.SetResourceReference(Border.BorderBrushProperty, "Line");
+        return card;
+    }
 
     public static Button Button(string text, Action action, bool primary = false)
     {
         var button = new Button { Content = text };
         if (primary)
         {
-            button.Background = Brush("Mint");
-            button.BorderBrush = Brush("Mint");
-            button.Foreground = Brush("Base");
+            button.SetResourceReference(Control.BackgroundProperty, "Mint");
+            button.SetResourceReference(Control.BorderBrushProperty, "Mint");
+            button.SetResourceReference(Control.ForegroundProperty, "Base");
         }
         button.Click += (_, _) => action();
         return button;

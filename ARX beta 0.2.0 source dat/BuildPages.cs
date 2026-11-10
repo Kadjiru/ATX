@@ -55,8 +55,9 @@ public sealed partial class Dashboard
         var fields = Actions(Field(Loc.T("Имя персонажа"), name), Field(Loc.T("Сервер (если нужно)"), server));
         var save = new Button
         {
-            Content = Loc.T("Сохранить билд"), Background = Brush("Mint"), BorderBrush = Brush("Mint"), Foreground = Brush("Base")
-        };
+            Content = Loc.T("Сохранить билд")
+        }.UseBrush(Control.BackgroundProperty, "Mint").UseBrush(Control.BorderBrushProperty, "Mint")
+            .UseBrush(Control.ForegroundProperty, "Base");
         addCharacter.Click += (_, _) => BeginAdd();
         cancel.Click += (_, _) => LoadCharacter(character.SelectedItem as CharacterBuild);
         save.Click += (_, _) => SaveBuild();
@@ -201,7 +202,7 @@ public sealed partial class Dashboard
             Space(Label(solo ? Loc.T("СОЛО PVE") : Loc.T("ГРУППОВОЕ PVE")), 5),
             Space(Text(build.Name, 24, "Mint", true), 4),
             Hint($"{(solo ? build.SoloRole : build.Role)}   ·   {build.Weapon}")), 15);
-        hero.Background = Brush("Raised");
+        hero.SetResourceReference(Border.BackgroundProperty, "Raised");
         return Stack(Space(hero, 12),
             Space(Text(Loc.T("Характеристики по приоритету"), 17, bold: true), 6),
             Space(priorities, 6),
@@ -244,11 +245,10 @@ public sealed partial class Dashboard
         var referenceCard = Card(new Expander
         {
             Header = Loc.T("Мета и снаряжение · справочный срез"),
-            Foreground = Brush("Text"),
             Content = Stack(Space(Hint(Loc.F($"Состав из загруженных боёв AionFlex · {Loc.T(reference.MetaWindow)}")), 5),
                 Space(Text(Loc.T(reference.Composition), 15, "Mint", true), 6),
                 Hint(string.Join("\n", reference.Gear.Select(Loc.T))))
-        }, 12);
+        }.UseBrush(Control.ForegroundProperty, "Text"), 12);
 
         category.SelectionChanged += (_, _) => Filter();
         search.TextChanged += (_, _) => Filter();
@@ -286,7 +286,7 @@ public sealed partial class Dashboard
             var hero = Card(Stack(Space(Label(guide.Category.ToUpperInvariant()), 4),
                 Space(Text(guide.Title, 23, "Mint", true), 4),
                 Space(Hint($"{guide.English} · {guide.Target}"), 6), Text(guide.Brief, 14, bold: true)), 15);
-            hero.Background = Brush("Raised");
+            hero.SetResourceReference(Border.BackgroundProperty, "Raised");
             var mechanics = Stack(Space(Text(Loc.T("Что увидите → что делать"), 17, bold: true), 8));
             foreach (var (step, i) in guide.Steps.Select((step, i) => (step, i)))
                 mechanics.Children.Add(Space(GuideCard($"{i + 1:00} · {step.Cue}", step.Action), 6));
@@ -307,9 +307,9 @@ public sealed partial class Dashboard
 
     private static void Highlight(Button button, bool selected)
     {
-        button.Background = Brush(selected ? "Raised" : "Surface");
-        button.BorderBrush = Brush(selected ? "Mint" : "Line");
-        button.Foreground = Brush(selected ? "Mint" : "Text");
+        button.SetResourceReference(Control.BackgroundProperty, selected ? "Raised" : "Surface");
+        button.SetResourceReference(Control.BorderBrushProperty, selected ? "Mint" : "Line");
+        button.SetResourceReference(Control.ForegroundProperty, selected ? "Mint" : "Text");
     }
 
     private static Border GuideCard(string title, string body) =>

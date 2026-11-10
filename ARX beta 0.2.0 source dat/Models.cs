@@ -236,6 +236,8 @@ public sealed class Profile
     public string Character { get; set; } = "";
     public string Server { get; set; } = "";
     public string Language { get; set; } = "ru";
+    public string AppTheme { get; set; } = ThemePalette.Default;
+    public string HudTheme { get; set; } = ThemePalette.FollowApp;
     public List<Fight> History { get; set; } = [];
     public List<SessionTask> Tasks { get; set; } = [];
     public List<KinaEntry> Ledger { get; set; } = [];

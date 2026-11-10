@@ -62,6 +62,9 @@ public partial class App : Application
             Loc.Configure(e.Args.Length > 3 ? e.Args[3] : null);
             _store = new LegionStore(true);
             _store.Profile.Language = Loc.Language;
+            if (e.Args.Length > 4) _store.Profile.AppTheme = e.Args[4];
+            if (e.Args.Length > 5) _store.Profile.HudTheme = e.Args[5];
+            ApplyThemes();
             _catalog = CatalogSync.Open(true);
             var section = e.Args.Length > 2 ? e.Args[2] : "combat";
             if (section == "changelog")
@@ -116,6 +119,7 @@ public partial class App : Application
         {
             _store = await Task.Run(() => new LegionStore(false));
             Loc.Configure(_store.Profile.Language);
+            ApplyThemes();
             splash = new LaunchWindow();
             splash.Show();
             splash.Stage(24, Loc.T("Загрузка локального профиля"));
@@ -327,6 +331,13 @@ public partial class App : Application
         _huds.Add(kind, hud);
         hud.Closed += (_, _) => _huds.Remove(kind);
         hud.Show();
+    }
+
+    internal void ApplyThemes()
+    {
+        ThemePalette.ForApp(_store.Profile).Apply(Resources);
+        var hudTheme = ThemePalette.ForHud(_store.Profile);
+        foreach (var hud in _huds.Values) hud.ApplyTheme(hudTheme);
     }
 
     internal double CombatOpacity => _store.Profile.CombatHudOpacity ??

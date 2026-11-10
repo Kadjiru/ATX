@@ -1,6 +1,6 @@
-ARX 1.0.7 beta / Aion 2 Global
+ARX 1.0.8 beta / Aion 2 Global
 
-1. Запустите ARX-Setup-1.0.7-beta.exe и ознакомьтесь с GPL-3.0.
+1. Запустите ARX-Setup-1.0.8-beta.exe и ознакомьтесь с GPL-3.0.
 2. Установщик проверит Windows x64 и её системные библиотеки. .NET уже в комплекте.
    Если Npcap отсутствует, выберите «Скачать и установить Npcap».
    ARX проверит загруженный файл и запустит официальный мастер драйвера.
@@ -26,6 +26,9 @@ ARX 1.0.7 beta / Aion 2 Global
 Язык интерфейса / Interface language
 Настройки → Язык / Language → English. Сохраните выбор и перезапустите ARX.
 Open Settings → Язык / Language, choose English, save and restart ARX.
+
+Настройки → Оформление. Выберите отдельные темы для приложения и HUD.
+Open Settings → Appearance to choose separate themes for the app and HUDs.
 
 Профиль предыдущей беты сохранён в %AppData%\ARX Legion Beta.
 Установщик без цифровой подписи. Лицензия — LICENSE. Источники — SOURCES.md.

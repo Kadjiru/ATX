@@ -30,10 +30,11 @@ internal sealed class LaunchWindow : Window
             Background = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/Assets/Atreia.jpg")))
             { Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Right }
         });
+        var tint = Brush("Base").Color;
         grid.Children.Add(new Border
         {
             CornerRadius = new CornerRadius(24),
-            Background = new LinearGradientBrush(Color.FromArgb(245, 9, 22, 25), Color.FromArgb(19, 9, 22, 25), 0)
+            Background = new LinearGradientBrush(Color.FromArgb(245, tint.R, tint.G, tint.B), Color.FromArgb(19, tint.R, tint.G, tint.B), 0)
         });
         _progress.Foreground = Ui.Brush("Mint");
         _progress.Background = Ui.Brush("Raised");

@@ -15,15 +15,15 @@
         <Style TargetType="Window">
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="Background" Value="{StaticResource Base}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="Background" Value="{DynamicResource Base}"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
             <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
         </Style>
         <Style TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource Raised}"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="Background" Value="{DynamicResource Raised}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="14,8"/>
             <Setter Property="MinHeight" Value="34"/>
@@ -40,7 +40,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ButtonSurface" Property="Opacity" Value=".79"/></Trigger>
-                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonSurface" Property="BorderBrush" Value="{StaticResource Mint}"/></Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="ButtonSurface" Property="BorderBrush" Value="{DynamicResource Mint}"/></Trigger>
                             <Trigger Property="IsPressed" Value="True"><Setter TargetName="ButtonSurface" Property="Opacity" Value=".57"/></Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="ButtonSurface" Property="Opacity" Value=".38"/></Trigger>
                         </ControlTemplate.Triggers>
@@ -49,29 +49,29 @@
             </Setter>
         </Style>
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="{StaticResource Base}"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="CaretBrush" Value="{StaticResource Mint}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="Background" Value="{DynamicResource Base}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Mint}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="9,6"/>
             <Setter Property="MinHeight" Value="34"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
         <Style TargetType="ListBox">
-            <Setter Property="Background" Value="{StaticResource Base}"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="Background" Value="{DynamicResource Base}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="5"/>
         </Style>
         <Style x:Key="ReferenceRow" TargetType="ListBoxItem">
             <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -82,14 +82,14 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Row" Property="Background" Value="{StaticResource Surface}"/>
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Surface}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Row" Property="Background" Value="{StaticResource Raised}"/>
-                                <Setter Property="Foreground" Value="{StaticResource Mint}"/>
+                                <Setter TargetName="Row" Property="Background" Value="{DynamicResource Raised}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource Mint}"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                                <Setter TargetName="Row" Property="BorderBrush" Value="{StaticResource Mint}"/>
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource Mint}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -97,9 +97,9 @@
             </Setter>
         </Style>
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="Background" Value="{StaticResource Raised}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="Background" Value="{DynamicResource Raised}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Line}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ComboBox">
@@ -115,11 +115,11 @@
                             </ToggleButton>
                             <ContentPresenter IsHitTestVisible="False" Margin="9,0,25,0" VerticalAlignment="Center"
                                               Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"/>
-                            <TextBlock IsHitTestVisible="False" Text="⌄" Foreground="{StaticResource Mint}" FontSize="15"
+                            <TextBlock IsHitTestVisible="False" Text="⌄" Foreground="{DynamicResource Mint}" FontSize="15"
                                        HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,9,2"/>
                             <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
                                    AllowsTransparency="True" Focusable="False">
-                                <Border Margin="0,3,0,0" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}"
+                                <Border Margin="0,3,0,0" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Line}"
                                         BorderThickness="1" CornerRadius="8" Padding="4" MinWidth="{TemplateBinding ActualWidth}">
                                     <ScrollViewer MaxHeight="265" CanContentScroll="True">
                                         <ItemsPresenter/>
@@ -132,7 +132,7 @@
             </Setter>
         </Style>
         <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -141,8 +141,8 @@
                             <ContentPresenter/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{StaticResource Raised}"/></Trigger>
-                            <Trigger Property="IsSelected" Value="True"><Setter Property="Foreground" Value="{StaticResource Mint}"/></Trigger>
+                            <Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Row" Property="Background" Value="{DynamicResource Raised}"/></Trigger>
+                            <Trigger Property="IsSelected" Value="True"><Setter Property="Foreground" Value="{DynamicResource Mint}"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -162,7 +162,7 @@
                                 <Thumb>
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Border Margin="3,0" Background="{StaticResource Line}" CornerRadius="3"/>
+                                            <Border Margin="3,0" Background="{DynamicResource Line}" CornerRadius="3"/>
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>

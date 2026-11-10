@@ -41,7 +41,7 @@ public sealed partial class Dashboard : Window
             CornerRadius = new CornerRadius(0), UseAeroCaptionButtons = false
         });
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
-        var shell = new Grid { Background = Ui.Brush("Base") };
+        var shell = new Grid().UseBrush(Panel.BackgroundProperty, "Base");
         shell.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(184) });
         shell.ColumnDefinitions.Add(new ColumnDefinition());
         shell.RowDefinitions.Add(new RowDefinition { Height = new GridLength(50) });
@@ -49,8 +49,9 @@ public sealed partial class Dashboard : Window
         shell.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
 
         var brand = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
-        brand.Children.Add(new Border { Background = Ui.Brush("Mint"), CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(7, 2, 7, 4), Child = Text("◇", 21, "Base", true), Margin = new Thickness(0, 0, 10, 0) });
+        brand.Children.Add(new Border { CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(7, 2, 7, 4), Child = Text("◇", 21, "Base", true), Margin = new Thickness(0, 0, 10, 0) }
+            .UseBrush(Border.BackgroundProperty, "Mint"));
         brand.Children.Add(Text("A R X", 16, bold: true));
         var product = Label("AION 2 GLOBAL");
         product.Margin = new Thickness(16, 2, 0, 0);
@@ -88,8 +89,8 @@ public sealed partial class Dashboard : Window
         top.Children.Add(chrome);
         top.Children.Add(brand);
         top.Children.Add(statusBar);
-        var topFrame = new Border { Background = Ui.Brush("Surface"), Child = top,
-            BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 0, 1) };
+        var topFrame = new Border { Child = top, BorderThickness = new Thickness(0, 0, 0, 1) }
+            .UseBrush(Border.BackgroundProperty, "Surface").UseBrush(Border.BorderBrushProperty, "Line");
         Grid.SetColumnSpan(topFrame, 2);
         Place(shell, topFrame, 0, 0);
 
@@ -109,10 +110,10 @@ public sealed partial class Dashboard : Window
         NavHeading(Loc.T("УПРАВЛЕНИЕ"));
         AddNav(nav, "hotkeys", "⌨", Loc.T("Горячие клавиши"));
         AddNav(nav, "settings", "⚙", Loc.T("Настройки"));
-        var sidebar = new Border { Background = Ui.Brush("Surface"), Padding = new Thickness(12, 8, 11, 5),
-            BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 1, 0),
+        var sidebar = new Border { Padding = new Thickness(12, 8, 11, 5), BorderThickness = new Thickness(0, 0, 1, 0),
             Child = new ScrollViewer { Content = nav, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } };
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled } }
+            .UseBrush(Border.BackgroundProperty, "Surface").UseBrush(Border.BorderBrushProperty, "Line");
         Place(shell, sidebar, 1, 0);
 
         _scroll = new ScrollViewer
@@ -122,8 +123,8 @@ public sealed partial class Dashboard : Window
         };
         Place(shell, _scroll, 1, 1);
         var footer = Label(Loc.F($"ARX {AppUpdates.CurrentLabel.ToUpperInvariant().Replace('-', ' ')}     /     GLOBAL     /     ALT+F8  БОЕВОЙ HUD"));
-        var footerFrame = new Border { Child = footer, Padding = new Thickness(18, 7, 0, 0),
-            Background = Ui.Brush("Surface"), BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 1, 0, 0) };
+        var footerFrame = new Border { Child = footer, Padding = new Thickness(18, 7, 0, 0), BorderThickness = new Thickness(0, 1, 0, 0) }
+            .UseBrush(Border.BackgroundProperty, "Surface").UseBrush(Border.BorderBrushProperty, "Line");
         Grid.SetColumnSpan(footerFrame, 2);
         Place(shell, footerFrame, 2, 0);
         Content = shell;
@@ -202,7 +203,7 @@ public sealed partial class Dashboard : Window
         };
         _updateBadge.ToolTip = app.UpdateApproved ? Loc.T("Установится при закрытии ARX. Нажмите, чтобы изменить выбор.") :
             updates?.Status ?? Loc.T("Проверить обновление ARX");
-        _updateBadge.Foreground = Brush(updates?.Phase is UpdatePhase.Available or UpdatePhase.Ready ? "Mint" : "Text");
+        _updateBadge.SetResourceReference(Control.ForegroundProperty, updates?.Phase is UpdatePhase.Available or UpdatePhase.Ready ? "Mint" : "Text");
         _updateBadge.IsEnabled = updates?.Phase is not (UpdatePhase.Checking or UpdatePhase.Downloading or UpdatePhase.Verifying);
     }
 
@@ -222,9 +223,9 @@ public sealed partial class Dashboard : Window
         foreach (var (key, button) in _navigation)
         {
             var selected = key == _page;
-            button.Background = Ui.Brush(selected ? "Raised" : "Surface");
-            button.Foreground = Ui.Brush(selected ? "Mint" : "Muted");
-            button.BorderBrush = Ui.Brush(selected ? "Line" : "Surface");
+            button.SetResourceReference(Control.BackgroundProperty, selected ? "Raised" : "Surface");
+            button.SetResourceReference(Control.ForegroundProperty, selected ? "Mint" : "Muted");
+            button.SetResourceReference(Control.BorderBrushProperty, selected ? "Line" : "Surface");
         }
         _scroll.Content = _page switch
         {
@@ -275,7 +276,7 @@ public sealed partial class Dashboard : Window
             Padding = new Thickness(21, 16, 17, 10)
         });
         var banner = Card(hero, 0);
-        banner.Background = new LinearGradientBrush(Color.FromRgb(20, 41, 44), Color.FromRgb(23, 53, 55), 0);
+        banner.Background = new LinearGradientBrush(Brush("Surface").Color, Brush("Raised").Color, 0);
         page.Children.Add(Space(banner, 12));
 
         var personal = Text("—", 26, "Coral", true);
@@ -387,10 +388,10 @@ public sealed partial class Dashboard : Window
                 name.ToolTip = name.Text;
                 name.Foreground = member.Color;
                 row.Children.Add(name);
-                var meter = new ProgressBar { Value = share * 100, Height = 3, Foreground = member.Color,
-                    Background = Ui.Brush("Raised"), BorderThickness = new Thickness(0) };
+                var meter = new ProgressBar { Value = share * 100, Height = 3, Foreground = member.Color, BorderThickness = new Thickness(0) }
+                    .UseBrush(Control.BackgroundProperty, "Raised");
                 party.Children.Add(Space(new Border { Child = Stack(Space(row, 6), meter), Padding = new Thickness(8, 5, 8, 7),
-                    CornerRadius = new CornerRadius(5), Background = Ui.Brush(member.IsSelf ? "Raised" : "Surface") }, 3));
+                    CornerRadius = new CornerRadius(5) }.UseBrush(Border.BackgroundProperty, member.IsSelf ? "Raised" : "Surface"), 3));
             }
             if (rows.Count == 0) party.Children.Add(Hint(Loc.T("Имена и DPS появятся после получения данных игры.")));
             var pins = _store.AllPins.ToArray();

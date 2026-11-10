@@ -27,7 +27,7 @@ internal sealed class BossHudPanel : StackPanel
             _store.Save();
             Refresh();
         };
-        _panel = HudWindow.Plate(Stack(Space(_state, 3), Space(_time, 4), _detail), Brush("Mint"), 1);
+        _panel = HudWindow.Plate(Stack(Space(_state, 3), Space(_time, 4), _detail), Brush("Raised"), Brush("Mint"), 1);
         Children.Add(Space(_picker, 8));
         Children.Add(_panel);
         Refresh();
@@ -35,9 +35,10 @@ internal sealed class BossHudPanel : StackPanel
 
     public void SetSurfaceOpacity(double opacity)
     {
-        _picker.Background = HudWindow.Faded(Brush("Raised"), opacity);
-        _picker.BorderBrush = HudWindow.Faded(Brush("Line"), opacity);
-        HudWindow.StylePlate(_panel, Brush("Mint"), opacity);
+        var surface = Brush("Raised", this);
+        _picker.Background = HudWindow.Faded(surface, opacity);
+        _picker.BorderBrush = HudWindow.Faded(Brush("Line", this), opacity);
+        HudWindow.StylePlate(_panel, surface, Brush("Mint", this), opacity);
     }
 
     public void Refresh()

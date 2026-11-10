@@ -10,8 +10,8 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
-        (Loc.T("Карточки питомцев"),
-            Loc.T("Семейства получили свои значки. На карточке отдельно видны места обитания, бонусы и стоимость прокачки."))
+        (Loc.T("Оформление"),
+            Loc.T("В настройках появились пять тем. Выберите палитры для приложения и HUD, затем нажмите «Применить темы»."))
     ];
 
     public ChangelogWindow(Window? owner, string version)
@@ -24,18 +24,19 @@ internal sealed class ChangelogWindow : Window
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
         Icon = AppIcon();
-        Background = Brush("Base");
+        SetResourceReference(BackgroundProperty, "Base");
 
         var image = new ImageBrush(new BitmapImage(new Uri("pack://application:,,,/ARX.Beta;component/Assets/Atreia.jpg")))
         {
             Stretch = Stretch.UniformToFill, AlignmentX = AlignmentX.Right
         };
+        var tint = Brush("Base").Color;
         var hero = new Border
         {
             Background = image, CornerRadius = new CornerRadius(12),
             Child = new Border
             {
-                Background = new LinearGradientBrush(Color.FromArgb(250, 9, 22, 25), Color.FromArgb(44, 9, 22, 25), 0),
+                Background = new LinearGradientBrush(Color.FromArgb(250, tint.R, tint.G, tint.B), Color.FromArgb(44, tint.R, tint.G, tint.B), 0),
                 CornerRadius = new CornerRadius(12), Padding = new Thickness(17, 20, 17, 18),
                 Child = Stack(Space(Text("ARX  /  AION 2 GLOBAL", 11, "Mint", true), 5),
                     Space(Text(Loc.F($"Что нового в {version.Replace("-beta", " beta")}"), 24, bold: true), 3),

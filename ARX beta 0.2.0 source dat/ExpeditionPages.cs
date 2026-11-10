@@ -58,10 +58,9 @@ public sealed partial class Dashboard
             {
                 Header = Loc.F($"{run.Name} · {run.StartedAt.ToLocalTime():dd.MM HH:mm} · {run.Segments.Count} боёв") +
                     (run.ConfirmedWin ? Loc.T(" · победа подтверждена") : run.Interrupted ? Loc.T(" · прерван") : ""),
-                Foreground = Ui.Brush("Text"),
                 Content = Stack(Space(Hint(RunSummary(run)), 6), RunTable(run),
                     Actions(Button(Loc.T("Экспорт JSON"), () => ExportJson(run, "arx-run.json"))))
-            };
+            }.UseBrush(Control.ForegroundProperty, "Text");
             list.Children.Add(Space(expander, 10));
         }
         page.Children.Add(Space(Card(list), 13));

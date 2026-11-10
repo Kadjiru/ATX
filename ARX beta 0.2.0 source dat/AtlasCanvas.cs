@@ -283,7 +283,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         for (var y = 0; y <= H; y += 100) dc.DrawLine(line, new Point(0, y), new Point(W, y));
     }
 
-    private static void DrawMarker(DrawingContext dc, MapPin pin, Point at, double zoom, bool compact)
+    private void DrawMarker(DrawingContext dc, MapPin pin, Point at, double zoom, bool compact)
     {
         var color = pin.Found ? GridLine : pin.Category switch
         {
@@ -292,7 +292,7 @@ internal sealed class AtlasCanvas : FrameworkElement
             "Сбор" => Gather,
             "Куб" => Cube,
             "Питомец" => Pet,
-            _ => Ui.Brush("Text")
+            _ => Ui.Brush("Text", this)
         };
         var radius = pin.Category == "Телепорт" ? 5.1 : zoom >= 2 ? 4.0 : 2.7;
         if (compact) radius *= .75;
@@ -330,7 +330,7 @@ internal sealed class AtlasCanvas : FrameworkElement
     {
         var point = Position(pin);
         if (!view.Contains(point)) return;
-        dc.DrawEllipse(null, new Pen(Ui.Brush("Text"), 1.6), point, 9, 9);
+        dc.DrawEllipse(null, new Pen(Ui.Brush("Text", this), 1.6), point, 9, 9);
         var label = Caption(AtlasMarks.DisplayName(pin, _map), 12);
         var x = Math.Clamp(point.X + 12, 5, Math.Max(5, ActualWidth - label.Width - 21));
         var y = Math.Clamp(point.Y - 12, 5, Math.Max(5, ActualHeight - label.Height - 14));
@@ -347,7 +347,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         var unit = Math.Pow(10, Math.Floor(Math.Log10(target)));
         var distance = target < 2 * unit ? unit : target < 5 * unit ? 2 * unit : 5 * unit;
         var length = distance / map.Metres(1) * Scale;
-        var pen = new Pen(Ui.Brush("Text"), 1);
+        var pen = new Pen(Ui.Brush("Text", this), 1);
         dc.DrawRoundedRectangle(Plate, null, new Rect(x - 7, y - 24, Math.Max(77, length + 14), 33), 5, 5);
         dc.DrawLine(pen, new Point(x, y), new Point(x + length, y));
         dc.DrawLine(pen, new Point(x, y - 3), new Point(x, y + 3));
@@ -358,7 +358,7 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     private FormattedText Caption(string value, double size) =>
         new(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI Semibold"),
-            size, Ui.Brush("Text"), VisualTreeHelper.GetDpi(this).PixelsPerDip)
+            size, Ui.Brush("Text", this), VisualTreeHelper.GetDpi(this).PixelsPerDip)
         { MaxTextWidth = Compact ? Math.Clamp(ActualWidth - 30, 40, 180) : 244,
             MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
 

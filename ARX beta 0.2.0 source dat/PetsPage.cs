@@ -126,7 +126,7 @@ public sealed partial class Dashboard
     private static DataTemplate PetTileTemplate()
     {
         var tile = new FrameworkElementFactory(typeof(Border));
-        tile.SetValue(Border.BackgroundProperty, Brush("Surface"));
+        tile.SetResourceReference(Border.BackgroundProperty, "Surface");
         tile.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
         tile.SetValue(Border.PaddingProperty, new Thickness(7));
         var row = new FrameworkElementFactory(typeof(DockPanel));
@@ -147,7 +147,7 @@ public sealed partial class Dashboard
         captions.AppendChild(title);
         var family = new FrameworkElementFactory(typeof(TextBlock));
         family.SetBinding(TextBlock.TextProperty, new Binding(nameof(PetCard.FamilyName)));
-        family.SetValue(TextBlock.ForegroundProperty, Brush("Muted"));
+        family.SetResourceReference(TextBlock.ForegroundProperty, "Muted");
         family.SetValue(TextBlock.FontSizeProperty, 11.0);
         captions.AppendChild(family);
         return new DataTemplate { VisualTree = tile };
@@ -160,7 +160,7 @@ public sealed partial class Dashboard
         headings.VerticalAlignment = VerticalAlignment.Center;
         if (!Loc.English && pet.Name != pet.English) headings.Children.Add(Hint(pet.English));
         var hero = Card(PetHeading(card.Icon, headings, 66), 15);
-        hero.Background = Brush("Raised");
+        hero.SetResourceReference(Border.BackgroundProperty, "Raised");
 
         var source = pet switch
         {
@@ -178,9 +178,9 @@ public sealed partial class Dashboard
             foreach (var zone in pet.Habitats)
                 regions.Children.Add(new Border
                 {
-                    Background = Brush("Raised"), CornerRadius = new CornerRadius(6), Padding = new Thickness(8, 4, 8, 4),
+                    CornerRadius = new CornerRadius(6), Padding = new Thickness(8, 4, 8, 4),
                     Margin = new Thickness(0, 0, 6, 4), Child = Text(Loc.T(zone), 12, "Mint", true)
-                });
+                }.UseBrush(Border.BackgroundProperty, "Raised"));
             location.Children.Add(regions);
         }
 
@@ -207,7 +207,7 @@ public sealed partial class Dashboard
         foreach (var stat in stats)
         {
             var tile = Card(Stack(Space(Text(stat.Value, 21, "Mint", true), 3), Text(stat.Label, 12, "Muted")), 9);
-            tile.Background = Brush("Base");
+            tile.SetResourceReference(Border.BackgroundProperty, "Base");
             tile.Margin = new Thickness(0, 0, 6, 6);
             tiles.Children.Add(tile);
         }

@@ -31,6 +31,7 @@ public sealed class HudWindow : Window
     private readonly Button? _scopeButton;
     private readonly Button? _modeButton;
     private readonly Button? _atlasLock;
+    private ThemePalette _theme;
     private double _surfaceOpacity;
     private bool _mouseLocked;
     private bool? _mousePassesThrough;
@@ -40,6 +41,8 @@ public sealed class HudWindow : Window
     {
         _store = store;
         _kind = kind;
+        _theme = ThemePalette.ForHud(store.Profile);
+        _theme.Apply(Resources);
         _alt.Tick += (_, _) => ApplyMouseInput(Hotkeys.IsAltDown);
         var name = kind switch { HudKind.Combat => Loc.T("Урон"), HudKind.Events => Loc.T("События"), HudKind.Bosses => Loc.T("Боссы"),
             HudKind.Atlas => Loc.T("Миникарта"), _ => Loc.T("Задачи") };
@@ -165,7 +168,7 @@ public sealed class HudWindow : Window
         var locked = available && _store.Profile.AtlasHudLocked;
         SetMouseLock(locked);
         _atlasLock.IsEnabled = available;
-        _atlasLock.Foreground = Brush(locked ? "Mint" : "Text");
+        _atlasLock.SetResourceReference(Control.ForegroundProperty, locked ? "Mint" : "Text");
         _atlasLock.ToolTip = !available ? Loc.T("Закрепление недоступно: Ctrl+Alt+F11 занята.") :
             locked ? Loc.T("Удерживайте Alt для управления мышью · Ctrl+Alt+F11 снимает закрепление") : Loc.T("Закрепить миникарту · Ctrl+Alt+F11");
         System.Windows.Automation.AutomationProperties.SetName(_atlasLock, locked ? Loc.T("Разблокировать миникарту") : Loc.T("Закрепить миникарту"));
@@ -263,19 +266,28 @@ public sealed class HudWindow : Window
         return surface;
     }
 
+    internal void ApplyTheme(ThemePalette theme)
+    {
+        if (_theme == theme) return;
+        _theme = theme;
+        theme.Apply(Resources);
+        ApplySurface();
+        Refresh();
+    }
+
     private void ApplySurface()
     {
         var minimal = _kind == HudKind.Combat && _density == HudDensity.Minimal;
         _frame.Background = minimal ? Brushes.Transparent : new LinearGradientBrush(
-            ((SolidColorBrush)Brush("Raised")).Color, ((SolidColorBrush)Brush("Base")).Color, 65)
+            Brush("Raised", this).Color, Brush("Base", this).Color, 65)
             { Opacity = _surfaceOpacity };
-        _frame.BorderBrush = Faded(Brush("Mint"), _surfaceOpacity * .42);
+        _frame.BorderBrush = Faded(Brush("Mint", this), _surfaceOpacity * .42);
         _frame.BorderThickness = minimal ? new Thickness(0) : new Thickness(1, 2, 1, 1);
         _handle.Effect = TextShadow();
         foreach (Button button in _buttons.Children)
         {
-            button.Background = minimal ? Brushes.Transparent : Faded(Brush("Raised"), _surfaceOpacity);
-            button.BorderBrush = minimal ? Brushes.Transparent : Faded(Brush("Line"), _surfaceOpacity);
+            button.Background = minimal ? Brushes.Transparent : Faded(Brush("Raised", this), _surfaceOpacity);
+            button.BorderBrush = minimal ? Brushes.Transparent : Faded(Brush("Line", this), _surfaceOpacity);
             button.Effect = TextShadow();
         }
         _tasks?.SetSurfaceOpacity(_surfaceOpacity);
@@ -329,7 +341,7 @@ public sealed class HudWindow : Window
         };
         _handle.Text = minimal ? $"◇  ARX · {mode}" : _mouseLocked ? Loc.T("◇  БОЙ · закреплён") : Loc.T("◇  БОЙ");
         _handle.FontSize = minimal ? 11 : 14;
-        _handle.Foreground = Brush(minimal ? "Text" : "Mint");
+        _handle.SetResourceReference(TextBlock.ForegroundProperty, minimal ? "Text" : "Mint");
         if (!minimal)
         {
             var context = current.Fight.Id == Guid.Empty ? mode : $"{mode}   /   {current.Fight.Name}";
@@ -406,22 +418,22 @@ public sealed class HudWindow : Window
         DockPanel.SetDock(countdown, Dock.Right);
         row.Children.Add(countdown);
         row.Children.Add(Ink(Text(name, 13, bold: true)));
-        return Plate(row, Brush(color));
+        return Plate(row, Brush(color, this));
     }
 
-    private Border Plate(UIElement content, Brush accent) => Plate(content, accent, _surfaceOpacity);
+    private Border Plate(UIElement content, Brush accent) => Plate(content, Brush("Raised", this), accent, _surfaceOpacity);
 
-    internal static Border Plate(UIElement content, Brush accent, double opacity)
+    internal static Border Plate(UIElement content, Brush surface, Brush accent, double opacity)
     {
         var plate = new Border { BorderThickness = new Thickness(2, 0, 0, 0), CornerRadius = new CornerRadius(8),
             Padding = new Thickness(8, 5, 8, 5), Child = content };
-        StylePlate(plate, accent, opacity);
+        StylePlate(plate, surface, accent, opacity);
         return plate;
     }
 
-    internal static void StylePlate(Border plate, Brush accent, double opacity)
+    internal static void StylePlate(Border plate, Brush surface, Brush accent, double opacity)
     {
-        plate.Background = Faded(Brush("Raised"), opacity * .82);
+        plate.Background = Faded(surface, opacity * .82);
         plate.BorderBrush = Faded(accent, opacity);
     }
 

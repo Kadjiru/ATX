@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using static ArxBeta.Ui;
 
 namespace ArxBeta;
@@ -307,7 +308,8 @@ public sealed partial class Dashboard
         var folderLabel = Hint("");
         var feedback = Hint("");
         var publishing = false;
-        var publish = new Button { Content = Loc.T("Опубликовать мои метки и таймеры"), Background = Ui.Brush("Mint"), Foreground = Ui.Brush("Base") };
+        var publish = new Button { Content = Loc.T("Опубликовать мои метки и таймеры") }
+            .UseBrush(Control.BackgroundProperty, "Mint").UseBrush(Control.ForegroundProperty, "Base");
         publish.Click += (_, _) => _ = Publish();
         page.Children.Add(Card(Stack(Space(Text(Loc.T("Синхронизация группы"), 20, bold: true), 7),
             Space(Hint(Loc.T("Выберите папку, к которой участники уже имеют доступ. Один редактор публикует общий набор. У остальных ARX проверяет его каждые 15 секунд.")), 8),
@@ -317,6 +319,7 @@ public sealed partial class Dashboard
             feedback, Hint(Loc.F($"{_catalog.Status} · ревизия {_catalog.Revision}")))));
         _refreshTime = () => { UpdateTeam(); RefreshHudStatus(); RefreshUpdate(); };
         UpdateTeam();
+        page.Children.Insert(2, Space(AppearanceSettings(), 12));
         return page;
 
         void RefreshUpdate()
@@ -406,6 +409,78 @@ public sealed partial class Dashboard
             finally { publishing = false; UpdateTeam(); }
         }
     }
+
+    private Border AppearanceSettings()
+    {
+        var themes = ThemePalette.Options.ToArray();
+        var profile = _store.Profile;
+        var client = Choice(themes.Select(theme => theme.Label), 180, localize: false);
+        var hud = Choice([Loc.T("Как в приложении"), .. themes.Select(theme => theme.Label)], 180, localize: false);
+        client.SelectedIndex = Array.IndexOf(themes, ThemePalette.ForApp(profile));
+        hud.SelectedIndex = Array.FindIndex(themes, theme => theme.Id == profile.HudTheme) + 1;
+        var clientPreview = new ContentControl();
+        var hudPreview = new ContentControl();
+        var status = Hint("");
+        var pickers = Actions(
+            Space(Stack(Field(Loc.T("Тема приложения"), client), clientPreview), 7),
+            Space(Stack(Field(Loc.T("Тема HUD"), hud), hudPreview), 7));
+        client.SelectionChanged += (_, _) => Preview();
+        hud.SelectionChanged += (_, _) => Preview();
+        Preview();
+        return Card(Stack(Space(Text(Loc.T("Оформление"), 20, bold: true), 4),
+            Space(Hint(Loc.T("Выберите палитры отдельно. Тема HUD применяется ко всем окнам поверх игры.")), 10),
+            pickers, Actions(Button(Loc.T("Применить темы"), Apply, true)), status));
+
+        void Preview()
+        {
+            var selected = themes[Math.Max(0, client.SelectedIndex)];
+            clientPreview.Content = ThemeSample(selected);
+            hudPreview.Content = ThemeSample(hud.SelectedIndex > 0 ? themes[hud.SelectedIndex - 1] : selected);
+            status.Text = "";
+        }
+
+        void Apply()
+        {
+            var error = Loc.T("Темы не сохранены. Файл профиля недоступен.");
+            if (_store.LoadError is not null)
+            {
+                status.Text = error;
+                return;
+            }
+
+            var previous = (profile.AppTheme, profile.HudTheme);
+            profile.AppTheme = themes[Math.Max(0, client.SelectedIndex)].Id;
+            profile.HudTheme = hud.SelectedIndex > 0 ? themes[hud.SelectedIndex - 1].Id : ThemePalette.FollowApp;
+            try { _store.Save(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                (profile.AppTheme, profile.HudTheme) = previous;
+                status.Text = error;
+                return;
+            }
+
+            App.CurrentApp.ApplyThemes();
+            status.Text = Loc.T("Темы применены и сохранены.");
+        }
+    }
+
+    private static Border ThemeSample(ThemePalette theme)
+    {
+        var text = Text(theme.Label, 12, bold: true);
+        text.Foreground = new SolidColorBrush(ThemePalette.FromRgb(theme.Text));
+        var accent = new Border { Width = 18, Height = 18, CornerRadius = new CornerRadius(5),
+            Margin = new Thickness(0, 0, 7, 0), Background = new SolidColorBrush(ThemePalette.FromRgb(theme.Accent)) };
+        var row = new DockPanel();
+        DockPanel.SetDock(accent, Dock.Left);
+        row.Children.Add(accent);
+        row.Children.Add(text);
+        return new Border
+        {
+            Width = 180, Padding = new Thickness(8), Margin = new Thickness(0, 5, 0, 0), CornerRadius = new CornerRadius(8),
+            BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(ThemePalette.FromRgb(theme.Line)),
+            Background = new SolidColorBrush(ThemePalette.FromRgb(theme.Raised)), Child = row
+        };
+    }
 }
 
 internal sealed class TaskPanel : StackPanel
@@ -434,10 +509,10 @@ internal sealed class TaskPanel : StackPanel
     public void SetSurfaceOpacity(double opacity)
     {
         _surfaceOpacity = opacity;
-        _note.Background = HudWindow.Faded(Ui.Brush("Base"), opacity);
-        _note.BorderBrush = HudWindow.Faded(Ui.Brush("Line"), opacity);
-        _add.Background = HudWindow.Faded(Ui.Brush("Raised"), opacity);
-        _add.BorderBrush = HudWindow.Faded(Ui.Brush("Mint"), opacity * .5);
+        _note.Background = HudWindow.Faded(Ui.Brush("Base", this), opacity);
+        _note.BorderBrush = HudWindow.Faded(Ui.Brush("Line", this), opacity);
+        _add.Background = HudWindow.Faded(Ui.Brush("Raised", this), opacity);
+        _add.BorderBrush = HudWindow.Faded(Ui.Brush("Mint", this), opacity * .5);
     }
 
     private void Add()
@@ -468,7 +543,7 @@ internal sealed class TaskPanel : StackPanel
                 _store.Commit();
                 Refresh();
             };
-            _rows.Children.Add(_compact ? Space(HudWindow.Plate(check, Ui.Brush("Mint"), _surfaceOpacity), 5) : check);
+            _rows.Children.Add(_compact ? Space(HudWindow.Plate(check, Ui.Brush("Raised", this), Ui.Brush("Mint", this), _surfaceOpacity), 5) : check);
         }
     }
 }

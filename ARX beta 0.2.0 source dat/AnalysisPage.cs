@@ -18,7 +18,8 @@ public sealed partial class Dashboard
         {
             if (_store.LiveAnalysis is { } live) _store.SetFight(live.Fight, false);
         }), Button(Loc.T("Экспорт отчёта"), () => ExportFight(result.Fight))));
-        var input = new Expander { Header = Loc.T("Добавить отчёт"), Foreground = Ui.Brush("Mint"), IsExpanded = result.Players.Length == 0 };
+        var input = new Expander { Header = Loc.T("Добавить отчёт"), IsExpanded = result.Players.Length == 0 }
+            .UseBrush(Control.ForegroundProperty, "Mint");
         var title = Input("", 218, 80);
         var self = Input(_store.Profile.Character, 180, 80);
         var duration = Input("60", 96, 8);
@@ -188,14 +189,14 @@ public sealed partial class Dashboard
         {
             var cells = TableRow(values(row), false);
             if (choose is null)
-                result.Children.Add(new Border { Background = Ui.Brush(alternate ? "Raised" : "Surface"), Child = cells });
+                result.Children.Add(new Border { Child = cells }.UseBrush(Border.BackgroundProperty, alternate ? "Raised" : "Surface"));
             else
             {
                 var button = Button("", () => choose(row));
                 button.Content = cells;
                 button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
                 button.Padding = new Thickness(0);
-                button.Background = Ui.Brush(alternate ? "Raised" : "Surface");
+                button.SetResourceReference(Control.BackgroundProperty, alternate ? "Raised" : "Surface");
                 button.BorderThickness = new Thickness(0);
                 result.Children.Add(button);
             }

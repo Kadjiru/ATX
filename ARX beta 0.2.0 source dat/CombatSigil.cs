@@ -16,10 +16,13 @@ internal sealed class CombatSigil : FrameworkElement
     {
         dc.PushTransform(new ScaleTransform(ActualWidth / 440, ActualHeight / 218));
         var center = new Point(220, 109);
-        var glow = new RadialGradientBrush(Color.FromArgb(70, 126, 245, 206), Colors.Transparent);
+        var accent = Ui.Brush("Mint", this).Color;
+        var highlight = Ui.Brush("Coral", this).Color;
+        static Color Tint(Color color, byte alpha) => Color.FromArgb(alpha, color.R, color.G, color.B);
+        var glow = new RadialGradientBrush(Tint(accent, 70), Colors.Transparent);
         dc.DrawEllipse(glow, null, center, 210, 107);
-        var outline = new Pen(new SolidColorBrush(Color.FromArgb(88, 140, 229, 210)), 1);
-        var warm = new Pen(new SolidColorBrush(Color.FromArgb(195, 255, 213, 151)), 1);
+        var outline = new Pen(new SolidColorBrush(Tint(accent, 88)), 1);
+        var warm = new Pen(new SolidColorBrush(Tint(highlight, 195)), 1);
         foreach (var radius in new[] { 68, 86, 95 })
             dc.DrawEllipse(null, outline, center, radius, radius);
         for (var i = 0; i < 36; i++)
@@ -28,8 +31,8 @@ internal sealed class CombatSigil : FrameworkElement
             Point At(double r) => center + new Vector(r * Math.Cos(angle), r * Math.Sin(angle));
             dc.DrawLine(i % 3 == 0 ? warm : outline, At(90), At(i % 3 == 0 ? 98 : 94));
         }
-        dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(45, 124, 240, 203)), outline, Wings);
-        dc.DrawGeometry(new SolidColorBrush(Color.FromArgb(30, 255, 213, 151)), warm, Crest);
+        dc.DrawGeometry(new SolidColorBrush(Tint(accent, 45)), outline, Wings);
+        dc.DrawGeometry(new SolidColorBrush(Tint(highlight, 30)), warm, Crest);
         dc.DrawEllipse(Ui.Brush("Coral"), null, new Point(220, 106), 3, 3);
         dc.Pop();
     }

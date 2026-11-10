@@ -20,10 +20,10 @@ public sealed partial class Dashboard
 
             var key = new Border
             {
-                Background = Ui.Brush("Raised"), CornerRadius = new CornerRadius(6), Padding = new Thickness(9, 5, 9, 5),
+                CornerRadius = new CornerRadius(6), Padding = new Thickness(9, 5, 9, 5),
                 HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center,
                 Child = Text(shortcut.Label, 13, "Mint", true)
-            };
+            }.UseBrush(Border.BackgroundProperty, "Raised");
             var description = Text(shortcut.Description);
             description.VerticalAlignment = VerticalAlignment.Center;
             description.Margin = new Thickness(0, 4, 8, 4);
@@ -33,7 +33,8 @@ public sealed partial class Dashboard
             Place(row, key, 0, 0);
             Place(row, description, 0, 1);
             Place(row, status, 0, 2);
-            entries.Children.Add(new Border { BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 0, 1), Child = row });
+            entries.Children.Add(new Border { BorderThickness = new Thickness(0, 0, 0, 1), Child = row }
+                .UseBrush(Border.BorderBrushProperty, "Line"));
         }
         page.Children.Add(Card(Stack(Space(Label(Loc.T("СОЧЕТАНИЯ ARX")), 6),
             Space(Hint(Loc.T("Удерживайте Alt, чтобы щёлкать по закреплённому HUD или перетаскивать его за заголовок. Отпустите Alt, чтобы вернуть пропуск щелчков.")), 8),

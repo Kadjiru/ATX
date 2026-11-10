@@ -95,7 +95,7 @@ public sealed partial class Dashboard
             produced, Hint(Loc.F($"{ProfessionName(recipe.Profession)} · {recipe.Yield:N0} за изготовление") +
                 (recipe.Faction == 1 ? Loc.T(" · вариант фракции 1") : ""))));
         var outputCard = Card(result, 12);
-        outputCard.Background = Ui.Brush("Base");
+        outputCard.SetResourceReference(Border.BackgroundProperty, "Base");
         var panel = Stack(Space(outputCard, 11),
             Space(Field(Loc.T("Сколько предметов нужно"), count), 10));
         var grid = new Grid();
