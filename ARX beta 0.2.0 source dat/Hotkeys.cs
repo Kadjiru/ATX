@@ -28,6 +28,7 @@ internal sealed class Hotkeys : IDisposable
     public List<string> Unavailable { get; } = [];
     public bool ClickThroughRegistered => _registered.ContainsKey(2);
     public bool AtlasLockRegistered => _registered.ContainsKey(AtlasLockId);
+    public static bool IsAltDown => GetAsyncKeyState(0x12) < 0;
 
     public Hotkeys(Action showCombat, Action toggleClickThrough, Action archive,
         Action<HudDensity> density, Action<double> opacity, Action showBosses, Action showAtlas, Action lockAtlas)
@@ -73,6 +74,7 @@ internal sealed class Hotkeys : IDisposable
 
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(nint hWnd, int id, uint modifiers, uint key);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(nint hWnd, int id);
+    [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll", EntryPoint = "GetWindowLongW")] private static extern int GetWindowLong(nint hWnd, int index);
     [DllImport("user32.dll", EntryPoint = "SetWindowLongW")] private static extern int SetWindowLong(nint hWnd, int index, int value);
 }

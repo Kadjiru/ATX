@@ -35,7 +35,9 @@ public sealed partial class Dashboard
             Place(row, status, 0, 2);
             entries.Children.Add(new Border { BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 0, 1), Child = row });
         }
-        page.Children.Add(Card(Stack(Space(Label(Loc.T("СОЧЕТАНИЯ ARX")), 6), Space(entries, 14),
+        page.Children.Add(Card(Stack(Space(Label(Loc.T("СОЧЕТАНИЯ ARX")), 6),
+            Space(Hint(Loc.T("Удерживайте Alt, чтобы щёлкать по закреплённому HUD или перетаскивать его за заголовок. Отпустите Alt, чтобы вернуть пропуск щелчков.")), 8),
+            Space(entries, 14),
             Space(Hint(Loc.T("При конфликте с другой программой воспользуйтесь кнопками ARX. Если HUD закреплён, Ctrl+Alt+L возвращает управление мышью.")), 10),
             Actions(Button(Loc.T("К настройкам HUD"), () => Navigate("settings"))))));
         return page;

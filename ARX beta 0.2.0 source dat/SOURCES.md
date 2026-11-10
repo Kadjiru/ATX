@@ -1,4 +1,4 @@
-# Источники ARX beta 1.0.5
+# Источники ARX beta 1.0.6
 
 - [NCSOFT, правила Aion 2 Global](https://www.plaync.com/policy/operation/aion2global) и [разъяснение службы поддержки](https://help.plaync.com/faq/aion2global/view?faqNo=7164). Проверено 8 ноября 2026. Захват ARX включается пользователем, читает локальный поток и не обращается к процессу или памяти игры. Пакеты не записываются и не передаются. Отдельное разрешение оператора на использование ARX не подтверждено.
 - [AION2 DPS Meter](https://github.com/cyberbadger6969/aion2-dps-meter), GPL‑3.0. ARX использует включённый в репозиторий декодер, сборщик TCP и боевой движок из AionMeter.Core. Происхождение таблиц навыков и NPC указано в соседнем data/NOTICE.md.

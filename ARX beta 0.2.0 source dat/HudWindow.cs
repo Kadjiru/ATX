@@ -15,10 +15,12 @@ public enum CombatHudScope { Self, Party }
 
 public sealed class HudWindow : Window
 {
+    private static readonly Brush AltMouseSurface = CreateAltMouseSurface();
     private readonly LegionStore _store;
     private readonly HudKind _kind;
     private readonly StackPanel _body = new();
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
+    private readonly DispatcherTimer _alt = new(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(25) };
     private TaskPanel? _tasks;
     private readonly BossHudPanel? _bosses;
     private readonly AtlasHudPanel? _atlas;
@@ -30,13 +32,15 @@ public sealed class HudWindow : Window
     private readonly Button? _modeButton;
     private readonly Button? _atlasLock;
     private double _surfaceOpacity;
-    private bool _clickThrough;
+    private bool _mouseLocked;
+    private bool? _mousePassesThrough;
     private HudDensity _density;
 
     public HudWindow(LegionStore store, HudKind kind)
     {
         _store = store;
         _kind = kind;
+        _alt.Tick += (_, _) => ApplyMouseInput(Hotkeys.IsAltDown);
         var name = kind switch { HudKind.Combat => Loc.T("Урон"), HudKind.Events => Loc.T("События"), HudKind.Bosses => Loc.T("Боссы"),
             HudKind.Atlas => Loc.T("Миникарта"), _ => Loc.T("Задачи") };
         Title = $"ARX · {name}";
@@ -96,6 +100,7 @@ public sealed class HudWindow : Window
         DockPanel.SetDock(_buttons, Dock.Right);
         bar.Children.Add(_buttons);
         _handle = Text($"◇  {name.ToUpperInvariant()}", 14, "Mint", true);
+        _handle.Background = Brushes.Transparent;
         _handle.VerticalAlignment = VerticalAlignment.Center;
         _handle.Cursor = Cursors.SizeAll;
         _handle.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) DragMove(); };
@@ -143,6 +148,7 @@ public sealed class HudWindow : Window
         }
         Closed += (_, _) =>
         {
+            _alt.Stop();
             _clock.Stop();
             _store.Changed -= Refresh;
             _store.LiveChanged -= Refresh;
@@ -157,12 +163,11 @@ public sealed class HudWindow : Window
         if (_atlasLock is null) return;
         var available = App.CurrentApp.AtlasLockAvailable;
         var locked = available && _store.Profile.AtlasHudLocked;
-        var handle = new WindowInteropHelper(this).Handle;
-        if (handle != 0) Hotkeys.SetClickThrough(handle, locked);
+        SetMouseLock(locked);
         _atlasLock.IsEnabled = available;
         _atlasLock.Foreground = Brush(locked ? "Mint" : "Text");
         _atlasLock.ToolTip = !available ? Loc.T("Закрепление недоступно: Ctrl+Alt+F11 занята.") :
-            locked ? Loc.T("Миникарта закреплена · Ctrl+Alt+F11 разблокирует") : Loc.T("Закрепить миникарту · Ctrl+Alt+F11");
+            locked ? Loc.T("Удерживайте Alt для управления мышью · Ctrl+Alt+F11 снимает закрепление") : Loc.T("Закрепить миникарту · Ctrl+Alt+F11");
         System.Windows.Automation.AutomationProperties.SetName(_atlasLock, locked ? Loc.T("Разблокировать миникарту") : Loc.T("Закрепить миникарту"));
     }
 
@@ -221,13 +226,41 @@ public sealed class HudWindow : Window
         var app = App.CurrentApp;
         if (_density != _store.Profile.CombatHudDensity) SetDensity(_store.Profile.CombatHudDensity, restoreHeight: false);
         _surfaceOpacity = Math.Clamp(_store.Profile.CombatHudOpacity ?? _surfaceOpacity, 0, 1);
-        _clickThrough = _store.Profile.CombatHudLocked && app.ClickThroughAvailable;
-        var handle = new WindowInteropHelper(this).Handle;
-        if (handle != 0) Hotkeys.SetClickThrough(handle, _clickThrough);
-        _handle.ToolTip = app.ClickThroughAvailable ? Loc.T("Пропуск щелчков · Ctrl+Alt+L") :
+        SetMouseLock(_store.Profile.CombatHudLocked && app.ClickThroughAvailable);
+        _handle.ToolTip = app.ClickThroughAvailable ? Loc.T("Удерживайте Alt для управления мышью · Ctrl+Alt+L меняет закрепление") :
             Loc.T("Закрепление недоступно: Ctrl+Alt+L занята другим приложением.");
         ApplySurface();
         Refresh();
+    }
+
+    private void SetMouseLock(bool locked)
+    {
+        _mouseLocked = locked;
+        ApplyMouseInput(locked && Hotkeys.IsAltDown);
+        if (locked) _alt.Start();
+        else _alt.Stop();
+    }
+
+    private void ApplyMouseInput(bool altDown)
+    {
+        var temporaryInput = _mouseLocked && altDown;
+        var background = temporaryInput ? AltMouseSurface : Brushes.Transparent;
+        if (Background != background) Background = background;
+
+        var passThrough = _mouseLocked && !altDown;
+        if (_mousePassesThrough == passThrough) return;
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == 0) return;
+        Hotkeys.SetClickThrough(handle, passThrough);
+        _mousePassesThrough = passThrough;
+    }
+
+    private static Brush CreateAltMouseSurface()
+    {
+        // A layered window needs nonzero alpha for clicks on its transparent regions.
+        var surface = new SolidColorBrush(Color.FromArgb(1, 0, 0, 0));
+        surface.Freeze();
+        return surface;
     }
 
     private void ApplySurface()
@@ -294,7 +327,7 @@ public sealed class HudWindow : Window
             { Members.Count: > 0 } => Loc.F($"СВОЯ ГРУППА · {rows.Count}"),
             _ => Loc.T("ТОЛЬКО ВЫ")
         };
-        _handle.Text = minimal ? $"◇  ARX · {mode}" : _clickThrough ? Loc.T("◇  БОЙ · закреплён") : Loc.T("◇  БОЙ");
+        _handle.Text = minimal ? $"◇  ARX · {mode}" : _mouseLocked ? Loc.T("◇  БОЙ · закреплён") : Loc.T("◇  БОЙ");
         _handle.FontSize = minimal ? 11 : 14;
         _handle.Foreground = Brush(minimal ? "Text" : "Mint");
         if (!minimal)

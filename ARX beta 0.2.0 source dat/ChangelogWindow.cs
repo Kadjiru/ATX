@@ -10,8 +10,8 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
-        (Loc.T("Английский интерфейс"), Loc.T("Откройте «Язык / Language» в настройках, выберите English и перезапустите ARX.")),
-        (Loc.T("HUD и справочники"), Loc.T("Выбранный язык используется в окнах HUD, Атласе, справочниках и окнах обновления."))
+        (Loc.T("Управление HUD через Alt"),
+            Loc.T("Удерживайте Alt, чтобы щёлкать по закреплённому HUD или перетаскивать его за заголовок. Отпустите Alt, чтобы вернуть пропуск щелчков."))
     ];
 
     public ChangelogWindow(Window? owner, string version)

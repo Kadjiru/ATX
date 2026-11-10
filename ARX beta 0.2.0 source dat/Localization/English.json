@@ -1,5 +1,9 @@
 {
   "\nX {0:0} м · Y {1:0} м": "\nX {0:0} m · Y {1:0} m",
+  "Управление HUD через Alt": "HUD mouse control with Alt",
+  "Удерживайте Alt для управления мышью · Ctrl+Alt+F11 снимает закрепление": "Hold Alt for mouse control · Ctrl+Alt+F11 unlocks the minimap",
+  "Удерживайте Alt для управления мышью · Ctrl+Alt+L меняет закрепление": "Hold Alt for mouse control · Ctrl+Alt+L toggles the lock",
+  "Удерживайте Alt, чтобы щёлкать по закреплённому HUD или перетаскивать его за заголовок. Отпустите Alt, чтобы вернуть пропуск щелчков.": "Hold Alt to click a locked HUD or drag it by the title. Release Alt to restore click-through.",
   "     /     Атлас: {0} из {1} меток": "      /     Atlas: {0} of {1} markers",
   "   ·   авто": "   ·   auto",
   "  ·  {0} урона": " · {0} damage",
