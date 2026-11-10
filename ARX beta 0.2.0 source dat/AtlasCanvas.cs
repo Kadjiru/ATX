@@ -35,6 +35,7 @@ internal sealed class AtlasCanvas : FrameworkElement
     private IReadOnlyList<MapPin> _pins = [];
     private IReadOnlyList<MapPin> _route = [];
     private MapPin? _hover;
+    private MapPin? _focusBeforeLayout;
     private readonly DispatcherTimer _detailTimer = new() { Interval = TimeSpan.FromMilliseconds(95) };
     private DetailRequest? _requestedDetail;
     private DetailRequest? _renderedDetail;
@@ -44,6 +45,7 @@ internal sealed class AtlasCanvas : FrameworkElement
     private sealed record DetailRequest(AtlasCatalog.AtlasMap Map, Rect Area, int Width, int Height);
 
     public bool Placing { get; set; }
+    public bool Compact { get; init; }
     public Guid? Selected { get; set; }
     public event Action<MapPin>? PinSelected;
     public event Action<Point>? PinRequested;
@@ -78,6 +80,7 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     public void Fit()
     {
+        _focusBeforeLayout = null;
         _zoom = 1;
         _pan = default;
         QueueDetail();
@@ -86,6 +89,12 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     public void FocusPin(MapPin pin)
     {
+        if (Scale <= 0)
+        {
+            _focusBeforeLayout = pin;
+            return;
+        }
+        _focusBeforeLayout = null;
         _zoom = Math.Max(2.8, _zoom);
         _pan = new Vector((W / 2 - pin.X) * Scale, (H / 2 - pin.Y) * Scale);
         KeepInView();
@@ -119,6 +128,11 @@ internal sealed class AtlasCanvas : FrameworkElement
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
+        if (_focusBeforeLayout is { } pin && Scale > 0)
+        {
+            FocusPin(pin);
+            return;
+        }
         KeepInView();
         QueueDetail();
     }
@@ -157,13 +171,12 @@ internal sealed class AtlasCanvas : FrameworkElement
         var track = new Pen(Teleport, 1.4) { DashStyle = DashStyles.Dash };
         for (var i = 1; i < _route.Count; i++)
             dc.DrawLine(track, Position(_route[i - 1]), Position(_route[i]));
-        foreach (var pin in _pins)
+        foreach (var pin in ScreenPins(view))
         {
             var point = Position(pin);
-            if (!view.Contains(point)) continue;
-            DrawMarker(dc, pin, point, _zoom);
+            DrawMarker(dc, pin, point, _zoom, Compact);
         }
-        DrawLandmarks(dc, view);
+        if (!Compact || _zoom >= 2.8) DrawLandmarks(dc, view);
         if (_pins.FirstOrDefault(pin => pin.Id == Selected) is { } selected)
             DrawCallout(dc, view, selected);
         if (_hover is { } hover && hover.Id != Selected)
@@ -270,7 +283,7 @@ internal sealed class AtlasCanvas : FrameworkElement
         for (var y = 0; y <= H; y += 100) dc.DrawLine(line, new Point(0, y), new Point(W, y));
     }
 
-    private static void DrawMarker(DrawingContext dc, MapPin pin, Point at, double zoom)
+    private static void DrawMarker(DrawingContext dc, MapPin pin, Point at, double zoom, bool compact)
     {
         var color = pin.Found ? GridLine : pin.Category switch
         {
@@ -282,6 +295,7 @@ internal sealed class AtlasCanvas : FrameworkElement
             _ => Ui.Brush("Text")
         };
         var radius = pin.Category == "Телепорт" ? 5.1 : zoom >= 2 ? 4.0 : 2.7;
+        if (compact) radius *= .75;
         if (pin.Category == "Телепорт")
         {
             var diamond = new StreamGeometry();
@@ -345,7 +359,8 @@ internal sealed class AtlasCanvas : FrameworkElement
     private FormattedText Caption(string value, double size) =>
         new(value, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI Semibold"),
             size, Ui.Brush("Text"), VisualTreeHelper.GetDpi(this).PixelsPerDip)
-        { MaxTextWidth = 244, MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
+        { MaxTextWidth = Compact ? Math.Clamp(ActualWidth - 30, 40, 180) : 244,
+            MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
 
     private static Brush Swatch(string value)
     {
@@ -356,9 +371,35 @@ internal sealed class AtlasCanvas : FrameworkElement
 
     private MapPin? Hit(Point at)
     {
-        var closest = _pins.MinBy(pin => (Position(pin) - at).LengthSquared);
+        var closest = ScreenPins(new Rect(0, 0, ActualWidth, ActualHeight))
+            .MinBy(pin => (Position(pin) - at).LengthSquared);
         return closest is not null && (Position(closest) - at).LengthSquared <= 100 ? closest : null;
     }
+
+    private IEnumerable<MapPin> ScreenPins(Rect view)
+    {
+        if (!Compact) return _pins.Where(pin => view.Contains(Position(pin)));
+
+        // Keep crowded zones legible on the small canvas. The search still lists every matching pin.
+        const double spacing = 11;
+        var cells = new Dictionary<(int X, int Y), MapPin>();
+        foreach (var pin in _pins)
+        {
+            var point = Position(pin);
+            if (!view.Contains(point)) continue;
+            var cell = ((int)(point.X / spacing), (int)(point.Y / spacing));
+            if (!cells.TryGetValue(cell, out var other) || Priority(pin) > Priority(other))
+                cells[cell] = pin;
+        }
+        return cells.Values;
+    }
+
+    private int Priority(MapPin pin) => pin.Id == Selected ? 4 : pin.Category switch
+    {
+        "Заметка" => 3,
+        "Телепорт" => 2,
+        _ => pin.Found ? 0 : 1
+    };
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {

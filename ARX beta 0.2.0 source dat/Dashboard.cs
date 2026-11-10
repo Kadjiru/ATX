@@ -14,6 +14,7 @@ public sealed partial class Dashboard : Window
     private readonly CatalogSync _catalog;
     private readonly ScrollViewer _scroll;
     private readonly TextBlock _status;
+    private readonly Button _updateBadge;
     private readonly Dictionary<string, Button> _navigation = [];
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private Action? _refreshTime;
@@ -57,6 +58,17 @@ public sealed partial class Dashboard : Window
         _status = Text("", 12, "Mint", true);
         _status.VerticalAlignment = VerticalAlignment.Center;
         _status.Margin = new Thickness(22, 0, 0, 0);
+        _status.TextTrimming = TextTrimming.CharacterEllipsis;
+        _status.TextWrapping = TextWrapping.NoWrap;
+        _updateBadge = Button("Обновление", () => _ = App.CurrentApp.OpenUpdateAsync());
+        _updateBadge.Margin = new Thickness(11, 0, 0, 0);
+        _updateBadge.MinHeight = 28;
+        _updateBadge.Padding = new Thickness(9, 4, 9, 4);
+        _updateBadge.VerticalAlignment = VerticalAlignment.Center;
+        WindowChrome.SetIsHitTestVisibleInChrome(_updateBadge, true);
+        var statusBar = new StackPanel { Orientation = Orientation.Horizontal };
+        statusBar.Children.Add(_status);
+        statusBar.Children.Add(_updateBadge);
         var top = new DockPanel { Margin = new Thickness(16, 0, 8, 0) };
         var chrome = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         foreach (var button in new[] { Button("−", () => WindowState = WindowState.Minimized),
@@ -74,7 +86,7 @@ public sealed partial class Dashboard : Window
         DockPanel.SetDock(brand, Dock.Left);
         top.Children.Add(chrome);
         top.Children.Add(brand);
-        top.Children.Add(_status);
+        top.Children.Add(statusBar);
         var topFrame = new Border { Background = Ui.Brush("Surface"), Child = top,
             BorderBrush = Ui.Brush("Line"), BorderThickness = new Thickness(0, 0, 0, 1) };
         Grid.SetColumnSpan(topFrame, 2);
@@ -170,6 +182,27 @@ public sealed partial class Dashboard : Window
     private void UpdateStatus()
     {
         _status.Text = "●  " + (_store.Preview ? "Предпросмотр" : _store.CaptureLabel);
+    }
+
+    internal void RefreshUpdateStatus()
+    {
+        var app = App.CurrentApp;
+        var updates = app.Updates;
+        _updateBadge.Content = app.UpdateApproved ? "Обновление · при выходе" : updates?.Phase switch
+        {
+            UpdatePhase.Checking => "Обновление · проверка",
+            UpdatePhase.Downloading => $"Обновление · {updates.DownloadPercent}%",
+            UpdatePhase.Verifying => "Обновление · проверка файла",
+            UpdatePhase.Current => "Обновление · актуально",
+            UpdatePhase.Available => "Обновление · доступно",
+            UpdatePhase.Ready => "Обновление · установить",
+            UpdatePhase.Failed => "Обновление · повторить",
+            _ => "Обновление"
+        };
+        _updateBadge.ToolTip = app.UpdateApproved ? "Установится при закрытии ARX. Нажмите, чтобы изменить выбор." :
+            updates?.Status ?? "Проверить обновление ARX";
+        _updateBadge.Foreground = Brush(updates?.Phase is UpdatePhase.Available or UpdatePhase.Ready ? "Mint" : "Text");
+        _updateBadge.IsEnabled = updates?.Phase is not (UpdatePhase.Checking or UpdatePhase.Downloading or UpdatePhase.Verifying);
     }
 
     private void OnLiveChanged()
@@ -288,7 +321,7 @@ public sealed partial class Dashboard : Window
         page.Children.Add(Card(Stack(Space(Label("ЗАБЕГ И АТЛАС"), 6), Space(runInfo, 8),
             Actions(Button("Забеги", () => Navigate("expeditions")), Button("Атлас", () => Navigate("atlas")),
                 Button("HUD событий", () => Hud(HudKind.Events)), Button("HUD задач", () => Hud(HudKind.Tasks)),
-                Button("HUD боссов", () => Hud(HudKind.Bosses)))), 15));
+                Button("HUD боссов", () => Hud(HudKind.Bosses)), Button("Миникарта HUD", () => Hud(HudKind.Atlas)))), 15));
         _refreshLive = Refresh;
         Refresh();
         return page;
@@ -309,7 +342,7 @@ public sealed partial class Dashboard : Window
             var snapshot = fight.Captured?.Summary;
             var roster = _store.FollowLive ? _store.LiveRoster : null;
             var character = _store.FollowLive ? _store.LiveCharacter : null;
-            var rows = PartyCombat.Rows(current, character, roster);
+            var rows = PartyCombat.Rows(current, character, roster, scope: _store.FollowLive ? CombatHudScope.Party : null);
             var own = rows.FirstOrDefault(r => r.IsSelf);
             source.Text = fight.Demo ? "01   /   ДЕМОНСТРАЦИЯ" : snapshot is not null
                 ? snapshot.IsActive && _store.FollowLive ? "01   /   В БОЮ" : "01   /   ЗАПИСЬ БОЯ"
@@ -323,7 +356,7 @@ public sealed partial class Dashboard : Window
             identity.Text = self is null ? "Персонаж ещё не определён" : self + (character?.Confirmed == false ? " · по имени" : "");
             identity.ToolTip = identity.Text;
             personal.Text = own?.Stats is { } ownStats ? Compact(current.Rate(ownStats.Damage)) : "—";
-            context.Text = _store.FollowLive && roster is null ? "Наблюдаемые игроки"
+            context.Text = _store.FollowLive && roster is null ? "Только вы · ждём состав"
                 : roster?.Members.Count == 0 ? "Одиночный бой" : "За боевой сегмент";
             numbers.Text = rows.Any(r => r.Stats is not null) ? Compact(current.Dps) : "—";
             damage.Text = rows.Any(r => r.Stats is not null) ? Compact(current.Damage) : "—";

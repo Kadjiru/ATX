@@ -8,7 +8,7 @@ public sealed partial class Dashboard
 {
     private UIElement HotkeysPage()
     {
-        var page = Heading("Горячие клавиши", "Управление боевым HUD и завершение сегмента");
+        var page = Heading("Горячие клавиши", "Управление боевым HUD, миникартой и таймерами");
         var entries = new StackPanel();
         foreach (var shortcut in Hotkeys.Shortcuts)
         {

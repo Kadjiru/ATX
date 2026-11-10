@@ -8,9 +8,12 @@ namespace ArxBeta;
 
 public sealed partial class Dashboard
 {
-    private sealed record AtlasLayer(string? Key, string Label)
+    private AtlasSelection? _atlasJump;
+
+    internal void OpenAtlas(AtlasSelection selection)
     {
-        public override string ToString() => Label;
+        _atlasJump = selection;
+        Navigate("atlas");
     }
 
     private sealed record AtlasListRow(MapPin Pin)
@@ -21,12 +24,14 @@ public sealed partial class Dashboard
     private UIElement AtlasPage()
     {
         var profile = _store.Profile;
+        var jump = _atlasJump;
+        _atlasJump = null;
         var page = Heading("Атлас Aion 2", "Точки интереса, личные отметки и маршруты по Атреи");
         var region = new ComboBox { ItemsSource = AtlasZone.All, Width = 222, MinHeight = 32,
-            SelectedItem = AtlasZone.All.FirstOrDefault(z => z.Id == profile.AtlasZone) ?? AtlasZone.All[0] };
+            SelectedItem = AtlasZone.All.FirstOrDefault(z => z.Id == (jump?.Zone ?? profile.AtlasZone)) ?? AtlasZone.All[0] };
         var layers = new ComboBox { Width = 168, MinHeight = 32 };
         var search = Input("", 197, 120);
-        var category = Choice(["Все категории", "Телепорт", "След", "Сбор", "Куб", "Питомец", "Босс", "Подземелье", "Заметка"], 145);
+        var category = Choice(AtlasMarks.Categories, 145);
         var type = Choice(["Заметка", "Телепорт", "След", "Сбор", "Босс", "Подземелье", "Куб"], 118);
         var pending = new CheckBox { Content = "Скрыть найденные" };
         var title = Text("", 19, bold: true);
@@ -64,8 +69,12 @@ public sealed partial class Dashboard
         mapArea.Children.Add(map);
         mapArea.Children.Add(empty);
 
+        var miniMap = Button("Миникарта HUD", () => App.CurrentApp.ShowAtlasHud(
+            new AtlasSelection(Zone().Id, layer, selection == Guid.Empty ? null : selection)), true);
+        miniMap.ToolTip = "Открыть миникарту ARX в текущей зоне · Ctrl+Alt+F10";
+        miniMap.VerticalAlignment = VerticalAlignment.Bottom;
         page.Children.Add(Space(Actions(Field("Зона", region), Field("Слой", layers), Field("Поиск по имени", search),
-            Field("Категория", category)), 6));
+            Field("Категория", category), miniMap), 6));
         var split = new Grid();
         split.ColumnDefinitions.Add(new ColumnDefinition());
         split.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(270) });
@@ -130,25 +139,24 @@ public sealed partial class Dashboard
             _store.Commit();
         };
         _refreshShared = Update;
-        SetZone();
+        SetZone(jump is null ? AtlasCatalog.WorldLayer : jump.Layer);
+        if (jump is { PinId: { } id } && All().FirstOrDefault(pin => pin.Id == id) is { } target)
+        {
+            category.SelectedIndex = 0;
+            selection = id;
+            UpdateSelection();
+            map.FocusPin(target);
+            if (list.SelectedItem is AtlasListRow row) list.ScrollIntoView(row);
+        }
         return page;
 
-        MapPin[] All()
-        {
-            var user = _store.AllPins.Where(p => p.Zone == Zone().Id && p.Layer == layer);
-            if (layer != AtlasCatalog.WorldLayer || World() is not { } world) return user.ToArray();
-            return user.Concat(world.Pins.Select(p => profile.AtlasFound.Contains(p.Id) ? p with { Found = true } : p)).ToArray();
-        }
+        MapPin[] All() => AtlasMarks.All(_store, Zone(), layer, layer == AtlasCatalog.WorldLayer ? World() : null);
 
         MapPin? Selected() => selection == Guid.Empty ? null : All().FirstOrDefault(p => p.Id == selection);
 
         void SetZone(string? preferred = AtlasCatalog.WorldLayer)
         {
-            var options = new List<AtlasLayer> { new(AtlasCatalog.WorldLayer, "Игровые координаты") };
-            var custom = profile.AtlasLayers.GetValueOrDefault(Zone().Id);
-            if (custom is not null && AtlasLayers.Open(custom) is not null) options.Add(new AtlasLayer(custom, "Мой снимок"));
-            if (_store.AllPins.Any(p => p.Zone == Zone().Id && p.Layer is null))
-                options.Add(new AtlasLayer(null, "Архив старых меток"));
+            var options = AtlasMarks.Layers(_store, Zone());
             changingLayer = true;
             layers.ItemsSource = options;
             layers.SelectedItem = options.FirstOrDefault(l => l.Key == preferred) ?? options[0];
@@ -177,7 +185,7 @@ public sealed partial class Dashboard
             {
                 var key = AtlasLayers.Import(dialog.FileName);
                 profile.AtlasLayers[Zone().Id] = key;
-                _store.Save();
+                _store.Commit();
                 SetZone(key);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or NotSupportedException)
@@ -194,8 +202,7 @@ public sealed partial class Dashboard
             var world = layer == AtlasCatalog.WorldLayer ? World() : null;
             var visible = all.Where(p => (pending.IsChecked != true || !p.Found) &&
                 (category.SelectedIndex <= 0 || p.Category == (string)category.SelectedItem) &&
-                (query.Length == 0 || p.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                    world?.English(p.Id)?.Contains(query, StringComparison.OrdinalIgnoreCase) == true))
+                AtlasMarks.Matches(p, world, query))
                 .OrderBy(p => p.Category == "Телепорт" ? 1 : 0).ToArray();
             var selectedPin = all.FirstOrDefault(p => p.Id == selection);
             if (selectedPin is null || visible.All(p => p.Id != selection)) selection = Guid.Empty;
@@ -246,14 +253,7 @@ public sealed partial class Dashboard
         void ToggleFound()
         {
             if (Selected() is not { } pin) return;
-            var index = profile.Pins.FindIndex(p => p.Id == selection);
-            if (index >= 0) profile.Pins[index] = pin with { Found = !pin.Found };
-            else if (layer == AtlasCatalog.WorldLayer && World()?.English(pin.Id) is not null)
-            {
-                if (!profile.AtlasFound.Add(selection)) profile.AtlasFound.Remove(selection);
-            }
-            else if (!profile.TeamFound.Add(selection)) profile.TeamFound.Remove(selection);
-            _store.Commit();
+            AtlasMarks.ToggleFound(_store, pin, layer == AtlasCatalog.WorldLayer ? World() : null);
         }
 
         void Delete()

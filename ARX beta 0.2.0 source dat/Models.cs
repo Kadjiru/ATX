@@ -234,6 +234,8 @@ public sealed class Profile
     public List<MapPin> Pins { get; set; } = [];
     public Dictionary<string, string> AtlasLayers { get; set; } = [];
     public string AtlasZone { get; set; } = "altgard";
+    public AtlasSelection? AtlasHudView { get; set; }
+    public bool AtlasHudLocked { get; set; }
     public HashSet<Guid> AtlasFound { get; set; } = [];
     public string? CaptureAdapter { get; set; }
     public string DeclaredBuild { get; set; } = "";

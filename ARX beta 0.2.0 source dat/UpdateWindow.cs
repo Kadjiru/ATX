@@ -18,7 +18,7 @@ internal sealed class UpdateWindow : Window
         Content = Card(Stack(
             Space(Label($"ARX {version}"), 5),
             Space(Text("Обновление готово. Установить?", 23, bold: true), 8),
-            Space(Hint("Установщик скачан и проверен. Для установки ARX закроет окна и завершит запись боя."), 14),
+            Space(Hint("ARX завершит запись боя, покажет ход установки и автоматически откроет новую версию."), 14),
             Actions(Button("Установить", () => Choose(true), true),
                 Button("При закрытии", () => Choose(false)), Button("Позже", () => Choose(null)))), 20);
 

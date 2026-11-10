@@ -195,8 +195,8 @@ internal sealed class LiveCombat : IDisposable
         var own = combatants.FirstOrDefault(c => c.IsSelf);
         if (own is null && !string.IsNullOrWhiteSpace(characterHint) && names[characterHint].Take(2).Count() == 1)
             own = names[characterHint].Single();
-        var selected = combatants.Where(c => c.ActorId == own?.ActorId || roster is null ||
-            PartyCombat.Match(roster, c.Name, c.ServerId, names[c.Name].Take(2).Count() == 1) is not null).ToArray();
+        var selected = combatants.Where(c => c.ActorId == own?.ActorId || (roster is not null &&
+            PartyCombat.Match(roster, c.Name, c.ServerId, names[c.Name].Take(2).Count() == 1) is not null)).ToArray();
         var ids = selected.Select(c => c.ActorId).ToHashSet();
         var damage = selected.Sum(c => c.Damage);
         var duration = Math.Max(1, summary.CombatMs / 1000.0);

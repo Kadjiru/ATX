@@ -27,6 +27,7 @@ public partial class App : Application
     internal AppUpdates? Updates => _updates;
     internal bool UpdateApproved => _approvedUpdate is not null && _approvedUpdate == _updates?.ReadyIdentity;
     internal bool ClickThroughAvailable => _hotkeys?.ClickThroughRegistered == true;
+    internal bool AtlasLockAvailable => _hotkeys?.AtlasLockRegistered == true;
     internal string HotkeyStatus => _hotkeys is null ? "Глобальные сочетания проверяются при запуске" :
         _hotkeys.Unavailable.Count > 0 ? "Заняты сочетания: " + string.Join(", ", _hotkeys.Unavailable) : "Глобальные сочетания готовы";
     internal bool? IsHotkeyRegistered(Hotkeys.Shortcut shortcut) => _hotkeys?.IsRegistered(shortcut);
@@ -75,7 +76,7 @@ public partial class App : Application
                 var kind = section switch
                 {
                     "hud-events" => HudKind.Events, "hud-tasks" => HudKind.Tasks,
-                    "hud-bosses" => HudKind.Bosses, _ => HudKind.Combat
+                    "hud-bosses" => HudKind.Bosses, "hud-atlas" => HudKind.Atlas, _ => HudKind.Combat
                 };
                 if (kind == HudKind.Bosses && WorldBossCatalog.Choices.FirstOrDefault() is { } boss)
                 {
@@ -86,6 +87,8 @@ public partial class App : Application
                 if (kind == HudKind.Tasks)
                     _store.Profile.Tasks.Add(new SessionTask(Guid.NewGuid(), _store.Profile.SessionId, "Проверить задания Бездны", false));
                 var hudPreview = new HudWindow(_store, kind);
+                if (kind == HudKind.Atlas && AtlasCatalog.For(AtlasZone.All[0])?.Pins.FirstOrDefault(pin => pin.Category == "Телепорт") is { } marker)
+                    hudPreview.OpenAtlas(new AtlasSelection(marker.Zone, marker.Layer, marker.Id));
                 Render(hudPreview, e.Args[1], new Size(hudPreview.Width, hudPreview.Height));
             }
             else
@@ -122,7 +125,8 @@ public partial class App : Application
                     SetCombatDensity(mode);
                     if (!_huds.ContainsKey(HudKind.Combat)) ToggleHud(HudKind.Combat);
                 },
-                delta => SetCombatOpacity(CombatOpacity + delta), () => ToggleHud(HudKind.Bosses));
+                delta => SetCombatOpacity(CombatOpacity + delta), () => ToggleHud(HudKind.Bosses),
+                () => ToggleHud(HudKind.Atlas), ToggleAtlasLock);
             if (!ClickThroughAvailable && _store.Profile.CombatHudLocked)
             {
                 _store.Profile.CombatHudLocked = false;
@@ -150,6 +154,8 @@ public partial class App : Application
     private void StartAppUpdates()
     {
         _updates = new AppUpdates();
+        _updates.StatusChanged += () => _dashboard?.RefreshUpdateStatus();
+        _dashboard?.RefreshUpdateStatus();
         _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(2) };
         _updateTimer.Tick += (_, _) => { if (_store.Profile.AutoUpdate) _ = CheckAppUpdatesAsync(); };
         _updateTimer.Start();
@@ -161,6 +167,24 @@ public partial class App : Application
         if (_closing || _updates is not { } updates) return;
         await updates.CheckAsync();
         if (!_closing && updates.ReadyIdentity is { } identity && identity != _offeredUpdate) ShowUpdateOffer();
+    }
+
+    internal async Task OpenUpdateAsync()
+    {
+        if (_closing || _updates is not { } updates) return;
+        if (updates.Ready) ShowUpdateOffer();
+        else if (updates.Phase == UpdatePhase.Available && updates.ReleasePage is { } page)
+        {
+            try
+            {
+                using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(page) { UseShellExecute = true });
+            }
+            catch (System.ComponentModel.Win32Exception)
+            {
+                MessageBox.Show("Не удалось открыть страницу релиза.", "Обновление ARX");
+            }
+        }
+        else await CheckAppUpdatesAsync();
     }
 
     internal void ShowUpdateOffer()
@@ -178,6 +202,7 @@ public partial class App : Application
             if (now is null)
             {
                 if (_approvedUpdate == identity) _approvedUpdate = null;
+                dashboard.RefreshUpdateStatus();
                 return;
             }
             if (_updates?.ReadyIdentity != identity)
@@ -186,6 +211,7 @@ public partial class App : Application
                 return;
             }
             _approvedUpdate = identity;
+            dashboard.RefreshUpdateStatus();
             if (now.Value) dashboard.Close();
         });
         _updateWindow = window;
@@ -229,6 +255,27 @@ public partial class App : Application
         _store.Profile.BossHudSelection = boss.SelectionId;
         _store.Commit();
         ShowHud(HudKind.Bosses);
+    }
+
+    internal void ShowAtlas(AtlasSelection selection)
+    {
+        ShowDashboard();
+        if (!_closing) _dashboard?.OpenAtlas(selection);
+    }
+
+    internal void ShowAtlasHud(AtlasSelection selection)
+    {
+        if (_closing) return;
+        ShowHud(HudKind.Atlas);
+        _huds[HudKind.Atlas].OpenAtlas(selection);
+    }
+
+    internal void ToggleAtlasLock()
+    {
+        if (!AtlasLockAvailable || !_huds.TryGetValue(HudKind.Atlas, out var hud)) return;
+        _store.Profile.AtlasHudLocked = !_store.Profile.AtlasHudLocked;
+        hud.ApplyAtlasLock();
+        _store.Save();
     }
 
     private void ShowHud(HudKind kind)
@@ -284,7 +331,9 @@ public partial class App : Application
         {
             foreach (var hud in _huds.Values.ToArray()) hud.Close();
             if (_live is { } live) await live.StopAsync();
-            if (UpdateApproved) _updates?.InstallAfterClose();
+            if (UpdateApproved && _updates?.InstallAfterClose() != true)
+                MessageBox.Show("Не удалось запустить проверенный установщик. Откройте ARX и повторите обновление.",
+                    "Обновление ARX", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         finally { Shutdown(); }
     }

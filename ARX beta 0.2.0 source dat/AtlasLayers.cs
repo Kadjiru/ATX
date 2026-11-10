@@ -35,11 +35,14 @@ internal static class AtlasLayers
         return key;
     }
 
+    private static string? ImagePath(string? key) =>
+        key is { Length: 64 } && key.All(Uri.IsHexDigit) ? Path.Combine(Folder, key + ".png") : null;
+
+    public static bool Exists(string? key) => ImagePath(key) is { } file && File.Exists(file);
+
     public static BitmapImage? Open(string? key)
     {
-        if (key is not { Length: 64 } || key.Any(ch => !Uri.IsHexDigit(ch))) return null;
-        var file = Path.Combine(Folder, key + ".png");
-        if (!File.Exists(file)) return null;
+        if (ImagePath(key) is not { } file || !File.Exists(file)) return null;
         try
         {
             using var source = File.OpenRead(file);

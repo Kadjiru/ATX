@@ -9,7 +9,7 @@ using static ArxBeta.Ui;
 
 namespace ArxBeta;
 
-public enum HudKind { Combat, Events, Tasks, Bosses }
+public enum HudKind { Combat, Events, Tasks, Bosses, Atlas }
 public enum HudDensity { Minimal, Medium, Detailed }
 public enum CombatHudScope { Self, Party }
 
@@ -21,12 +21,14 @@ public sealed class HudWindow : Window
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private TaskPanel? _tasks;
     private readonly BossHudPanel? _bosses;
+    private readonly AtlasHudPanel? _atlas;
     private readonly ScrollViewer _scroll;
     private readonly TextBlock _handle;
     private readonly Border _frame;
     private readonly StackPanel _buttons;
     private readonly Button? _scopeButton;
     private readonly Button? _modeButton;
+    private readonly Button? _atlasLock;
     private double _surfaceOpacity;
     private bool _clickThrough;
     private HudDensity _density;
@@ -35,7 +37,8 @@ public sealed class HudWindow : Window
     {
         _store = store;
         _kind = kind;
-        var name = kind switch { HudKind.Combat => "Урон", HudKind.Events => "События", HudKind.Bosses => "Боссы", _ => "Задачи" };
+        var name = kind switch { HudKind.Combat => "Урон", HudKind.Events => "События", HudKind.Bosses => "Боссы",
+            HudKind.Atlas => "Миникарта", _ => "Задачи" };
         Title = $"ARX · {name}";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -44,13 +47,14 @@ public sealed class HudWindow : Window
         ShowActivated = false;
         ShowInTaskbar = false;
         ResizeMode = ResizeMode.CanResizeWithGrip;
-        MinWidth = 290;
-        MinHeight = 145;
+        MinWidth = kind == HudKind.Atlas ? 340 : 290;
+        MinHeight = kind == HudKind.Atlas ? 395 : 145;
         WindowStartupLocation = WindowStartupLocation.Manual;
         var area = SystemParameters.WorkArea;
         var defaultLayout = new HudLayout(area.Right - 425, area.Top + 56 + (int)kind * 200,
             kind == HudKind.Combat ? 405 : 365, kind == HudKind.Combat ? 406 : kind == HudKind.Bosses ? 213 : 193, 0.94,
             kind == HudKind.Combat ? HudDensity.Detailed : null);
+        if (kind == HudKind.Atlas) defaultLayout = new HudLayout(area.Left + 26, area.Top + 60, 388, 500, .94);
         var layout = store.Profile.HudLayouts.GetValueOrDefault(kind.ToString(), defaultLayout);
         Width = Math.Clamp(layout.Width, MinWidth, Math.Max(MinWidth, area.Width));
         Height = Math.Clamp(layout.Height, MinHeight, Math.Max(MinHeight, area.Height));
@@ -75,6 +79,12 @@ public sealed class HudWindow : Window
             System.Windows.Automation.AutomationProperties.SetName(_modeButton, "Сменить режим HUD");
             actions.Add(_modeButton);
         }
+        if (kind == HudKind.Atlas)
+        {
+            _atlasLock = Button("⇥", App.CurrentApp.ToggleAtlasLock);
+            actions.Add(_atlasLock);
+            SourceInitialized += (_, _) => ApplyAtlasLock();
+        }
         actions.Add(Button("×", Close));
         foreach (var button in actions)
         {
@@ -94,7 +104,13 @@ public sealed class HudWindow : Window
         var panel = new DockPanel();
         panel.Children.Add(bar);
         _scroll = new ScrollViewer { Content = _body, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-        panel.Children.Add(_scroll);
+        if (kind == HudKind.Atlas)
+        {
+            _atlas = new AtlasHudPanel(store, App.CurrentApp.ShowAtlas);
+            panel.Children.Add(_atlas);
+            ApplyAtlasLock();
+        }
+        else panel.Children.Add(_scroll);
         _frame = Card(panel, 12);
         Content = _frame;
 
@@ -134,6 +150,22 @@ public sealed class HudWindow : Window
         };
     }
 
+    internal void OpenAtlas(AtlasSelection selection) => _atlas?.Open(selection);
+
+    internal void ApplyAtlasLock()
+    {
+        if (_atlasLock is null) return;
+        var available = App.CurrentApp.AtlasLockAvailable;
+        var locked = available && _store.Profile.AtlasHudLocked;
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle != 0) Hotkeys.SetClickThrough(handle, locked);
+        _atlasLock.IsEnabled = available;
+        _atlasLock.Foreground = Brush(locked ? "Mint" : "Text");
+        _atlasLock.ToolTip = !available ? "Закрепление недоступно: Ctrl+Alt+F11 занята." :
+            locked ? "Миникарта закреплена · Ctrl+Alt+F11 разблокирует" : "Закрепить миникарту · Ctrl+Alt+F11";
+        System.Windows.Automation.AutomationProperties.SetName(_atlasLock, locked ? "Разблокировать миникарту" : "Закрепить миникарту");
+    }
+
     private void ChangeOpacity()
     {
         var opacity = _surfaceOpacity <= .01 ? 1 : Math.Max(0, _surfaceOpacity - .15);
@@ -149,6 +181,7 @@ public sealed class HudWindow : Window
 
     private void Persist()
     {
+        if (_atlas is not null) _store.Profile.AtlasHudView = _atlas.View;
         if (_kind == HudKind.Combat && _density != HudDensity.Minimal)
             _store.Profile.CombatHudHeights[_density] = Height;
         _store.Profile.HudLayouts[_kind.ToString()] = new HudLayout(Left, Top, ActualWidth, ActualHeight, _surfaceOpacity,
@@ -218,6 +251,11 @@ public sealed class HudWindow : Window
 
     private void Refresh()
     {
+        if (_atlas is not null)
+        {
+            _atlas.Refresh();
+            return;
+        }
         if (_kind == HudKind.Tasks)
         {
             _tasks?.Refresh();
@@ -256,7 +294,7 @@ public sealed class HudWindow : Window
             { Members.Count: > 0 } => $"СВОЯ ГРУППА · {rows.Count}",
             _ => "ТОЛЬКО ВЫ"
         };
-        _handle.Text = minimal ? $"◇  ARX / DPS · {mode}" : _clickThrough ? "◇  DPS · закреплён" : "◇  БОЙ";
+        _handle.Text = minimal ? $"◇  ARX · {mode}" : _clickThrough ? "◇  БОЙ · закреплён" : "◇  БОЙ";
         _handle.FontSize = minimal ? 11 : 14;
         _handle.Foreground = Brush(minimal ? "Text" : "Mint");
         if (!minimal)
@@ -270,12 +308,10 @@ public sealed class HudWindow : Window
             var own = rows.FirstOrDefault(r => r.IsSelf);
             var total = rows.Any(r => r.Stats is not null) ? Compact(current.Rate(damage)) : "—";
             var personal = own?.Stats is { } stats ? Compact(current.Rate(stats.Damage)) : "—";
+            var totalDamage = rows.Any(r => r.Stats is not null) ? Compact(damage) : "—";
             var duration = Clock(TimeSpan.FromSeconds(current.Fight.Duration));
-            _body.Children.Add(Space(Ink(Hint(scope == CombatHudScope.Self ? $"Вы {personal} DPS  /  {duration}"
-                : $"Сумма {total} DPS  /  Вы {personal} DPS  /  {duration}")), 7));
-            var healing = rows.Sum(r => r.Stats?.Healing ?? 0);
-            if (healing > 0)
-                _body.Children.Add(Space(Ink(Hint($"Лечение {Compact(healing)} · {Compact(current.Rate(healing))} HPS")), 7));
+            _body.Children.Add(Space(Ink(Hint(scope == CombatHudScope.Self ? $"Вы {personal} DPS · {totalDamage} DMG · {duration}"
+                : $"Группа {total} DPS · {totalDamage} DMG · {duration}")), 7));
             if (current.Fight.Captured?.Summary.Boss is { MaxHpKnown: true } boss)
                 _body.Children.Add(Space(Ink(Hint($"{boss.Name} · {boss.HpFraction:P0} HP")), 7));
         }
@@ -307,8 +343,8 @@ public sealed class HudWindow : Window
         name.TextTrimming = TextTrimming.CharacterEllipsis;
         name.ToolTip = memberName;
         var dps = member.Stats is { } stats ? Compact(current.Rate(stats.Damage)) : "—";
-        var hps = member.Stats is { } healing ? Compact(current.Rate(healing.Healing)) : "—";
-        var rate = Ink(Text(minimal ? dps : $"{dps} DPS  ·  {hps} HPS", font, bold: true));
+        var total = member.Stats is { } measured ? Compact(measured.Damage) : "—";
+        var rate = Ink(Text($"{dps} DPS  ·  {total} DMG", minimal ? Math.Max(11, font - 2) : font, bold: true));
         rate.Foreground = member.Color;
         rate.Margin = new Thickness(9, 0, 0, 0);
         rate.TextWrapping = TextWrapping.NoWrap;
@@ -322,7 +358,7 @@ public sealed class HudWindow : Window
         {
             var share = damage > 0 ? $"{(double)player.Damage / damage:P0}" : "—";
             var crit = player.CritRate is { } value ? $"{value:P0}" : "—";
-            content.Children.Add(Ink(Hint($"{Compact(player.Damage)} урона · {share} · крит {crit} · пик " +
+            content.Children.Add(Ink(Hint($"{share} · крит {crit} · пик " +
                 (player.Burst is { } peak ? Compact(peak) : "—") +
                 (player.CombatPower > 0 ? $" · сила {Compact(player.CombatPower)}" : ""))));
         }

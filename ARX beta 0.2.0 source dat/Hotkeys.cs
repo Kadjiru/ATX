@@ -5,12 +5,15 @@ namespace ArxBeta;
 
 internal sealed class Hotkeys : IDisposable
 {
+    internal const int AtlasLockId = 11;
     internal sealed record Shortcut(int Id, uint Modifiers, uint Key, string Label, string Description);
 
     internal static IReadOnlyList<Shortcut> Shortcuts { get; } =
     [
         new(1, 0x0001, 0x77, "Alt+F8", "Показать или скрыть боевой HUD"),
         new(9, 0x0003, 0x78, "Ctrl+Alt+F9", "Показать или скрыть HUD мировых боссов"),
+        new(10, 0x0003, 0x79, "Ctrl+Alt+F10", "Показать или скрыть миникарту"),
+        new(AtlasLockId, 0x0003, 0x7A, "Ctrl+Alt+F11", "Закрепить или разблокировать миникарту"),
         new(4, 0x0003, 0x31, "Ctrl+Alt+1", "Открыть минимальный HUD с прозрачным фоном"),
         new(5, 0x0003, 0x32, "Ctrl+Alt+2", "Открыть средний HUD со списком участников"),
         new(6, 0x0003, 0x33, "Ctrl+Alt+3", "Открыть подробный HUD"),
@@ -24,13 +27,15 @@ internal sealed class Hotkeys : IDisposable
     private readonly Dictionary<int, Action> _registered = new();
     public List<string> Unavailable { get; } = [];
     public bool ClickThroughRegistered => _registered.ContainsKey(2);
+    public bool AtlasLockRegistered => _registered.ContainsKey(AtlasLockId);
 
     public Hotkeys(Action showCombat, Action toggleClickThrough, Action archive,
-        Action<HudDensity> density, Action<double> opacity, Action showBosses)
+        Action<HudDensity> density, Action<double> opacity, Action showBosses, Action showAtlas, Action lockAtlas)
     {
         _window.AddHook(Handle);
         Action[] actions = [showCombat, toggleClickThrough, archive, () => density(HudDensity.Minimal),
-            () => density(HudDensity.Medium), () => density(HudDensity.Detailed), () => opacity(.05), () => opacity(-.05), showBosses];
+            () => density(HudDensity.Medium), () => density(HudDensity.Detailed), () => opacity(.05), () => opacity(-.05),
+            showBosses, showAtlas, lockAtlas];
         foreach (var shortcut in Shortcuts) Register(shortcut, actions[shortcut.Id - 1]);
     }
 

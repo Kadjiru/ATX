@@ -12,6 +12,8 @@ using Microsoft.Win32;
 
 namespace ArxBeta;
 
+internal enum UpdatePhase { Idle, Checking, Downloading, Verifying, Current, Available, Ready, Failed }
+
 internal sealed class AppUpdates : IDisposable
 {
     private const string Repo = "https://github.com/Kadjiru/ATX";
@@ -65,6 +67,9 @@ internal sealed class AppUpdates : IDisposable
     internal static string CurrentLabel => typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
         ?.InformationalVersion.Split('+')[0] ?? "1.0.0-beta";
     public string Status { get; private set; } = "Проверка обновлений ещё не выполнялась.";
+    public UpdatePhase Phase { get; private set; }
+    public int DownloadPercent { get; private set; }
+    public event Action? StatusChanged;
     public bool Installed => _installFolder is not null;
     public bool Ready => _ready is not null;
     public string? ReadyVersion => _ready?.Version.Label;
@@ -93,7 +98,7 @@ internal sealed class AppUpdates : IDisposable
         var ct = timeout.Token;
         try
         {
-            Status = "Проверяем обновления…";
+            SetStatus(UpdatePhase.Checking, "Проверяем обновления…");
             await using var feed = await _http.GetStreamAsync(Feed, ct);
             var releases = await JsonSerializer.DeserializeAsync<Release[]>(feed, cancellationToken: ct) ?? [];
             var update = releases.Select(FromRelease).OfType<Update>().OrderByDescending(u => u.Version)
@@ -102,39 +107,51 @@ internal sealed class AppUpdates : IDisposable
             {
                 _ready = null;
                 ReleasePage = null;
-                Status = "Установлена актуальная версия.";
+                SetStatus(UpdatePhase.Current, "Установлена актуальная версия.");
                 return;
             }
             ReleasePage = update.Page;
             if (!Installed)
             {
-                Status = $"Доступна версия {update.Version.Label}. Для переносимой копии скачайте новый ZIP.";
+                SetStatus(UpdatePhase.Available, $"Доступна версия {update.Version.Label}. Для переносимой копии скачайте новый ZIP.");
                 return;
             }
             if (_ready == update)
             {
-                Status = ReadyStatus(update);
+                SetStatus(UpdatePhase.Ready, ReadyStatus(update));
                 return;
             }
             _ready = null;
             Directory.CreateDirectory(_cache);
             var path = Path.Combine(_cache, update.Asset.Name);
+            if (File.Exists(path)) SetStatus(UpdatePhase.Verifying, "Проверяем целостность установщика…");
             if (!await VerifyExistingAsync(update, path, ct))
             {
-                Status = $"Загружаем ARX {update.Version.Label}…";
+                DownloadPercent = 0;
+                SetStatus(UpdatePhase.Downloading, $"Загружаем ARX {update.Version.Label}…");
                 await DownloadAsync(update, path, ct);
             }
             _ready = update;
-            Status = ReadyStatus(update);
+            SetStatus(UpdatePhase.Ready, ReadyStatus(update));
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or InvalidDataException or JsonException
             or UnauthorizedAccessException or OperationCanceledException)
         {
             if (!_shutdown.IsCancellationRequested)
-                Status = _ready is { } ready ? ReadyStatus(ready) : "Не удалось проверить или загрузить обновление. Повторите позже.";
+            {
+                if (_ready is { } ready) SetStatus(UpdatePhase.Ready, ReadyStatus(ready));
+                else SetStatus(UpdatePhase.Failed, "Не удалось проверить или загрузить обновление. Повторите позже.");
+            }
             Debug.WriteLine(ex);
         }
         finally { _busy = false; }
+    }
+
+    private void SetStatus(UpdatePhase phase, string message)
+    {
+        Phase = phase;
+        Status = message;
+        StatusChanged?.Invoke();
     }
 
     private string ReadyStatus(Update update) => File.Exists(AttemptPath(update))
@@ -194,8 +211,15 @@ internal sealed class AppUpdates : IDisposable
                         if (size > update.Asset.Size) throw new InvalidDataException("Установщик больше объявленного размера.");
                         hash.AppendData(buffer, 0, read);
                         await file.WriteAsync(buffer.AsMemory(0, read), ct);
+                        var percent = (int)(size * 100 / update.Asset.Size);
+                        if (percent != DownloadPercent)
+                        {
+                            DownloadPercent = percent;
+                            StatusChanged?.Invoke();
+                        }
                     }
                 }
+                SetStatus(UpdatePhase.Verifying, "Проверяем целостность установщика…");
                 if (size != update.Asset.Size || !CheckHash(update, hash.GetHashAndReset()))
                     throw new InvalidDataException("Установщик ARX не прошёл проверку SHA-256.");
                 File.Move(part, target, true);
