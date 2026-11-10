@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1315">
+  <meta name="description" content="ARX is a Windows companion for Aion 2 Global with a DPS overlay, combat reports, expedition tracking, an atlas, boss timers, and character builds.">
+  <title>ARX — Aion 2 Global Companion</title>
+  <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
+  <link rel="alternate" hreflang="ru" href="./">
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="downloads.js?v=3" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header" id="top">
+    <div class="wrap header-inner">
+      <a class="brand" href="#top" aria-label="ARX home"><img src="assets/arx.svg" width="34" height="34" alt=""> ARX</a>
+      <nav aria-label="Site navigation">
+        <a href="#features">Features</a>
+        <a href="#changelog">What’s new</a>
+        <a href="#setup">Setup</a>
+        <a class="nav-action" href="#links">Download &amp; guide <span aria-hidden="true">↘</span></a>
+        <span class="language-switch" role="group" aria-label="Site language">
+          <a href="./" hreflang="ru" lang="ru" aria-label="Русский">RU</a>
+          <span aria-current="page">EN</span>
+        </span>
+      </nav>
+    </div>
+  </header>
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow"><span class="dot"></span> AION 2 GLOBAL <span class="slash">/</span> EU · NA</p>
+          <h1 id="hero-title">ARX<span>.</span></h1>
+          <p class="hero-subtitle">Aion 2 Global companion</p>
+          <p class="hero-text">Track your DPS in combat, review boss attempts, and plan routes across Atreia.</p>
+          <p class="download-count">ARX downloads on GitHub: <output id="download-count" data-unavailable="temporarily unavailable">checking…</output></p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="preferred">Download ARX <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Steam guide <span aria-hidden="true">↗</span></a>
+          </div>
+          <p class="platform"><strong id="hero-release">ARX RELEASES</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
+        </div>
+        <figure class="hero-shot">
+          <img src="assets/combat.png" width="1260" height="830" alt="An ARX boss report with the peak damage window highlighted on the chart.">
+          <figcaption><span class="dot"></span> Boss breakdown <span class="caption-note">Demo encounter · Russian UI</span></figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="features wrap" id="features" aria-labelledby="features-title">
+      <p class="eyebrow"><span class="dot"></span> FEATURES</p>
+      <h2 id="features-title">From the first hit to the combat report</h2>
+      <div class="feature-grid">
+        <article>
+          <p class="feature-index">01 / MONITOR</p>
+          <h3>DPS and combat overlay</h3>
+          <p>View personal and party DPS, total damage, and each player’s contribution. Show your own stats or the entire party in the in-game overlay, and adjust its density and opacity.</p>
+        </article>
+        <article>
+          <p class="feature-index">02 / REPORTS</p>
+          <h3>Second-by-second breakdown</h3>
+          <p>Select a window on the combat chart or find your best five-second burst. The full report includes damage by skill, healing, HPS, critical hits, and back attacks.</p>
+        </article>
+        <article>
+          <p class="feature-index">03 / RUNS</p>
+          <h3>Expedition history</h3>
+          <p>ARX automatically tracks supported expeditions. Open individual attempts, compare average DPS across two runs, and export reports as JSON.</p>
+        </article>
+      </div>
+    </section>
+    <section class="world" aria-labelledby="world-title">
+      <div class="wrap split">
+        <div class="world-copy">
+          <p class="eyebrow"><span class="dot"></span> WORLD &amp; SESSION</p>
+          <h2 id="world-title">Explore Atreia</h2>
+          <dl class="detail-list">
+            <div><dt>Atlas and minimap</dt><dd>Search for points of interest in English or Russian, mark your discoveries, and plan a route. Send a selected point from the atlas to the in-game minimap.</dd></div>
+            <div><dt>World bosses</dt><dd>Show a selected boss’s timer in a separate overlay. Enable an audio alert when ARX receives the timing from the game.</dd></div>
+            <div><dt>Progress and tasks</dt><dd>Track daily and weekly progress, keep a task list, and log Kinah. Confirmed wins count toward linked expedition goals.</dd></div>
+          </dl>
+        </div>
+        <figure class="map-shots">
+          <img class="atlas" src="assets/atlas.png" loading="lazy" alt="The ARX atlas with map markers">
+          <img class="minimap" src="assets/minimap.png" width="388" height="500" loading="lazy" alt="The minimap overlay with a selected point in Altgard">
+          <figcaption>Atlas and standalone minimap overlay</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="wrap split reference" aria-labelledby="reference-title">
+      <figure class="reference-shot">
+        <img src="assets/builds.png" loading="lazy" alt="The Builds and Guides section in ARX">
+        <figcaption>A PvE build in ARX</figcaption>
+      </figure>
+      <div>
+        <p class="eyebrow"><span class="dot"></span> REFERENCE</p>
+        <h2 id="reference-title">Prepare for your next fight</h2>
+        <dl class="detail-list">
+          <div><dt>Builds for eight classes</dt><dd>Solo and group PvE builds cover stat priorities, skills, stigmas, and opening moves.</dd></div>
+          <div><dt>Encounter guides</dt><dd>Review encounter preparation, mechanic cues, role assignments, and common mistakes across expeditions and other PvE activities.</dd></div>
+          <div><dt>Pets and crafting</dt><dd>Look up pets by name or family and see their bonuses and progression options. The crafting planner shows recipes and calculates which materials you still need.</dd></div>
+        </dl>
+      </div>
+    </section>
+    <section class="setup" id="setup" aria-labelledby="setup-title">
+      <div class="wrap">
+        <p class="eyebrow"><span class="dot"></span> FIRST LAUNCH</p>
+        <h2 id="setup-title">Getting started</h2>
+        <ol class="setup-list">
+          <li><h3>Install ARX</h3><p>Requires 64-bit Windows. The installer includes .NET. For the portable version, extract the entire ZIP.</p></li>
+          <li><h3>Enable combat tracking</h3><p>If Npcap is missing, the ARX installer offers to install it. Install it separately if you use the portable version. Start ARX before logging in with your character, or change zones if you are already in game.</p></li>
+          <li><h3>Turn on the overlays</h3><p>Use borderless windowed mode. Press <kbd>Alt</kbd> + <kbd>F8</kbd> for the combat overlay or <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F10</kbd> for the minimap.</p></li>
+        </ol>
+        <p class="setup-note">ARX works without an account. Combat reports are stored in your local profile.</p>
+      </div>
+    </section>
+    <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
+      <p class="eyebrow"><span class="dot"></span> RELEASE HISTORY</p>
+      <h2 id="changelog-title">What’s new</h2>
+      <article class="release" id="release-1-0-4">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.0.4 BETA</p>
+            <h3>Npcap setup from the ARX installer</h3>
+          </div>
+          <time datetime="2026-11-10">November 10, 2026</time>
+        </header>
+        <dl class="detail-list">
+          <div><dt>Driver for combat tracking</dt><dd>If Npcap is missing, ARX can download the official driver installer, verify its checksum, and launch the Npcap setup wizard.</dd></div>
+          <div><dt>Driver installation is optional</dt><dd>You can still use the atlas, reference material, and saved reports. If ARX is already installed and you need Npcap, close the app and run the new installer manually.</dd></div>
+        </dl>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.0.4-beta">View 1.0.4 beta on GitHub <span aria-hidden="true">↗</span></a>
+      </article>
+      <article class="release">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.0.3 BETA</p>
+            <h3>Automatic run tracking and boss breakdowns</h3>
+          </div>
+          <time datetime="2026-11-10">November 10, 2026</time>
+        </header>
+        <dl class="detail-list">
+          <div><dt>Automatic expedition tracking</dt><dd>ARX starts tracking six supported expeditions when it detects the first encounter. Defeating the final boss completes the run. Leaving the map before the kill saves it as interrupted.</dd></div>
+          <div><dt>Individual boss reports</dt><dd>Open a boss attempt from the run history and select a window on the chart. The five-second peak highlights the best burst and shows each player’s contribution.</dd></div>
+          <div><dt>Progress from confirmed wins</dt><dd>Link a goal to an expedition. Confirmed wins count toward the goal for that character and server.</dd></div>
+          <div><dt>Interface updates</dt><dd>ARX shows release notes after updating. You can reopen them in the update settings. The app and installer have a new icon in multiple sizes for Windows.</dd></div>
+        </dl>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases">All releases on GitHub <span aria-hidden="true">↗</span></a>
+      </article>
+    </section>
+    <section class="wrap downloads" id="links" aria-labelledby="links-title">
+      <p class="eyebrow"><span class="dot"></span> USEFUL LINKS</p>
+      <h2 id="links-title">Download ARX and read the guide</h2>
+      <div class="download-grid">
+        <article id="download">
+          <div><h3>Download ARX</h3><p><span id="download-release">Latest ARX release</span> for Windows x64</p></div>
+          <div class="download-actions">
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
+          </div>
+        </article>
+        <article id="steam">
+          <div><h3>Steam guide</h3><p>ARX Community guide in Russian</p></div>
+          <a class="button primary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Open Steam guide <span aria-hidden="true">↗</span></a>
+        </article>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap footer">
+    <a class="brand" href="#top" aria-label="ARX home"><img src="assets/arx.svg" width="27" height="27" alt=""> ARX</a>
+    <p>Aion 2 Global companion · Windows x64</p>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+</body>
+</html>

@@ -7,8 +7,9 @@
   <meta name="description" content="ARX — помощник для Aion 2 Global на Windows. DPS и HUD, разбор боёв, экспедиции, атлас, таймеры и сборки персонажей.">
   <title>ARX — помощник для Aion 2 Global</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css?v=2">
-  <script src="downloads.js?v=2" defer></script>
+  <link rel="alternate" hreflang="en" href="en.html">
+  <link rel="stylesheet" href="style.css?v=3">
+  <script src="downloads.js?v=3" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
@@ -20,6 +21,10 @@
         <a href="#changelog">Что нового</a>
         <a href="#setup">Установка</a>
         <a class="nav-action" href="#links">Скачать и гайд <span aria-hidden="true">↘</span></a>
+        <span class="language-switch" role="group" aria-label="Язык сайта">
+          <span aria-current="page">RU</span>
+          <a href="en.html" hreflang="en" lang="en" aria-label="English">EN</a>
+        </span>
       </nav>
     </div>
   </header>
@@ -31,7 +36,7 @@
           <h1 id="hero-title">ARX<span>.</span></h1>
           <p class="hero-subtitle">Помощник для Aion 2 Global</p>
           <p class="hero-text">Следите за DPS в бою, разбирайте попытки на боссах и отмечайте маршруты в атласе Атреи.</p>
-          <p class="download-count">Загрузок ARX на GitHub: <output id="download-count">проверяем…</output></p>
+          <p class="download-count">Загрузок ARX на GitHub: <output id="download-count" data-unavailable="временно недоступны">проверяем…</output></p>
           <div class="actions">
             <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="preferred">Скачать ARX <span aria-hidden="true">↓</span></a>
             <a class="button secondary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Steam-гайд <span aria-hidden="true">↗</span></a>

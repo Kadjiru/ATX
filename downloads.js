@@ -36,7 +36,7 @@ const downloadLinks = document.querySelectorAll("[data-download]");
 let linksReady = false;
 
 const prepareDownloads = loadReleaseDownloads().then(({ total, newest }) => {
-  downloadCount.textContent = total.toLocaleString("ru-RU");
+  downloadCount.textContent = total.toLocaleString(document.documentElement.lang);
   if (!newest) return;
 
   const { release, packages } = newest;
@@ -52,7 +52,7 @@ const prepareDownloads = loadReleaseDownloads().then(({ total, newest }) => {
   document.getElementById("hero-release").textContent = releaseName.toUpperCase();
   document.getElementById("download-release").textContent = releaseName;
 }).catch(() => {
-  downloadCount.textContent = "временно недоступны";
+  downloadCount.textContent = downloadCount.dataset.unavailable;
 }).finally(() => {
   linksReady = true;
 });
