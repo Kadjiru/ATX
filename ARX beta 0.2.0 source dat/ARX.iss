@@ -5,8 +5,8 @@
 [Setup]
 AppId={{9F5CB164-814E-4346-A21A-E3171454CEFA}
 AppName=ARX
-AppVersion=1.0.3-beta
-AppVerName=ARX 1.0.3 beta
+AppVersion=1.0.4-beta
+AppVerName=ARX 1.0.4 beta
 AppPublisher=ARX
 AppPublisherURL=https://github.com/Kadjiru/ATX
 DefaultDirName={localappdata}\Programs\ARX
@@ -15,7 +15,7 @@ PrivilegesRequired=lowest
 SetupArchitecture=x64
 MinVersion=10.0.17763
 SetupMutex=Local\ARX.Setup
-OutputBaseFilename=ARX-Setup-1.0.3-beta
+OutputBaseFilename=ARX-Setup-1.0.4-beta
 SetupIconFile=Assets\ARX.ico
 UninstallDisplayIcon={app}\ARX.Beta.exe
 WizardStyle=modern dark hidebevels
@@ -38,9 +38,17 @@ ru.Guide=Инструкция ARX
 ru.Missing=В Windows отсутствуют компоненты, необходимые для запуска ARX:
 ru.Running=Закройте ARX, чтобы продолжить установку.
 ru.NpcapTitle=Npcap для живой статистики
-ru.NpcapSubtitle=ARX проверил, установлен ли драйвер захвата.
-ru.NpcapText=Npcap не найден. ARX установится и сможет открывать карту, таймеры и сохранённые отчёты. Для живого боя установите Npcap отдельно с настройками по умолчанию.
-ru.NpcapOpen=Открыть npcap.com
+ru.NpcapSubtitle=Драйвер захвата Npcap не найден на этом компьютере.
+ru.NpcapText=ARX может загрузить Npcap с сайта разработчика, проверить файл и открыть установщик драйвера. Windows может запросить права администратора. Атлас и сохранённые отчёты доступны без драйвера.
+ru.NpcapInstall=Скачать и установить Npcap
+ru.NpcapSkip=Продолжить без Npcap
+ru.NpcapDownloading=Загрузка Npcap
+ru.NpcapDownloadDescription=Получаем официальный установщик и проверяем контрольную сумму.
+ru.NpcapDownloadFailed=Не удалось загрузить или проверить Npcap. Проверьте подключение и попробуйте снова или продолжите без драйвера.
+ru.NpcapCanceled=Установка Npcap отменена. Можно повторить попытку или продолжить без драйвера.
+ru.NpcapFailed=Установка Npcap не завершилась. Код: %1. Можно повторить попытку или продолжить без драйвера.
+ru.NpcapMissing=Установщик завершился, но ARX не обнаружил драйвер. Проверьте Npcap после перезагрузки или продолжите без него.
+ru.NpcapRestart=Npcap установлен. Перезагрузите Windows, когда будет удобно, чтобы включить живую статистику.
 ru.UpdateTitle=Установка обновления
 ru.UpdateFiles=Обновляем файлы ARX
 ru.UpdateLaunch=Запускаем новую версию ARX
@@ -50,9 +58,17 @@ en.Guide=ARX user guide
 en.Missing=Windows is missing components required to run ARX:
 en.Running=Close ARX to continue the installation.
 en.NpcapTitle=Npcap for live combat
-en.NpcapSubtitle=ARX checked for the packet capture driver.
-en.NpcapText=Npcap was not found. ARX can use the atlas, timers and saved reports. For live combat, install Npcap separately with its default settings.
-en.NpcapOpen=Open npcap.com
+en.NpcapSubtitle=The Npcap packet capture driver was not found on this PC.
+en.NpcapText=ARX can download Npcap from its publisher, verify the file, and open the driver installer. Windows may ask for administrator approval. The atlas and saved reports work without the driver.
+en.NpcapInstall=Download and install Npcap
+en.NpcapSkip=Continue without Npcap
+en.NpcapDownloading=Downloading Npcap
+en.NpcapDownloadDescription=Downloading the official installer and verifying its checksum.
+en.NpcapDownloadFailed=ARX could not download or verify Npcap. Check your connection and try again, or continue without the driver.
+en.NpcapCanceled=Npcap installation was canceled. You can try again or continue without the driver.
+en.NpcapFailed=Npcap installation did not finish. Code: %1. You can try again or continue without the driver.
+en.NpcapMissing=The installer finished, but ARX could not detect the driver. Check Npcap after a reboot or continue without it.
+en.NpcapRestart=Npcap was installed. Restart Windows when convenient to enable live combat statistics.
 en.UpdateTitle=Installing the update
 en.UpdateFiles=Updating ARX files
 en.UpdateLaunch=Launching the new ARX version
@@ -74,49 +90,94 @@ Filename: "{app}\ARX.Beta.exe"; Description: "{cm:Launch}"; Flags: nowait postin
 Filename: "{app}\ARX.Beta.exe"; Parameters: "--updated"; WorkingDir: "{app}"; Flags: nowait; Check: IsArxUpdate
 
 [Code]
+const
+  NpcapFileName = 'npcap-1.90.exe';
+  NpcapUrl = 'https://npcap.com/dist/npcap-1.90.exe';
+  // Verified against the publisher's Authenticode-signed download before packaging ARX.
+  NpcapSha256 = '682b57e1c05ef375931975c9d6ded40888f4bfdf9f4b11571e654f962f1199b6';
+
 var
-  NpcapPage: TWizardPage;
+  NpcapPage: TInputOptionWizardPage;
+  NpcapDownload: TDownloadWizardPage;
   UpdateForm: TSetupForm;
   UpdateMessage: TLabel;
   UpdateFill: TPanel;
 
 function NpcapPresent(): Boolean;
 begin
-  Result := FileExists(ExpandConstant('{sys}\Npcap\wpcap.dll')) or FileExists(ExpandConstant('{sys}\wpcap.dll'));
-end;
-
-procedure OpenNpcap(Sender: TObject);
-var
-  ErrorCode: Integer;
-begin
-  ShellExec('open', 'https://npcap.com/#download', '', '', SW_SHOWNORMAL, ewNoWait, ErrorCode);
+  Result := RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\npcap') and
+    (FileExists(ExpandConstant('{sys}\Npcap\wpcap.dll')) or FileExists(ExpandConstant('{sys}\wpcap.dll')));
 end;
 
 procedure InitializeWizard();
-var
-  Info: TNewStaticText;
-  Link: TNewButton;
 begin
-  NpcapPage := CreateCustomPage(wpSelectTasks, CustomMessage('NpcapTitle'), CustomMessage('NpcapSubtitle'));
-  Info := TNewStaticText.Create(NpcapPage);
-  Info.Parent := NpcapPage.Surface;
-  Info.AutoSize := False;
-  Info.WordWrap := True;
-  Info.Width := NpcapPage.SurfaceWidth;
-  Info.Height := ScaleY(72);
-  Info.Caption := CustomMessage('NpcapText');
-  Link := TNewButton.Create(NpcapPage);
-  Link.Parent := NpcapPage.Surface;
-  Link.Top := ScaleY(84);
-  Link.Width := ScaleX(156);
-  Link.Height := ScaleY(28);
-  Link.Caption := CustomMessage('NpcapOpen');
-  Link.OnClick := @OpenNpcap;
+  NpcapPage := CreateInputOptionPage(wpSelectTasks, CustomMessage('NpcapTitle'), CustomMessage('NpcapSubtitle'),
+    CustomMessage('NpcapText'), True, False);
+  NpcapPage.Add(CustomMessage('NpcapInstall'));
+  NpcapPage.Add(CustomMessage('NpcapSkip'));
+  NpcapPage.SelectedValueIndex := 0;
+  NpcapDownload := CreateDownloadPage(CustomMessage('NpcapDownloading'), CustomMessage('NpcapDownloadDescription'), nil);
+  NpcapDownload.ShowBaseNameInsteadOfUrl := True;
 end;
 
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
-  Result := (PageID = NpcapPage.ID) and (NpcapPresent() or WizardSilent);
+  Result := (PageID = NpcapPage.ID) and (WizardSilent or NpcapPresent());
+end;
+
+function DownloadNpcap(): Boolean;
+begin
+  Result := False;
+  NpcapDownload.Clear;
+  NpcapDownload.Add(NpcapUrl, NpcapFileName, NpcapSha256);
+  NpcapDownload.Show;
+  try
+    try
+      NpcapDownload.Download;
+      Result := True;
+    except
+      Log('Npcap download: ' + GetExceptionMessage);
+    end;
+  finally
+    NpcapDownload.Hide;
+  end;
+  if not Result and not NpcapDownload.AbortedByUser then
+    MsgBox(CustomMessage('NpcapDownloadFailed'), mbError, MB_OK);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  Installer: String;
+  Code: Integer;
+  Started: Boolean;
+begin
+  Result := True;
+  if (CurPageID <> NpcapPage.ID) or WizardSilent or (NpcapPage.SelectedValueIndex <> 0) or NpcapPresent() then
+    Exit;
+  Result := False;
+  if not DownloadNpcap() then
+    Exit;
+  if NpcapPresent() then
+  begin
+    Result := True;
+    Exit;
+  end;
+  Installer := ExpandConstant('{tmp}\') + NpcapFileName;
+  Started := ShellExec('runas', Installer, '', '', SW_SHOWNORMAL, ewWaitUntilTerminated, Code);
+  Log(Format('Npcap installer result: %d', [Code]));
+  if Started and (Code = 3010) then
+  begin
+    MsgBox(CustomMessage('NpcapRestart'), mbInformation, MB_OK);
+    Result := True;
+  end
+  else if NpcapPresent() then
+    Result := True
+  else if (Started and (Code = 1)) or (not Started and (Code = 1223)) then
+    MsgBox(CustomMessage('NpcapCanceled'), mbInformation, MB_OK)
+  else if Started and (Code = 0) then
+    MsgBox(CustomMessage('NpcapMissing'), mbError, MB_OK)
+  else
+    MsgBox(FmtMessage(CustomMessage('NpcapFailed'), [IntToStr(Code)]), mbError, MB_OK);
 end;
 
 procedure CheckComponent(const FileName: String; var Missing: String);

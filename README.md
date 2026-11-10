@@ -1,4 +1,4 @@
-# ARX 1.0.3 beta
+# ARX 1.0.4 beta
 
 Общедоступный помощник для Aion 2 Global на Windows.
 
