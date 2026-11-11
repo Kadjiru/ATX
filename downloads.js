@@ -22,10 +22,8 @@ async function loadReleaseDownloads() {
 
       if (!packages.length) continue;
       const channel = release.prerelease ? "beta" : "stable";
-      for (const key of ["latest", channel]) {
-        if (!newest[key] || release.published_at > newest[key].release.published_at) {
-          newest[key] = { release, packages };
-        }
+      if (!newest[channel] || release.published_at > newest[channel].release.published_at) {
+        newest[channel] = { release, packages };
       }
     }
 
@@ -44,7 +42,7 @@ const prepareDownloads = loadReleaseDownloads().then(({ total, newest }) => {
   for (const [channel, { release, packages }] of Object.entries(newest)) {
     const installer = packages.find(asset => /\.exe$/i.test(asset.name));
     const portable = packages.find(asset => /\.zip$/i.test(asset.name));
-    const destinations = { installer, portable, preferred: installer ?? portable };
+    const destinations = { installer, portable };
     const releaseName = release.name || release.tag_name;
 
     for (const link of downloadLinks) {
@@ -52,8 +50,9 @@ const prepareDownloads = loadReleaseDownloads().then(({ total, newest }) => {
         link.href = destinations[link.dataset.download]?.browser_download_url ?? release.html_url;
       }
     }
-    document.querySelector(`[data-release-version="${channel}"]`).textContent =
-      channel === "latest" ? releaseName.toUpperCase() : releaseName;
+    for (const label of document.querySelectorAll(`[data-release-version="${channel}"]`)) {
+      label.textContent = releaseName;
+    }
   }
 }).catch(() => {
   downloadCount.textContent = downloadCount.dataset.unavailable;
