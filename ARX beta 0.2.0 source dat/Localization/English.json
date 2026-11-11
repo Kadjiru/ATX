@@ -1,4 +1,12 @@
 {
+  "Только избранное": "Favorites only",
+  "Избранное": "Favorite",
+  "Звук напоминаний": "Reminder sounds",
+  "Без напоминания": "No reminder",
+  "В момент события": "At the scheduled time",
+  "Напоминание": "Reminder",
+  "Нет событий по выбранному фильтру.": "No events match this filter.",
+  "{0} · по расписанию в {1:HH:mm}": "{0} · scheduled for {1:HH:mm}",
   "Мастер подключения": "Connection guide",
   "Проверяет Npcap, сетевые адаптеры и запуск Aion 2. Повторно открыть мастер можно в настройках.": "Checks Npcap, network adapters, and whether Aion 2 is running. Reopen the guide from Settings.",
   "Диагностика подключения": "Connection diagnostics",

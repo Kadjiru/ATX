@@ -113,7 +113,9 @@ internal static class Ui
     {
         if (rule is null) return Loc.T("Добавьте таймер в разделе «События».");
         if (!rule.Enabled) return Loc.T("Таймер выключен.");
-        return rule.Next(now) is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}"
+        return rule.Next(now) is { } next ? $"{Clock(next - now)} · {LocalEventTime(next)}"
             : Loc.T("Завершён");
     }
+
+    internal static string LocalEventTime(DateTimeOffset time) => $"{time.ToLocalTime():dd.MM HH:mm 'UTC'zzz}";
 }

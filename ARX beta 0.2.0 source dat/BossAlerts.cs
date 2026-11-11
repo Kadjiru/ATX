@@ -1,5 +1,6 @@
 using System.Media;
 using System.Windows.Controls;
+using System.Windows.Threading;
 using static ArxBeta.Ui;
 
 namespace ArxBeta;
@@ -7,6 +8,47 @@ namespace ArxBeta;
 public partial class App
 {
     private readonly HashSet<(string Key, DateTimeOffset When)> _bossAlerts = [];
+    private readonly DispatcherTimer _eventAlertClock = new(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
+    private readonly HashSet<(Guid Id, DateTimeOffset Due)> _eventAlerts = [];
+    private readonly Dictionary<Guid, (DateTimeOffset Due, DateTimeOffset ShownAt, int Lead, EventRule Rule)> _eventNotices = [];
+
+    private void CheckEventAlerts()
+    {
+        if (_closing) return;
+        var now = DateTimeOffset.UtcNow;
+        _eventAlerts.RemoveWhere(item => item.Due < now.AddDays(-1));
+        foreach (var id in _eventNotices.Keys.Where(id => now - _eventNotices[id].ShownAt > TimeSpan.FromMinutes(1)).ToArray())
+            _eventNotices.Remove(id);
+        var triggered = false;
+        foreach (var rule in _store.AllEvents)
+        {
+            if (!_store.Profile.EventAlarms.TryGetValue(rule.Id, out var lead) || lead is not (0 or 5 or 10)) continue;
+            var threshold = now.AddMinutes(lead);
+            if (rule.Next(threshold.AddSeconds(-5)) is not { } due || due > threshold ||
+                !_eventAlerts.Add((rule.Id, due))) continue;
+            _eventNotices[rule.Id] = (due, now, lead, rule);
+            triggered = true;
+        }
+        if (triggered) PlayReminderSound();
+    }
+
+    internal string? EventNotice(Guid? only = null)
+    {
+        if (_eventNotices.Count == 0) return null;
+        var notices = _store.AllEvents.Where(rule => only is null || rule.Id == only)
+            .Where(rule => _eventNotices.TryGetValue(rule.Id, out var notice) && notice.Rule == rule &&
+                _store.Profile.EventAlarms.GetValueOrDefault(rule.Id, -1) == notice.Lead)
+            .Select(rule => _eventNotices[rule.Id])
+            .OrderBy(notice => notice.Due)
+            .Select(notice => Loc.F($"{notice.Rule.DisplayName} · по расписанию в {notice.Due.ToLocalTime():HH:mm}"));
+        var text = string.Join(Environment.NewLine, notices);
+        return text.Length > 0 ? text : null;
+    }
+
+    private void PlayReminderSound()
+    {
+        if (_store.Profile.ReminderSound) SystemSounds.Asterisk.Play();
+    }
 
     private void CheckBossAlerts()
     {
@@ -17,7 +59,7 @@ public partial class App
             if (boss.Alive || !_store.Profile.BossAlarms.TryGetValue(boss.Key, out var lead)) continue;
             if (boss.When < now.AddSeconds(-10) || boss.When > now.AddMinutes(lead) || !_bossAlerts.Add((boss.Key, boss.When))) continue;
             _store.SetBossNotice(Loc.F($"{boss.Name} · ожидается в {boss.When.ToLocalTime():HH:mm}"));
-            SystemSounds.Asterisk.Play();
+            PlayReminderSound();
         }
     }
 }

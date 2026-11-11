@@ -317,13 +317,16 @@ public sealed class HudWindow : Window
             _body.Children.Add(Plate(Stack(
                 Space(Ink(Label(Loc.T("Следующее открытие по расписанию"))), 5),
                 Ink(Text(RiftCountdown(_store.Rift, DateTimeOffset.UtcNow), 20, "Mint", true))), Brush("Mint", this)));
+            if (App.CurrentApp.EventNotice(EventRule.RiftId) is { } riftNotice)
+                _body.Children.Add(Ink(Text(riftNotice, 13, "Gold", true)));
             return;
         }
         if (_kind == HudKind.Events)
         {
             var now = DateTimeOffset.UtcNow;
             if (_store.BossNotice is { } notice) _body.Children.Add(Space(Ink(Text(notice, 13, "Gold", true)), 7));
-            var upcoming = _store.Upcoming(now).Take(5).ToArray();
+            if (App.CurrentApp.EventNotice() is { } eventNotice) _body.Children.Add(Space(Ink(Text(eventNotice, 13, "Gold", true)), 7));
+            var upcoming = _store.Upcoming(now).OrderByDescending(item => _store.Profile.FavoriteEvents.Contains(item.Rule.Id)).Take(5).ToArray();
             foreach (var item in upcoming)
                 _body.Children.Add(Space(EventRow(item.Rule.DisplayName, Clock(item.Due - now), "Mint"), 5));
             var bosses = _store.LiveBosses.Where(b => !b.Alive && b.When > now).Take(3).ToArray();

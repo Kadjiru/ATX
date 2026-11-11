@@ -15,6 +15,14 @@ public sealed partial class Dashboard
         var rows = new StackPanel();
         var clocks = new List<(EventRule Rule, TextBlock Clock)>();
         var riftClock = Text("", 20, "Mint", true);
+        var eventNotice = Text("", 13, "Gold", true);
+        var favoritesOnly = new CheckBox { Content = Loc.T("Только избранное") };
+        var reminderSound = new CheckBox { Content = Loc.T("Звук напоминаний"), IsChecked = _store.Profile.ReminderSound };
+        reminderSound.Click += (_, _) =>
+        {
+            _store.Profile.ReminderSound = reminderSound.IsChecked == true;
+            _store.Save();
+        };
         var restoreRift = Button(Loc.T("Добавить пресет разлома"), () =>
         {
             if (_store.Rift is not null) return;
@@ -29,7 +37,8 @@ public sealed partial class Dashboard
         page.Children.Add(Space(Card(Stack(
             Space(Text(Loc.T("Ближайшие активности"), 20, bold: true), 7),
             Space(Hint(Loc.T("Стартовые пресеты Global основаны на расписаниях сообщества. Сверьте якорь UTC с вашим сервером.")), 10),
-            Actions(Button(Loc.T("Открыть отдельный HUD"), () => Hud(HudKind.Events), true)), rows)), 12));
+            Actions(Button(Loc.T("Открыть отдельный HUD"), () => Hud(HudKind.Events), true), favoritesOnly, reminderSound),
+            eventNotice, rows)), 12));
         page.Children.Add(Space(ObservedBossPanel(), 12));
         var name = Input();
         var anchor = Input(DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm"), 155);
@@ -43,6 +52,7 @@ public sealed partial class Dashboard
             Actions(Button(Loc.T("Сохранить"), SaveRule, true), Button(Loc.T("Новый таймер"), ResetEditor)), note)));
         _refreshTime = RefreshClocks;
         _refreshShared = Refresh;
+        favoritesOnly.Click += (_, _) => Refresh();
         Refresh();
         return page;
 
@@ -52,7 +62,10 @@ public sealed partial class Dashboard
             restoreRift.Visibility = _store.Rift is null ? Visibility.Visible : Visibility.Collapsed;
             rows.Children.Clear();
             clocks.Clear();
-            foreach (var item in _store.AllEvents.OrderBy(e => e.Next(now) ?? DateTimeOffset.MaxValue))
+            foreach (var item in _store.AllEvents
+                .Where(e => favoritesOnly.IsChecked != true || _store.Profile.FavoriteEvents.Contains(e.Id))
+                .OrderByDescending(e => _store.Profile.FavoriteEvents.Contains(e.Id))
+                .ThenBy(e => e.Next(now) ?? DateTimeOffset.MaxValue))
             {
                 var shared = _store.SharedEvents.FirstOrDefault(e => e.Id == item.Id);
                 var toggle = new CheckBox { IsChecked = item.Enabled, Content = shared is null ? item.DisplayName : item.DisplayName + " · ARX",
@@ -68,7 +81,28 @@ public sealed partial class Dashboard
                     minutes.Text = item.RepeatMinutes.ToString();
                     note.Text = "";
                 });
-                var line = shared is null ? Actions(toggle, label, edit) : Actions(toggle, label);
+                var favorite = new CheckBox { Content = Loc.T("Избранное"), IsChecked = _store.Profile.FavoriteEvents.Contains(item.Id) };
+                favorite.Click += (_, _) =>
+                {
+                    if (favorite.IsChecked == true) _store.Profile.FavoriteEvents.Add(item.Id);
+                    else _store.Profile.FavoriteEvents.Remove(item.Id);
+                    _store.Commit();
+                };
+                var reminder = Choice([Loc.T("Без напоминания"), Loc.T("В момент события"),
+                    Loc.T("За 5 мин"), Loc.T("За 10 мин")], 165, localize: false);
+                reminder.IsEnabled = item.Enabled;
+                reminder.SelectedIndex = _store.Profile.EventAlarms.GetValueOrDefault(item.Id, -1) switch
+                {
+                    0 => 1, 5 => 2, 10 => 3, _ => 0
+                };
+                reminder.SelectionChanged += (_, _) =>
+                {
+                    if (reminder.SelectedIndex <= 0) _store.Profile.EventAlarms.Remove(item.Id);
+                    else _store.Profile.EventAlarms[item.Id] = reminder.SelectedIndex switch { 2 => 5, 3 => 10, _ => 0 };
+                    _store.Save();
+                };
+                var actions = Actions(favorite, Field(Loc.T("Напоминание"), reminder));
+                if (shared is null) actions.Children.Add(edit);
                 toggle.Click += (_, _) =>
                 {
                     if (shared is not null)
@@ -84,8 +118,9 @@ public sealed partial class Dashboard
                     }
                     _store.Commit();
                 };
-                rows.Children.Add(line);
+                rows.Children.Add(Space(Card(Stack(Actions(toggle, label), actions), 10), 7));
             }
+            if (rows.Children.Count == 0) rows.Children.Add(Hint(Loc.T("Нет событий по выбранному фильтру.")));
             RefreshClocks();
         }
 
@@ -93,8 +128,9 @@ public sealed partial class Dashboard
         {
             var now = DateTimeOffset.UtcNow;
             riftClock.Text = RiftCountdown(_store.Rift, now);
+            eventNotice.Text = App.CurrentApp.EventNotice() ?? "";
             foreach (var (rule, label) in clocks)
-                label.Text = rule.Next(now) is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}"
+                label.Text = rule.Next(now) is { } next ? $"{Clock(next - now)} · {LocalEventTime(next)}"
                     : rule.Enabled ? Loc.T("Завершён") : Loc.T("Выключен");
         }
 

@@ -269,6 +269,9 @@ public sealed class Profile
     public string ProgressCharacter { get; set; } = "";
     public List<ProgressGoal> Goals { get; set; } = [];
     public Dictionary<string, int> BossAlarms { get; set; } = [];
+    public HashSet<Guid> FavoriteEvents { get; set; } = [];
+    public Dictionary<Guid, int> EventAlarms { get; set; } = [];
+    public bool ReminderSound { get; set; } = true;
     public string? BossHudSelection { get; set; }
     public Dictionary<string, HudLayout> HudLayouts { get; set; } = [];
     public string TeamFolder { get; set; } = "";

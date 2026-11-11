@@ -167,6 +167,8 @@ public partial class App : Application
                 _store.Save();
             }
             StartAppUpdates();
+            _eventAlertClock.Tick += (_, _) => CheckEventAlerts();
+            _eventAlertClock.Start();
         }
         catch (Exception ex)
         {
@@ -433,6 +435,7 @@ public partial class App : Application
         await System.Windows.Threading.Dispatcher.Yield();
         _teamPoll?.Stop();
         _updateTimer?.Stop();
+        _eventAlertClock.Stop();
         _hotkeys?.Dispose();
         _hotkeys = null;
         try
@@ -450,6 +453,7 @@ public partial class App : Application
     {
         _teamPoll?.Stop();
         _updateTimer?.Stop();
+        _eventAlertClock.Stop();
         _updates?.Dispose();
         if (_store is not null) _store.LiveChanged -= CheckBossAlerts;
         _hotkeys?.Dispose();
