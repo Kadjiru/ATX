@@ -10,8 +10,8 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
-        (Loc.T("Оформление"),
-            Loc.T("В настройках появились пять тем. Выберите палитры для приложения и HUD, затем нажмите «Применить темы»."))
+        (Loc.T("Каналы обновлений"),
+            Loc.T("Выберите Stable или Beta в настройках обновления. ARX предложит сборку выбранного канала."))
     ];
 
     public ChangelogWindow(Window? owner, string version)

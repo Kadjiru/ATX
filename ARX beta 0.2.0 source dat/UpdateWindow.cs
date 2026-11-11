@@ -15,10 +15,16 @@ internal sealed class UpdateWindow : Window
         WindowStartupLocation = owner is null ? WindowStartupLocation.CenterScreen : WindowStartupLocation.CenterOwner;
         ShowInTaskbar = false;
         ShowActivated = false;
+        var notice = version.EndsWith("-beta", StringComparison.Ordinal)
+            ? Loc.T("Бета-версия может содержать ошибки. Для повседневной игры можно вернуться на Stable.")
+            : AppUpdates.IsBetaBuild ? Loc.T("Переход на Stable заменит установленную бета-версию.") : "";
+        var warning = Text(notice, 13, "Coral");
+        if (notice.Length == 0) warning.Visibility = Visibility.Collapsed;
         Content = Card(Stack(
             Space(Label($"ARX {version}"), 5),
             Space(Text(Loc.T("Обновление готово. Установить?"), 23, bold: true), 8),
             Space(Hint(Loc.T("ARX завершит запись боя, покажет ход установки и автоматически откроет новую версию.")), 14),
+            Space(warning, 8),
             Actions(Button(Loc.T("Установить"), () => Choose(true), true),
                 Button(Loc.T("При закрытии"), () => Choose(false)), Button(Loc.T("Позже"), () => Choose(null)))), 20);
 

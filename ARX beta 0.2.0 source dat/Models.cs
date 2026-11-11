@@ -253,6 +253,7 @@ public sealed class Profile
     public Guid? SelectedBuildCharacterId { get; set; }
     public HudDensity CombatHudDensity { get; set; } = HudDensity.Detailed;
     public bool AutoUpdate { get; set; } = true;
+    public UpdateChannel? UpdateChannel { get; set; }
     public string? LastSeenVersion { get; set; }
     public bool AutoExpeditions { get; set; } = true;
     public double? CombatHudOpacity { get; set; }

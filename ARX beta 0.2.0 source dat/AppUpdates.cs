@@ -13,23 +13,26 @@ using Microsoft.Win32;
 namespace ArxBeta;
 
 internal enum UpdatePhase { Idle, Checking, Downloading, Verifying, Current, Available, Ready, Failed }
+public enum UpdateChannel { Stable, Beta }
 
 internal sealed class AppUpdates : IDisposable
 {
     private const string Repo = "https://github.com/Kadjiru/ATX";
-    private const string Feed = "https://api.github.com/repos/Kadjiru/ATX/releases?per_page=30";
+    private const string Feed = "https://api.github.com/repos/Kadjiru/ATX/releases";
     private const long MaximumInstallerSize = 256L * 1024 * 1024;
     private readonly HttpClient _http;
     private readonly CancellationTokenSource _shutdown = new();
     private readonly string _cache;
     private readonly string? _installFolder;
     private readonly ReleaseVersion _current;
+    private readonly UpdateChannel _channel;
     private Update? _ready;
     private bool _busy;
 
     private sealed record Release(
         [property: JsonPropertyName("tag_name")] string Tag,
         [property: JsonPropertyName("draft")] bool Draft,
+        [property: JsonPropertyName("prerelease")] bool Prerelease,
         [property: JsonPropertyName("assets")] Asset[]? Assets);
     private sealed record Asset(
         [property: JsonPropertyName("name")] string Name,
@@ -66,6 +69,8 @@ internal sealed class AppUpdates : IDisposable
 
     internal static string CurrentLabel => typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
         ?.InformationalVersion.Split('+')[0] ?? "1.0.0-beta";
+    internal static bool IsBetaBuild => CurrentLabel.EndsWith("-beta", StringComparison.Ordinal);
+    internal static UpdateChannel DefaultChannel => IsBetaBuild ? UpdateChannel.Beta : UpdateChannel.Stable;
     public string Status { get; private set; } = Loc.T("Проверка обновлений ещё не выполнялась.");
     public UpdatePhase Phase { get; private set; }
     public int DownloadPercent { get; private set; }
@@ -76,17 +81,18 @@ internal sealed class AppUpdates : IDisposable
     public string? ReadyIdentity => _ready is { } update ? $"{update.Version.Label}/{update.Asset.Digest}" : null;
     public string? ReleasePage { get; private set; }
 
-    public AppUpdates() : this(new HttpClientHandler { AllowAutoRedirect = false }, CurrentLabel,
-        DetectInstallation(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ARX", "Updates"))
+    public AppUpdates(UpdateChannel channel) : this(new HttpClientHandler { AllowAutoRedirect = false }, CurrentLabel,
+        DetectInstallation(), Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ARX", "Updates"), channel)
     { }
 
-    internal AppUpdates(HttpMessageHandler handler, string current, string? installFolder, string cache)
+    internal AppUpdates(HttpMessageHandler handler, string current, string? installFolder, string cache, UpdateChannel channel)
     {
         _http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(40) };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("ARX-Updater");
         _current = ReleaseVersion.TryParse(current, out var version) ? version : throw new ArgumentException(Loc.T("Неизвестная версия ARX."));
         _installFolder = installFolder;
         _cache = cache;
+        _channel = channel;
     }
 
     public async Task CheckAsync()
@@ -99,15 +105,22 @@ internal sealed class AppUpdates : IDisposable
         try
         {
             SetStatus(UpdatePhase.Checking, Loc.T("Проверяем обновления…"));
-            await using var feed = await _http.GetStreamAsync(Feed, ct);
-            var releases = await JsonSerializer.DeserializeAsync<Release[]>(feed, cancellationToken: ct) ?? [];
+            var beta = _channel == UpdateChannel.Beta;
+            await using var feed = await _http.GetStreamAsync(Feed + (beta ? "?per_page=100" : "/latest"), ct);
+            Release?[] releases = beta
+                ? await JsonSerializer.DeserializeAsync<Release[]>(feed, cancellationToken: ct) ?? []
+                : [await JsonSerializer.DeserializeAsync<Release>(feed, cancellationToken: ct)];
+            ct.ThrowIfCancellationRequested();
             var update = releases.Select(FromRelease).OfType<Update>().OrderByDescending(u => u.Version)
-                .FirstOrDefault(u => u.Version.CompareTo(_current) > 0);
+                .FirstOrDefault(u => u.Version.Beta == beta &&
+                    (u.Version.Beta != _current.Beta || u.Version.CompareTo(_current) > 0));
             if (update is null)
             {
                 _ready = null;
                 ReleasePage = null;
-                SetStatus(UpdatePhase.Current, Loc.T("Установлена актуальная версия."));
+                var switching = _current.Beta != beta;
+                SetStatus(UpdatePhase.Current, switching ? Loc.T("В выбранном канале пока нет подходящей версии.")
+                    : Loc.T("Установлена актуальная версия."));
                 return;
             }
             ReleasePage = update.Page;
@@ -131,6 +144,7 @@ internal sealed class AppUpdates : IDisposable
                 SetStatus(UpdatePhase.Downloading, Loc.F($"Загружаем ARX {update.Version.Label}…"));
                 await DownloadAsync(update, path, ct);
             }
+            ct.ThrowIfCancellationRequested();
             _ready = update;
             SetStatus(UpdatePhase.Ready, ReadyStatus(update));
         }
@@ -161,8 +175,9 @@ internal sealed class AppUpdates : IDisposable
     private static Update? FromRelease(Release? release)
     {
         if (release is not { Draft: false, Tag: { Length: > 1 } tag } || tag[0] != 'v' ||
-            !ReleaseVersion.TryParse(tag[1..], out var version)) return null;
-        var name = $"ARX-Setup-{version.Label}.exe";
+            !ReleaseVersion.TryParse(tag[1..], out var version) || version.Beta != release.Prerelease) return null;
+        // The old updater only recognizes ARX-Setup-* and must migrate to Stable first.
+        var name = version.Beta ? $"ARX-Beta-Setup-{version.Label}.exe" : $"ARX-Setup-{version.Label}.exe";
         var asset = release.Assets?.FirstOrDefault(a => a is not null && a.Name == name && a.State == "uploaded" &&
             a.Size is > 0 and <= MaximumInstallerSize &&
             a.Digest is { Length: 71 } digest && digest.StartsWith("sha256:", StringComparison.Ordinal) &&
@@ -222,6 +237,7 @@ internal sealed class AppUpdates : IDisposable
                 SetStatus(UpdatePhase.Verifying, Loc.T("Проверяем целостность установщика…"));
                 if (size != update.Asset.Size || !CheckHash(update, hash.GetHashAndReset()))
                     throw new InvalidDataException(Loc.T("Установщик ARX не прошёл проверку SHA-256."));
+                ct.ThrowIfCancellationRequested();
                 File.Move(part, target, true);
                 return;
             }

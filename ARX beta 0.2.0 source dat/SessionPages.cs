@@ -283,6 +283,27 @@ public sealed partial class Dashboard
             hotkeys)), 12));
         RefreshHudStatus();
         var updateStatus = Text("", 13, "Mint", true);
+        var channels = Choice([Loc.T("Стабильный (Stable)"), Loc.T("Бета (Beta)")], 215, localize: false);
+        channels.SelectedIndex = app.SelectedUpdateChannel == UpdateChannel.Beta ? 1 : 0;
+        var betaWarning = Text(Loc.T("Бета-версия может содержать ошибки. Для повседневной игры можно вернуться на Stable."), 13, "Coral");
+        var channelError = Text("", 13, "Coral");
+        channels.SelectionChanged += (_, _) =>
+        {
+            var selected = channels.SelectedIndex == 1 ? UpdateChannel.Beta : UpdateChannel.Stable;
+            if (selected == app.SelectedUpdateChannel) return;
+            try
+            {
+                if (_store.LoadError is not null) throw new IOException();
+                app.ChangeUpdateChannel(selected);
+                channelError.Text = "";
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                channels.SelectedIndex = app.SelectedUpdateChannel == UpdateChannel.Beta ? 1 : 0;
+                channelError.Text = Loc.T("Не удалось сохранить канал обновлений.");
+            }
+            RefreshUpdate();
+        };
         var autoUpdate = new CheckBox { Content = Loc.T("Проверять обновления автоматически"), IsChecked = _store.Profile.AutoUpdate };
         autoUpdate.Click += (_, _) =>
         {
@@ -302,6 +323,7 @@ public sealed partial class Dashboard
         }, true);
         page.Children.Insert(4, Space(Card(Stack(Space(Text(Loc.T("Обновление ARX"), 20, bold: true), 6),
             Space(Hint(Loc.F($"Версия {AppUpdates.CurrentLabel}. После скачивания установщика ARX спросит, когда его запустить.")), 8),
+            Space(Field(Loc.T("Канал обновлений"), channels), 6), betaWarning, channelError,
             Space(autoUpdate, 8), Actions(checkUpdate, updateAction, Button(Loc.T("Что нового"), app.ShowChangelog)), updateStatus)), 12));
         RefreshUpdate();
         var syncStatus = Text("", 13, "Mint", true);
@@ -325,6 +347,8 @@ public sealed partial class Dashboard
         void RefreshUpdate()
         {
             var updates = app.Updates;
+            betaWarning.Visibility = AppUpdates.IsBetaBuild || app.SelectedUpdateChannel == UpdateChannel.Beta
+                ? Visibility.Visible : Visibility.Collapsed;
             checkUpdate.IsEnabled = updates is not null;
             updateAction.Visibility = updates?.Ready == true || updates?.ReleasePage is not null
                 ? Visibility.Visible : Visibility.Collapsed;

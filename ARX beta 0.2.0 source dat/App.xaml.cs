@@ -199,20 +199,54 @@ public partial class App : Application
 
     private void StartAppUpdates()
     {
-        _updates = new AppUpdates();
-        _updates.StatusChanged += () => _dashboard?.RefreshUpdateStatus();
-        _dashboard?.RefreshUpdateStatus();
+        ResetAppUpdates();
         _updateTimer = new DispatcherTimer { Interval = TimeSpan.FromHours(2) };
         _updateTimer.Tick += (_, _) => { if (_store.Profile.AutoUpdate) _ = CheckAppUpdatesAsync(); };
         _updateTimer.Start();
         if (_store.Profile.AutoUpdate) _ = CheckAppUpdatesAsync();
     }
 
+    internal UpdateChannel SelectedUpdateChannel => _store.Profile.UpdateChannel == UpdateChannel.Beta ||
+        _store.Profile.UpdateChannel is null && AppUpdates.DefaultChannel == UpdateChannel.Beta
+        ? UpdateChannel.Beta : UpdateChannel.Stable;
+
+    internal void ChangeUpdateChannel(UpdateChannel channel)
+    {
+        var previous = _store.Profile.UpdateChannel;
+        _store.Profile.UpdateChannel = channel;
+        try { _store.Save(); }
+        catch
+        {
+            _store.Profile.UpdateChannel = previous;
+            throw;
+        }
+
+        if (_updates is null) return;
+        ResetAppUpdates();
+        _ = CheckAppUpdatesAsync();
+    }
+
+    private void ResetAppUpdates()
+    {
+        _approvedUpdate = null;
+        _offeredUpdate = null;
+        _updateWindow?.Close();
+        _updates?.Dispose();
+        var updates = new AppUpdates(SelectedUpdateChannel);
+        _updates = updates;
+        updates.StatusChanged += () =>
+        {
+            if (ReferenceEquals(_updates, updates)) _dashboard?.RefreshUpdateStatus();
+        };
+        _dashboard?.RefreshUpdateStatus();
+    }
+
     internal async Task CheckAppUpdatesAsync()
     {
         if (_closing || _updates is not { } updates) return;
         await updates.CheckAsync();
-        if (!_closing && updates.ReadyIdentity is { } identity && identity != _offeredUpdate) ShowUpdateOffer();
+        if (!_closing && ReferenceEquals(_updates, updates) &&
+            updates.ReadyIdentity is { } identity && identity != _offeredUpdate) ShowUpdateOffer();
     }
 
     internal async Task OpenUpdateAsync()

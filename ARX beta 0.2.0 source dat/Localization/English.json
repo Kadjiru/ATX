@@ -1,4 +1,13 @@
 {
+  "Стабильный (Stable)": "Stable",
+  "Бета (Beta)": "Beta",
+  "Канал обновлений": "Update channel",
+  "Бета-версия может содержать ошибки. Для повседневной игры можно вернуться на Stable.": "Beta builds may contain bugs. You can switch back to Stable for regular play.",
+  "Переход на Stable заменит установленную бета-версию.": "Switching to Stable will replace the installed beta build.",
+  "Не удалось сохранить канал обновлений.": "Could not save the update channel.",
+  "В выбранном канале пока нет подходящей версии.": "No compatible release is available in the selected channel yet.",
+  "Каналы обновлений": "Update channels",
+  "Выберите Stable или Beta в настройках обновления. ARX предложит сборку выбранного канала.": "Choose Stable or Beta in the update settings. ARX will offer a build from that channel.",
   "\nX {0:0} м · Y {1:0} м": "\nX {0:0} m · Y {1:0} m",
   "Управление HUD через Alt": "HUD mouse control with Alt",
   "Атрея": "Atreia",
