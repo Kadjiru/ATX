@@ -1,5 +1,8 @@
 {
   "Мастер подключения": "Connection guide",
+  "Проверяет Npcap, сетевые адаптеры и запуск Aion 2. Повторно открыть мастер можно в настройках.": "Checks Npcap, network adapters, and whether Aion 2 is running. Reopen the guide from Settings.",
+  "Диагностика подключения": "Connection diagnostics",
+  "Скопируйте краткую сводку или просмотрите JSON перед отправкой в поддержку.": "Copy a short summary or preview the JSON before sharing it with support.",
   "Готово": "Done",
   "Предпросмотр диагностики": "Preview diagnostics",
   "Сводка содержит только версии, статусы и счётчики.": "The summary contains only versions, statuses, and counters.",

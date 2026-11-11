@@ -10,9 +10,9 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
-        (Loc.T("Таймер разлома"), Loc.T("В разделе «События» появился отдельный HUD разлома с отсчётом до открытия по расписанию.")),
-        (Loc.T("Каналы обновлений"),
-            Loc.T("Выберите Stable или Beta в настройках обновления. ARX предложит сборку выбранного канала."))
+        (Loc.T("Мастер подключения"), Loc.T("Проверяет Npcap, сетевые адаптеры и запуск Aion 2. Повторно открыть мастер можно в настройках.")),
+        (Loc.T("Диагностика подключения"),
+            Loc.T("Скопируйте краткую сводку или просмотрите JSON перед отправкой в поддержку."))
     ];
 
     public ChangelogWindow(Window? owner, string version)
