@@ -9,7 +9,7 @@ using static ArxBeta.Ui;
 
 namespace ArxBeta;
 
-public enum HudKind { Combat, Events, Tasks, Bosses, Atlas }
+public enum HudKind { Combat, Events, Tasks, Bosses, Atlas, Rift }
 public enum HudDensity { Minimal, Medium, Detailed }
 public enum CombatHudScope { Self, Party }
 
@@ -45,7 +45,7 @@ public sealed class HudWindow : Window
         _theme.Apply(Resources);
         _alt.Tick += (_, _) => ApplyMouseInput(Hotkeys.IsAltDown);
         var name = kind switch { HudKind.Combat => Loc.T("Урон"), HudKind.Events => Loc.T("События"), HudKind.Bosses => Loc.T("Боссы"),
-            HudKind.Atlas => Loc.T("Миникарта"), _ => Loc.T("Задачи") };
+            HudKind.Atlas => Loc.T("Миникарта"), HudKind.Rift => Loc.T("Пространственный разлом"), _ => Loc.T("Задачи") };
         Title = $"ARX · {name}";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
@@ -144,7 +144,7 @@ public sealed class HudWindow : Window
         Refresh();
         _store.Changed += Refresh;
         if (kind is HudKind.Combat or HudKind.Bosses) _store.LiveChanged += Refresh;
-        if (kind is HudKind.Events or HudKind.Bosses)
+        if (kind is HudKind.Events or HudKind.Bosses or HudKind.Rift)
         {
             _clock.Tick += (_, _) => Refresh();
             _clock.Start();
@@ -312,6 +312,13 @@ public sealed class HudWindow : Window
             return;
         }
         _body.Children.Clear();
+        if (_kind == HudKind.Rift)
+        {
+            _body.Children.Add(Plate(Stack(
+                Space(Ink(Label(Loc.T("Следующее открытие по расписанию"))), 5),
+                Ink(Text(RiftCountdown(_store.Rift, DateTimeOffset.UtcNow), 20, "Mint", true))), Brush("Mint", this)));
+            return;
+        }
         if (_kind == HudKind.Events)
         {
             var now = DateTimeOffset.UtcNow;

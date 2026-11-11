@@ -14,6 +14,18 @@ public sealed partial class Dashboard
         var page = Heading(Loc.T("События"), Loc.T("Таймеры работают по расписанию, даже когда игра закрыта"));
         var rows = new StackPanel();
         var clocks = new List<(EventRule Rule, TextBlock Clock)>();
+        var riftClock = Text("", 20, "Mint", true);
+        var restoreRift = Button(Loc.T("Добавить пресет разлома"), () =>
+        {
+            if (_store.Rift is not null) return;
+            _store.Profile.Events.Add(_catalog.Reference.Presets.FirstOrDefault(rule => rule.Id == EventRule.RiftId) ?? EventRule.DefaultRift);
+            _store.Commit();
+        });
+        page.Children.Add(Space(Card(Stack(
+            Space(Text(Loc.T("Пространственный разлом"), 20, bold: true), 5),
+            Space(riftClock, 5),
+            Space(Hint(Loc.T("Отсчёт по настроенному расписанию. Сверьте время открытия на своём сервере.")), 8),
+            Actions(Button(Loc.T("Открыть HUD разлома"), () => Hud(HudKind.Rift), true), restoreRift))), 12));
         page.Children.Add(Space(Card(Stack(
             Space(Text(Loc.T("Ближайшие активности"), 20, bold: true), 7),
             Space(Hint(Loc.T("Стартовые пресеты Global основаны на расписаниях сообщества. Сверьте якорь UTC с вашим сервером.")), 10),
@@ -37,6 +49,7 @@ public sealed partial class Dashboard
         void Refresh()
         {
             var now = DateTimeOffset.UtcNow;
+            restoreRift.Visibility = _store.Rift is null ? Visibility.Visible : Visibility.Collapsed;
             rows.Children.Clear();
             clocks.Clear();
             foreach (var item in _store.AllEvents.OrderBy(e => e.Next(now) ?? DateTimeOffset.MaxValue))
@@ -79,6 +92,7 @@ public sealed partial class Dashboard
         void RefreshClocks()
         {
             var now = DateTimeOffset.UtcNow;
+            riftClock.Text = RiftCountdown(_store.Rift, now);
             foreach (var (rule, label) in clocks)
                 label.Text = rule.Next(now) is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}"
                     : rule.Enabled ? Loc.T("Завершён") : Loc.T("Выключен");

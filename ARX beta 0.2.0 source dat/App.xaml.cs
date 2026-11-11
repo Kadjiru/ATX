@@ -90,7 +90,7 @@ public partial class App : Application
                 var kind = section switch
                 {
                     "hud-events" => HudKind.Events, "hud-tasks" => HudKind.Tasks,
-                    "hud-bosses" => HudKind.Bosses, "hud-atlas" => HudKind.Atlas, _ => HudKind.Combat
+                    "hud-bosses" => HudKind.Bosses, "hud-atlas" => HudKind.Atlas, "hud-rift" => HudKind.Rift, _ => HudKind.Combat
                 };
                 if (kind == HudKind.Bosses && WorldBossCatalog.Choices.FirstOrDefault() is { } boss)
                 {

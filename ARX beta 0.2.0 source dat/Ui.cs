@@ -108,4 +108,12 @@ internal static class Ui
         var s = Math.Max(0, (long)Math.Ceiling(time.TotalSeconds));
         return s >= 3600 ? $"{s / 3600:00}:{s / 60 % 60:00}:{s % 60:00}" : $"{s / 60:00}:{s % 60:00}";
     }
+
+    internal static string RiftCountdown(EventRule? rule, DateTimeOffset now)
+    {
+        if (rule is null) return Loc.T("Добавьте таймер в разделе «События».");
+        if (!rule.Enabled) return Loc.T("Таймер выключен.");
+        return rule.Next(now) is { } next ? $"{Clock(next - now)} · {next.ToLocalTime():dd.MM HH:mm}"
+            : Loc.T("Завершён");
+    }
 }

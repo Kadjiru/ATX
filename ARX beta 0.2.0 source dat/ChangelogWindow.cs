@@ -10,6 +10,7 @@ internal sealed class ChangelogWindow : Window
 {
     private static readonly (string Title, string Summary)[] Notes =
     [
+        (Loc.T("Таймер разлома"), Loc.T("В разделе «События» появился отдельный HUD разлома с отсчётом до открытия по расписанию.")),
         (Loc.T("Каналы обновлений"),
             Loc.T("Выберите Stable или Beta в настройках обновления. ARX предложит сборку выбранного канала."))
     ];

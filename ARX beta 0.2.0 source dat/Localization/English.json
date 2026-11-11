@@ -1,4 +1,12 @@
 {
+  "Добавьте таймер в разделе «События».": "Add a timer in Events.",
+  "Таймер выключен.": "Timer is disabled.",
+  "Следующее открытие по расписанию": "Next scheduled opening",
+  "Добавить пресет разлома": "Add rift preset",
+  "Отсчёт по настроенному расписанию. Сверьте время открытия на своём сервере.": "Counts down to the configured time. Check the opening time on your server.",
+  "Открыть HUD разлома": "Open Rift HUD",
+  "Таймер разлома": "Rift timer",
+  "В разделе «События» появился отдельный HUD разлома с отсчётом до открытия по расписанию.": "Events now has a dedicated Rift HUD with a countdown to the next scheduled opening.",
   "Стабильный (Stable)": "Stable",
   "Бета (Beta)": "Beta",
   "Канал обновлений": "Update channel",

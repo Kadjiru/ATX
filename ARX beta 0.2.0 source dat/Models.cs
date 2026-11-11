@@ -203,6 +203,7 @@ public static class FightImport
 public sealed record EventRule(Guid Id, string Name, DateTimeOffset AnchorUtc, int RepeatMinutes, bool Enabled = true)
 {
     internal static readonly Guid RiftId = new("55025e60-21df-42de-9e89-a22f94b8c426");
+    internal static readonly EventRule DefaultRift = new(RiftId, "Пространственный разлом", DateTimeOffset.UnixEpoch, 180);
     internal static readonly Guid ShugoFestivalId = new("c885ed94-84c1-47e1-b8aa-11ff600f4c16");
 
     internal string DisplayName =>
@@ -277,7 +278,7 @@ public sealed class Profile
     public HashSet<Guid> TeamDisabled { get; set; } = [];
     public List<EventRule> Events { get; set; } =
     [
-        new(EventRule.RiftId, "Пространственный разлом", DateTimeOffset.UnixEpoch, 180),
+        EventRule.DefaultRift,
         new(EventRule.ShugoFestivalId, "Фестиваль шуго", DateTimeOffset.UnixEpoch, 60)
     ];
 }
@@ -438,6 +439,8 @@ public sealed class LegionStore
     public IEnumerable<(EventRule Rule, DateTimeOffset Due)> Upcoming(DateTimeOffset now) =>
         AllEvents.Select(rule => (Rule: rule, Due: rule.Next(now)))
             .Where(item => item.Due.HasValue).Select(item => (item.Rule, item.Due!.Value)).OrderBy(item => item.Value);
+
+    internal EventRule? Rift => AllEvents.FirstOrDefault(rule => rule.Id == EventRule.RiftId);
 
     public IEnumerable<SessionTask> SessionTasks => Profile.Tasks.Where(t => t.SessionId == Profile.SessionId);
     public IEnumerable<MapPin> AllPins => Profile.Pins.Concat(
