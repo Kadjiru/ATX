@@ -234,6 +234,7 @@ public sealed partial class Dashboard
             Space(Hint(Loc.T("Считывание через Npcap включается при запуске ARX. Для определения персонажа лучше открыть ARX перед входом в игру или сменить локацию.")), 8),
             Space(captureStatus, 7), Actions(Field(Loc.T("Сетевой адаптер"), adapter)),
             Actions(Button(Loc.T("Применить адаптер"), () => _ = ApplyAdapter()),
+                Button(Loc.T("Мастер подключения"), App.CurrentApp.ShowConnectionGuide),
                 Button(Loc.T("Экспорт диагностики"), () => ExportJson(new
                 {
                     Version = AppUpdates.CurrentLabel, Windows = Environment.OSVersion.VersionString,

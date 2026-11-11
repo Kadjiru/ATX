@@ -20,6 +20,7 @@ public partial class App : Application
     private DispatcherTimer? _updateTimer;
     private UpdateWindow? _updateWindow;
     private ChangelogWindow? _changelogWindow;
+    private ConnectionGuide? _connectionGuide;
     private string? _offeredUpdate;
     private string? _approvedUpdate;
     public static App CurrentApp => (App)Current;
@@ -67,7 +68,11 @@ public partial class App : Application
             ApplyThemes();
             _catalog = CatalogSync.Open(true);
             var section = e.Args.Length > 2 ? e.Args[2] : "combat";
-            if (section == "changelog")
+            if (section == "connection")
+            {
+                Render(new ConnectionGuide(null, null, preview: true), e.Args[1], new Size(620, 620));
+            }
+            else if (section == "changelog")
             {
                 Render(new ChangelogWindow(null, AppUpdates.CurrentLabel), e.Args[1], new Size(575, 546));
             }
@@ -150,6 +155,8 @@ public partial class App : Application
                 _store.Save();
             }
             _live.Start();
+            if (_store.NewProfile)
+                ShowConnectionGuide();
             var version = AppUpdates.CurrentLabel;
             if ((e.Args.Contains("--updated", StringComparer.OrdinalIgnoreCase) || !_store.NewProfile) &&
                 _store.Profile.LastSeenVersion != version)
@@ -194,6 +201,20 @@ public partial class App : Application
             _store.Profile.LastSeenVersion = version;
             _store.Save();
         };
+        window.Show();
+    }
+
+    internal void ShowConnectionGuide()
+    {
+        if (_closing || _dashboard is null) return;
+        if (_connectionGuide is { } existing)
+        {
+            existing.Activate();
+            return;
+        }
+        var window = new ConnectionGuide(_dashboard, _live);
+        _connectionGuide = window;
+        window.Closed += (_, _) => _connectionGuide = null;
         window.Show();
     }
 

@@ -52,6 +52,7 @@ internal sealed class LiveCombat : IDisposable
     public bool IsRunning => _source is not null;
     public bool IsStopping => _stopping;
     public static bool NpcapAvailable => LiveCapture.IsNpcapInstalled();
+    internal CaptureStatus Status => _source?.Status ?? CaptureStatus.Stopped;
     public string Diagnostic => _source?.Status is { } s
         ? Loc.F($"Состояние: {StateText(s.State)} · TCP-пакеты: {s.Packets:N0} · События игры: {s.Events:N0}")
         : _error ?? (NpcapAvailable ? Loc.T("Npcap найден. Захват остановлен.") : Loc.T("Npcap не установлен."));
