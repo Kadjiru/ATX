@@ -1,9 +1,9 @@
 const downloadCount = document.getElementById("download-count");
-const arxPackage = /^ARX-(?:Setup-\d+\.\d+\.\d+(?:-beta)?\.exe|\d+\.\d+\.\d+(?:-beta)?-win-x64\.zip)$/i;
+const arxPackage = /^ARX-(?:(?:Beta-)?Setup-\d+\.\d+\.\d+(?:-beta)?\.exe|\d+\.\d+\.\d+(?:-beta)?-win-x64\.zip)$/i;
 
 async function loadReleaseDownloads() {
   let total = 0;
-  let newest;
+  const newest = {};
   let page = 1;
   let hasNextPage;
   const signal = AbortSignal.timeout(7000);
@@ -20,8 +20,12 @@ async function loadReleaseDownloads() {
       const packages = release.assets.filter(asset => arxPackage.test(asset.name));
       for (const asset of packages) total += asset.download_count;
 
-      if (packages.length && (!newest || release.published_at > newest.release.published_at)) {
-        newest = { release, packages };
+      if (!packages.length) continue;
+      const channel = release.prerelease ? "beta" : "stable";
+      for (const key of ["latest", channel]) {
+        if (!newest[key] || release.published_at > newest[key].release.published_at) {
+          newest[key] = { release, packages };
+        }
       }
     }
 
@@ -37,20 +41,20 @@ let linksReady = false;
 
 const prepareDownloads = loadReleaseDownloads().then(({ total, newest }) => {
   downloadCount.textContent = total.toLocaleString(document.documentElement.lang);
-  if (!newest) return;
+  for (const [channel, { release, packages }] of Object.entries(newest)) {
+    const installer = packages.find(asset => /\.exe$/i.test(asset.name));
+    const portable = packages.find(asset => /\.zip$/i.test(asset.name));
+    const destinations = { installer, portable, preferred: installer ?? portable };
+    const releaseName = release.name || release.tag_name;
 
-  const { release, packages } = newest;
-  const installer = packages.find(asset => /\.exe$/i.test(asset.name));
-  const portable = packages.find(asset => /\.zip$/i.test(asset.name));
-  const destinations = { installer, portable, preferred: installer ?? portable };
-
-  for (const link of downloadLinks) {
-    link.href = destinations[link.dataset.download]?.browser_download_url ?? release.html_url;
+    for (const link of downloadLinks) {
+      if (link.dataset.channel === channel) {
+        link.href = destinations[link.dataset.download]?.browser_download_url ?? release.html_url;
+      }
+    }
+    document.querySelector(`[data-release-version="${channel}"]`).textContent =
+      channel === "latest" ? releaseName.toUpperCase() : releaseName;
   }
-
-  const releaseName = release.name || release.tag_name;
-  document.getElementById("hero-release").textContent = releaseName.toUpperCase();
-  document.getElementById("download-release").textContent = releaseName;
 }).catch(() => {
   downloadCount.textContent = downloadCount.dataset.unavailable;
 }).finally(() => {

@@ -80,11 +80,13 @@ kbd { padding: .05rem .25rem; background: #233438; border: 1px solid #395053; bo
 .release-header { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .65rem 1rem; }
 .release-header .feature-index { margin-bottom: .5rem; }
 .release-header time { color: var(--muted); font-size: .85rem; }
+.release > p { margin-top: 1rem; color: var(--muted); }
 .release-link { display: inline-block; margin-top: .8rem; color: var(--mint); font-size: .9rem; font-weight: 650; }
 .release-link:hover { text-decoration: underline; }
 .download-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 2rem; }
 .download-grid article { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 1.3rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
 .download-grid h3 { margin-bottom: .3rem; }
+#steam { grid-column: 1 / -1; }
 .download-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
 .download-count { margin-top: 1.25rem; color: var(--muted); font-size: .9rem; }
 .download-count output { color: var(--mint); font-weight: 700; font-variant-numeric: tabular-nums; }

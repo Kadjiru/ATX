@@ -8,8 +8,8 @@
   <title>ARX — Aion 2 Global Companion</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
   <link rel="alternate" hreflang="ru" href="./">
-  <link rel="stylesheet" href="style.css?v=3">
-  <script src="downloads.js?v=3" defer></script>
+  <link rel="stylesheet" href="style.css?v=4">
+  <script src="downloads.js?v=4" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
@@ -38,14 +38,14 @@
           <p class="hero-text">Track your DPS in combat, review boss attempts, and plan routes across Atreia.</p>
           <p class="download-count">ARX downloads on GitHub: <output id="download-count" data-unavailable="temporarily unavailable">checking…</output></p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="preferred">Download ARX <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-Beta-Setup-1.1.0-beta.exe" data-channel="latest" data-download="preferred">Download ARX <span aria-hidden="true">↓</span></a>
             <a class="button secondary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Steam guide <span aria-hidden="true">↗</span></a>
           </div>
-          <p class="platform"><strong id="hero-release">ARX RELEASES</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
+          <p class="platform"><strong data-release-version="latest">ARX 1.1.0 BETA</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
-          <img src="assets/analysis-en.png" width="2880" height="2000" alt="ARX combat report with a damage timeline, party statistics, and skill breakdown.">
-          <figcaption><span class="dot"></span> Combat report <span class="caption-note">Demo encounter</span></figcaption>
+          <img src="assets/analysis-110-en.png" width="1340" height="900" alt="ARX combat report with a damage timeline and party statistics">
+          <figcaption><span class="dot"></span> Combat report <span class="caption-note">Demo encounter · 1.1.0 Beta</span></figcaption>
         </figure>
       </div>
     </section>
@@ -82,16 +82,16 @@
           </dl>
         </div>
         <figure class="map-shots">
-          <img class="atlas" src="assets/atlas-en.png" width="2880" height="2000" loading="lazy" alt="The ARX atlas with teleport markers in Altgard">
-          <img class="minimap" src="assets/minimap-en.png" width="776" height="1000" loading="lazy" alt="The minimap overlay with the Abandoned Campsite selected in Altgard">
-          <figcaption>Atlas and standalone minimap overlay</figcaption>
+          <img class="atlas" src="assets/atlas-110-en.png" width="1340" height="900" loading="lazy" alt="The ARX atlas with teleport markers in Altgard">
+          <img class="minimap" src="assets/hud-atlas-110-en.png" width="388" height="500" loading="lazy" alt="The minimap overlay with a selected marker in Altgard">
+          <figcaption>Atlas and minimap overlay · 1.1.0 Beta</figcaption>
         </figure>
       </div>
     </section>
     <section class="wrap split reference" aria-labelledby="reference-title">
       <figure class="reference-shot">
-        <img src="assets/builds-en.png" width="2880" height="2000" loading="lazy" alt="A Gladiator PvE build in ARX showing stat priorities, skills, and stigmas">
-        <figcaption>A PvE build in ARX</figcaption>
+        <img src="assets/pets-110-en.png" width="1340" height="900" loading="lazy" alt="ARX pet card with habitats, ownership bonuses, and upgrade costs">
+        <figcaption>Pet catalog cards · 1.1.0 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> REFERENCE</p>
@@ -103,6 +103,32 @@
         </dl>
       </div>
     </section>
+    <section class="wrap split reference" aria-labelledby="appearance-title">
+      <figure class="reference-shot">
+        <img src="assets/settings-110-en.png" width="1340" height="900" loading="lazy" alt="ARX settings with appearance, language, and combat HUD controls">
+        <figcaption>Appearance, language, and HUD settings · 1.1.0 Beta</figcaption>
+      </figure>
+      <div>
+        <p class="eyebrow"><span class="dot"></span> SETTINGS</p>
+        <h2 id="appearance-title">Customize ARX</h2>
+        <dl class="detail-list">
+          <div><dt>Five color palettes</dt><dd>Choose Atreia, Abyss, Ember, Frost, or Graphite. Set the app and HUD palettes independently, or select “Match app”.</dd></div>
+          <div><dt>Russian and English</dt><dd>Choose a language in Settings → Language, save, and restart ARX. The selection applies to the main app, HUDs, and built-in reference pages.</dd></div>
+          <div><dt>Interact with locked overlays</dt><dd>Hold <kbd>Alt</kbd> to use the controls or drag a locked HUD by its title bar. Release it to restore click-through.</dd></div>
+        </dl>
+      </div>
+    </section>
+    <section class="wrap split reference" aria-labelledby="rift-title">
+      <figure class="reference-shot">
+        <img src="assets/hud-rift-110-en.png" width="365" height="193" loading="lazy" alt="Dimensional Rift HUD showing a sample countdown and opening time">
+        <figcaption>Sample scheduled countdown · 1.1.0 Beta</figcaption>
+      </figure>
+      <div>
+        <p class="eyebrow"><span class="dot"></span> EVENTS</p>
+        <h2 id="rift-title">Dimensional Rift HUD</h2>
+        <p class="hero-text">In Beta, open Events and enable the Rift HUD. It shows the countdown and local time for the next scheduled opening. You can compare the schedule with your server and edit it in Events.</p>
+      </div>
+    </section>
     <section class="setup" id="setup" aria-labelledby="setup-title">
       <div class="wrap">
         <p class="eyebrow"><span class="dot"></span> FIRST LAUNCH</p>
@@ -112,12 +138,35 @@
           <li><h3>Enable combat tracking</h3><p>If Npcap is missing, the ARX installer offers to install it. Install it separately if you use the portable version. Start ARX before logging in with your character, or change zones if you are already in game.</p></li>
           <li><h3>Turn on the overlays</h3><p>Use borderless windowed mode. Press <kbd>Alt</kbd> + <kbd>F8</kbd> for the combat overlay or <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F10</kbd> for the minimap.</p></li>
         </ol>
+        <p class="setup-note">Go to Settings → ARX Update → Update Channel and choose Stable or Beta. ARX offers the release from that channel. Switching back to Stable may install a lower version number. For the portable edition, download the ZIP for your chosen channel and extract it in full.</p>
         <p class="setup-note">ARX works without an account. Combat reports are stored in your local profile.</p>
       </div>
     </section>
     <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
       <p class="eyebrow"><span class="dot"></span> RELEASE HISTORY</p>
       <h2 id="changelog-title">What’s new</h2>
+      <article class="release" id="release-1-1-0">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.1.0 BETA</p>
+            <h3>Dimensional Rift HUD</h3>
+          </div>
+          <time datetime="2026-11-11">November 11, 2026</time>
+        </header>
+        <p>The new overlay in Events shows a countdown and local time for the next scheduled opening. Edit the schedule in Events.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.0-beta">View release on GitHub <span aria-hidden="true">↗</span></a>
+      </article>
+      <article class="release" id="release-1-0-9">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.0.9 STABLE</p>
+            <h3>Stable channel and update selection</h3>
+          </div>
+          <time datetime="2026-11-11">November 11, 2026</time>
+        </header>
+        <p>The first Stable release is based on 1.0.8 beta. Choose Stable or Beta in the update settings and install the build from that channel.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.0.9">View release on GitHub <span aria-hidden="true">↗</span></a>
+      </article>
       <article class="release" id="release-1-0-8">
         <header class="release-header">
           <div>
@@ -210,10 +259,25 @@
       <h2 id="links-title">Download ARX and read the guide</h2>
       <div class="download-grid">
         <article id="download">
-          <div><h3>Download ARX</h3><p><span id="download-release">Latest ARX release</span> for Windows x64</p></div>
+          <div>
+            <h3>Stable</h3>
+            <p><span data-release-version="stable">ARX 1.0.9 Stable</span> for Windows x64</p>
+            <p>The stable channel for everyday play.</p>
+          </div>
           <div class="download-actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.9/ARX-Setup-1.0.9.exe" data-channel="stable" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.9/ARX-1.0.9-win-x64.zip" data-channel="stable" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
+          </div>
+        </article>
+        <article>
+          <div>
+            <h3>Beta</h3>
+            <p><span data-release-version="beta">ARX 1.1.0 Beta</span> for Windows x64</p>
+            <p>Try new features, including the Rift HUD. Beta builds may contain bugs.</p>
+          </div>
+          <div class="download-actions">
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-Beta-Setup-1.1.0-beta.exe" data-channel="beta" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-1.1.0-beta-win-x64.zip" data-channel="beta" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article id="steam">

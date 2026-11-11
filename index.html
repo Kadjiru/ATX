@@ -8,8 +8,8 @@
   <title>ARX — помощник для Aion 2 Global</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
   <link rel="alternate" hreflang="en" href="en.html">
-  <link rel="stylesheet" href="style.css?v=3">
-  <script src="downloads.js?v=3" defer></script>
+  <link rel="stylesheet" href="style.css?v=4">
+  <script src="downloads.js?v=4" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">К содержанию</a>
@@ -38,14 +38,14 @@
           <p class="hero-text">Следите за DPS в бою, разбирайте попытки на боссах и отмечайте маршруты в атласе Атреи.</p>
           <p class="download-count">Загрузок ARX на GitHub: <output id="download-count" data-unavailable="временно недоступны">проверяем…</output></p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="preferred">Скачать ARX <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-Beta-Setup-1.1.0-beta.exe" data-channel="latest" data-download="preferred">Скачать ARX <span aria-hidden="true">↓</span></a>
             <a class="button secondary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Steam-гайд <span aria-hidden="true">↗</span></a>
           </div>
-          <p class="platform"><strong id="hero-release">РЕЛИЗЫ ARX</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
+          <p class="platform"><strong data-release-version="latest">ARX 1.1.0 BETA</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
-          <img src="assets/combat-108-ru.png" width="1340" height="900" alt="Боевой отчёт ARX 1.0.8 beta с графиком урона и показателями участников демонстрационной экспедиции.">
-          <figcaption><span class="dot"></span> Разбор боя <span class="caption-note">1.0.8 beta · Демонстрация</span></figcaption>
+          <img src="assets/analysis-110-ru.png" width="1340" height="900" alt="Боевой отчёт ARX с графиком урона и статистикой группы">
+          <figcaption><span class="dot"></span> Разбор боя <span class="caption-note">Демонстрация · 1.1.0 Beta</span></figcaption>
         </figure>
       </div>
     </section>
@@ -82,16 +82,16 @@
           </dl>
         </div>
         <figure class="map-shots">
-          <img class="atlas" src="assets/atlas-108-ru.png" width="1340" height="900" loading="lazy" alt="Атлас в ARX 1.0.8 beta с телепортами и игровыми координатами Альтгарда">
-          <img class="minimap" src="assets/minimap-108-ru.png" width="388" height="500" loading="lazy" alt="Миникарта ARX 1.0.8 beta с выбранной точкой в Альтгарде">
-          <figcaption>Атлас и миникарта · 1.0.8 beta</figcaption>
+          <img class="atlas" src="assets/atlas-110-ru.png" width="1340" height="900" loading="lazy" alt="Атлас ARX с телепортами Альтгарда">
+          <img class="minimap" src="assets/hud-atlas-110-ru.png" width="388" height="500" loading="lazy" alt="Миникарта ARX с выбранной точкой в Альтгарде">
+          <figcaption>Атлас и миникарта · 1.1.0 Beta</figcaption>
         </figure>
       </div>
     </section>
     <section class="wrap split reference" aria-labelledby="reference-title">
       <figure class="reference-shot">
-        <img src="assets/pets-108-ru.png" width="1340" height="900" loading="lazy" alt="Карточка питомца в ARX 1.0.8 beta с регионами, бонусами за владение и стоимостью прокачки">
-        <figcaption>Карточки питомцев · 1.0.8 beta</figcaption>
+        <img src="assets/pets-110-ru.png" width="1340" height="900" loading="lazy" alt="Карточка питомца с регионами, бонусами и стоимостью улучшений">
+        <figcaption>Карточки питомцев · 1.1.0 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> СПРАВОЧНИК</p>
@@ -106,8 +106,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="appearance-title">
       <figure class="reference-shot">
-        <img src="assets/settings-108-ru.png" width="1340" height="900" loading="lazy" alt="Настройки ARX 1.0.8 beta с выбором тем приложения, языка и параметров боевого HUD">
-        <figcaption>Оформление, язык и HUD · 1.0.8 beta</figcaption>
+        <img src="assets/settings-110-ru.png" width="1340" height="900" loading="lazy" alt="Настройки ARX с выбором темы, языка и параметров боевого HUD">
+        <figcaption>Оформление, язык и HUD · 1.1.0 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> НАСТРОЙКИ</p>
@@ -119,6 +119,17 @@
         </dl>
       </div>
     </section>
+    <section class="wrap split reference" aria-labelledby="rift-title">
+      <figure class="reference-shot">
+        <img src="assets/hud-rift-110-ru.png" width="365" height="193" loading="lazy" alt="HUD пространственного разлома с примером отсчёта и времени открытия">
+        <figcaption>Пример отсчёта по расписанию · 1.1.0 Beta</figcaption>
+      </figure>
+      <div>
+        <p class="eyebrow"><span class="dot"></span> СОБЫТИЯ</p>
+        <h2 id="rift-title">HUD пространственного разлома</h2>
+        <p class="hero-text">В Beta откройте «События» и включите HUD разлома. Он показывает отсчёт и местное время следующего открытия. Расписание можно сверить с сервером и изменить в «Событиях».</p>
+      </div>
+    </section>
     <section class="setup" id="setup" aria-labelledby="setup-title">
       <div class="wrap">
         <p class="eyebrow"><span class="dot"></span> ПЕРВЫЙ ЗАПУСК</p>
@@ -128,13 +139,35 @@
           <li><h3>Подключите боевую статистику</h3><p>Если Npcap отсутствует, установщик ARX предложит установить драйвер. Для портативной версии установите его отдельно. Откройте ARX до входа персонажем или смените локацию, если уже в игре.</p></li>
           <li><h3>Включите HUD</h3><p>Переведите игру в оконный режим без рамки. <kbd>Alt</kbd> + <kbd>F8</kbd> включает боевой HUD, <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F10</kbd> открывает миникарту.</p></li>
         </ol>
-        <p class="setup-note">Для обновления установленной версии нажмите «Обновление» рядом со статусом клиента. Портативную версию обновляйте распаковкой нового ZIP целиком. Для установки Npcap на компьютер, где ARX уже есть, закройте приложение и запустите установщик вручную.</p>
-        <p class="setup-note">Аккаунт ARX не требуется. Боевые отчёты хранятся в локальном профиле. Описание и скриншоты сверены с ARX 1.0.8 beta.</p>
+        <p class="setup-note">В «Настройки → Обновление ARX → Канал обновлений» выберите Stable или Beta. Приложение предложит выпуск выбранного канала. При возврате на Stable номер версии может уменьшиться. Для портативной версии скачайте ZIP нужного канала и распакуйте его целиком.</p>
+        <p class="setup-note">Аккаунт ARX не требуется. Боевые отчёты хранятся в локальном профиле.</p>
       </div>
     </section>
     <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
       <p class="eyebrow"><span class="dot"></span> ИСТОРИЯ ВЕРСИЙ</p>
       <h2 id="changelog-title">Что нового</h2>
+      <article class="release" id="release-1-1-0">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.1.0 BETA</p>
+            <h3>HUD пространственного разлома</h3>
+          </div>
+          <time datetime="2026-11-11">11 ноября 2026</time>
+        </header>
+        <p>Новый HUD в «Событиях» показывает отсчёт и местное время следующего открытия по расписанию. Расписание можно редактировать там же.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.0-beta">Релиз на GitHub <span aria-hidden="true">↗</span></a>
+      </article>
+      <article class="release" id="release-1-0-9">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.0.9 STABLE</p>
+            <h3>Стабильный канал и выбор обновлений</h3>
+          </div>
+          <time datetime="2026-11-11">11 ноября 2026</time>
+        </header>
+        <p>Первый стабильный выпуск на базе 1.0.8 beta. В настройках обновления можно выбрать Stable или Beta и установить сборку выбранного канала.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.0.9">Релиз на GitHub <span aria-hidden="true">↗</span></a>
+      </article>
       <article class="release" id="release-1-0-8">
         <header class="release-header">
           <div>
@@ -227,10 +260,25 @@
       <h2 id="links-title">Скачать ARX и открыть гайд</h2>
       <div class="download-grid">
         <article id="download">
-          <div><h3>Скачать ARX</h3><p><span id="download-release">Последний релиз ARX</span> для Windows x64</p></div>
+          <div>
+            <h3>Stable</h3>
+            <p><span data-release-version="stable">ARX 1.0.9 Stable</span> для Windows x64</p>
+            <p>Стабильный канал для повседневной игры.</p>
+          </div>
           <div class="download-actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.9/ARX-Setup-1.0.9.exe" data-channel="stable" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.9/ARX-1.0.9-win-x64.zip" data-channel="stable" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
+          </div>
+        </article>
+        <article>
+          <div>
+            <h3>Beta</h3>
+            <p><span data-release-version="beta">ARX 1.1.0 Beta</span> для Windows x64</p>
+            <p>Новые возможности, включая HUD разлома. Возможны ошибки.</p>
+          </div>
+          <div class="download-actions">
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-Beta-Setup-1.1.0-beta.exe" data-channel="beta" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-1.1.0-beta-win-x64.zip" data-channel="beta" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article id="steam">
