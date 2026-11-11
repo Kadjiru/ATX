@@ -109,7 +109,7 @@ internal sealed class AppUpdates : IDisposable
             await using var feed = await _http.GetStreamAsync(Feed + (beta ? "?per_page=100" : "/latest"), ct);
             Release?[] releases = beta
                 ? await JsonSerializer.DeserializeAsync<Release[]>(feed, cancellationToken: ct) ?? []
-                : [await JsonSerializer.DeserializeAsync<Release>(feed, cancellationToken: ct)];
+                : new Release?[] { await JsonSerializer.DeserializeAsync<Release>(feed, cancellationToken: ct) };
             ct.ThrowIfCancellationRequested();
             var update = releases.Select(FromRelease).OfType<Update>().OrderByDescending(u => u.Version)
                 .FirstOrDefault(u => u.Version.Beta == beta &&

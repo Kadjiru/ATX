@@ -287,6 +287,8 @@ public sealed partial class Dashboard
         channels.SelectedIndex = app.SelectedUpdateChannel == UpdateChannel.Beta ? 1 : 0;
         var betaWarning = Text(Loc.T("Бета-версия может содержать ошибки. Для повседневной игры можно вернуться на Stable."), 13, "Coral");
         var channelError = Text("", 13, "Coral");
+        var checkUpdate = Button(Loc.T("Проверить сейчас"), () => _ = app.CheckAppUpdatesAsync());
+        var updateAction = Button(Loc.T("Обновление"), () => _ = app.OpenUpdateAsync(), true);
         channels.SelectionChanged += (_, _) =>
         {
             var selected = channels.SelectedIndex == 1 ? UpdateChannel.Beta : UpdateChannel.Stable;
@@ -311,16 +313,6 @@ public sealed partial class Dashboard
             _store.Save();
             if (_store.Profile.AutoUpdate) _ = app.CheckAppUpdatesAsync();
         };
-        var checkUpdate = Button(Loc.T("Проверить сейчас"), () => _ = app.CheckAppUpdatesAsync());
-        var updateAction = Button(Loc.T("Обновление"), () =>
-        {
-            if (app.Updates?.Ready == true) app.ShowUpdateOffer();
-            else if (app.Updates?.ReleasePage is { } pageUrl)
-            {
-                try { using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(pageUrl) { UseShellExecute = true }); }
-                catch (System.ComponentModel.Win32Exception) { updateStatus.Text = Loc.T("Не удалось открыть страницу релиза."); }
-            }
-        }, true);
         page.Children.Insert(4, Space(Card(Stack(Space(Text(Loc.T("Обновление ARX"), 20, bold: true), 6),
             Space(Hint(Loc.F($"Версия {AppUpdates.CurrentLabel}. После скачивания установщика ARX спросит, когда его запустить.")), 8),
             Space(Field(Loc.T("Канал обновлений"), channels), 6), betaWarning, channelError,
