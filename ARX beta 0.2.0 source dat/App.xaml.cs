@@ -21,6 +21,7 @@ public partial class App : Application
     private UpdateWindow? _updateWindow;
     private ChangelogWindow? _changelogWindow;
     private ConnectionGuide? _connectionGuide;
+    private TrayMenu? _tray;
     private string? _offeredUpdate;
     private string? _approvedUpdate;
     public static App CurrentApp => (App)Current;
@@ -148,12 +149,18 @@ public partial class App : Application
                     if (!_huds.ContainsKey(HudKind.Combat)) ToggleHud(HudKind.Combat);
                 },
                 delta => SetCombatOpacity(CombatOpacity + delta), () => ToggleHud(HudKind.Bosses),
-                () => ToggleHud(HudKind.Atlas), ToggleAtlasLock);
+                () => ToggleHud(HudKind.Atlas), ToggleAtlasLock, () => SwitchHudPreset(3 - ActiveHudPreset));
             if (!ClickThroughAvailable && _store.Profile.CombatHudLocked)
             {
                 _store.Profile.CombatHudLocked = false;
                 _store.Save();
             }
+            if (_store.Profile.HudPresets.TryGetValue(ActiveHudPreset, out var preset)) RestoreHudPreset(preset);
+            _tray = new TrayMenu(ShowDashboard, ToggleAllHuds, () => _store.Profile.ReminderSound, () =>
+            {
+                _store.Profile.ReminderSound = !_store.Profile.ReminderSound;
+                _store.Save();
+            }, () => _dashboard?.Close());
             _live.Start();
             if (_store.NewProfile)
                 ShowConnectionGuide();
@@ -366,6 +373,13 @@ public partial class App : Application
         if (!_closing) _dashboard?.OpenAtlas(selection);
     }
 
+    internal void ShowCombatReport(Fight fight, PlayerStats player)
+    {
+        if (_closing) return;
+        ShowDashboard();
+        _dashboard?.OpenCombatReport(fight, player);
+    }
+
     internal void ShowAtlasHud(AtlasSelection selection)
     {
         if (_closing) return;
@@ -383,6 +397,7 @@ public partial class App : Application
 
     private void ShowHud(HudKind kind)
     {
+        _hiddenHuds.Remove(kind);
         if (_huds.ContainsKey(kind)) return;
         var hud = new HudWindow(_store, kind);
         _huds.Add(kind, hud);
@@ -440,7 +455,12 @@ public partial class App : Application
         _hotkeys = null;
         try
         {
-            foreach (var hud in _huds.Values.ToArray()) hud.Close();
+            try { SaveActiveHudPreset(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+            }
+            CloseHuds();
             if (_live is { } live) await live.StopAsync();
             if (UpdateApproved && _updates?.InstallAfterClose() != true)
                 MessageBox.Show(Loc.T("Не удалось запустить проверенный установщик. Откройте ARX и повторите обновление."),
@@ -454,6 +474,7 @@ public partial class App : Application
         _teamPoll?.Stop();
         _updateTimer?.Stop();
         _eventAlertClock.Stop();
+        _tray?.Dispose();
         _updates?.Dispose();
         if (_store is not null) _store.LiveChanged -= CheckBossAlerts;
         _hotkeys?.Dispose();

@@ -28,7 +28,7 @@ internal static class PartyCombat
     }
 
     internal static IReadOnlyList<PartyCombatRow> Rows(FightAnalysis analysis,
-        CharacterIdentity? character = null, PartyRosterEvent? roster = null, bool selfFirst = false, CombatHudScope? scope = null)
+        CharacterIdentity? character = null, PartyRosterEvent? roster = null, CombatHudScope? scope = null)
     {
         if (scope == CombatHudScope.Self) roster = null;
         var players = analysis.Players.Where(p => p.ActorId != Combatant.UnknownSummonsId).ToArray();
@@ -59,8 +59,8 @@ internal static class PartyCombat
             .ThenBy(r => r.ServerId).ThenBy(r => r.Stats?.ActorId)
             .Select((row, index) => (row, color: Colors[index % Colors.Length]))
             .ToLookup(item => item.row, item => item.color);
-        return rows.OrderByDescending(r => selfFirst && r.IsSelf).ThenByDescending(r => r.Stats?.Damage)
-            .ThenByDescending(r => r.Stats?.Healing).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+        return rows.OrderByDescending(r => r.Stats?.Damage)
+            .ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase).ThenBy(r => r.ServerId).ThenBy(r => r.Stats?.ActorId)
             .Select(r => r.IsSelf ? r : r with { Color = colors[r].First() }).ToArray();
     }
 

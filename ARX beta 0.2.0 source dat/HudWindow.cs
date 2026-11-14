@@ -6,6 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Threading;
 using static ArxBeta.Ui;
+using Forms = System.Windows.Forms;
 
 namespace ArxBeta;
 
@@ -63,6 +64,7 @@ public sealed class HudWindow : Window
             kind == HudKind.Combat ? HudDensity.Detailed : null);
         if (kind == HudKind.Atlas) defaultLayout = new HudLayout(area.Left + 26, area.Top + 60, 388, 500, .94);
         var layout = store.Profile.HudLayouts.GetValueOrDefault(kind.ToString(), defaultLayout);
+        area = WorkAreaAt(layout.Left, layout.Top);
         Width = Math.Clamp(layout.Width, MinWidth, Math.Max(MinWidth, area.Width));
         Height = Math.Clamp(layout.Height, MinHeight, Math.Max(MinHeight, area.Height));
         Left = Math.Clamp(layout.Left, area.Left, Math.Max(area.Left, area.Right - Width));
@@ -189,16 +191,35 @@ public sealed class HudWindow : Window
 
     private void Persist()
     {
-        if (_atlas is not null) _store.Profile.AtlasHudView = _atlas.View;
-        if (_kind == HudKind.Combat && _density != HudDensity.Minimal)
-            _store.Profile.CombatHudHeights[_density] = Height;
-        _store.Profile.HudLayouts[_kind.ToString()] = new HudLayout(Left, Top, ActualWidth, ActualHeight, _surfaceOpacity,
-            _kind == HudKind.Combat ? _density : null);
+        RememberLayout();
         try { _store.Save(); }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {
             System.Diagnostics.Debug.WriteLine(ex);
         }
+    }
+
+    internal void RememberLayout()
+    {
+        if (_atlas is not null) _store.Profile.AtlasHudView = _atlas.View;
+        if (_kind == HudKind.Combat && _density != HudDensity.Minimal)
+            _store.Profile.CombatHudHeights[_density] = Height;
+        _store.Profile.HudLayouts[_kind.ToString()] = new HudLayout(Left, Top, Width, Height, _surfaceOpacity,
+            _kind == HudKind.Combat ? _density : null);
+    }
+
+    private Rect WorkAreaAt(double left, double top)
+    {
+        var dpi = VisualTreeHelper.GetDpi(Application.Current.MainWindow ?? this);
+        var title = new Point(left + 32, top + 18);
+        foreach (var screen in Forms.Screen.AllScreens)
+        {
+            var bounds = screen.WorkingArea;
+            var area = new Rect(bounds.Left / dpi.DpiScaleX, bounds.Top / dpi.DpiScaleY,
+                bounds.Width / dpi.DpiScaleX, bounds.Height / dpi.DpiScaleY);
+            if (area.Contains(title)) return area;
+        }
+        return SystemParameters.WorkArea;
     }
 
     private void SetDensity(HudDensity density, bool restoreHeight)
@@ -215,7 +236,7 @@ public sealed class HudWindow : Window
         MinHeight = minimal ? 65 : 145;
         if (!restoreHeight || Height < MinHeight)
         {
-            var area = SystemParameters.WorkArea;
+            var area = WorkAreaAt(Left, Top);
             var defaultHeight = density switch { HudDensity.Minimal => 90, HudDensity.Detailed => 406, _ => 282 };
             Height = Math.Clamp(_store.Profile.CombatHudHeights.GetValueOrDefault(density, defaultHeight),
                 MinHeight, Math.Max(MinHeight, area.Height));
@@ -339,7 +360,7 @@ public sealed class HudWindow : Window
         var current = _store.OverlayAnalysis;
         var scope = _store.Profile.CombatHudScope;
         var roster = _store.LiveRoster;
-        var rows = PartyCombat.Rows(current, _store.LiveCharacter, roster, _store.Profile.CombatHudSelfFirst, scope);
+        var rows = PartyCombat.Rows(current, _store.LiveCharacter, roster, scope);
         if (_scopeButton is not null) _scopeButton.Content = scope == CombatHudScope.Self ? Loc.T("Я") : Loc.T("Группа");
         var minimal = _density == HudDensity.Minimal;
         var detailed = _density == HudDensity.Detailed;
@@ -370,15 +391,19 @@ public sealed class HudWindow : Window
             if (current.Fight.Captured?.Summary.Boss is { MaxHpKnown: true } boss)
                 _body.Children.Add(Space(Ink(Hint($"{boss.Name} · {boss.HpFraction:P0} HP")), 7));
         }
+        var rank = 0;
         foreach (var member in rows)
-            _body.Children.Add(Space(CombatRow(current, rows, member, minimal, detailed, font, damage), minimal ? 2 : 5));
+        {
+            int? place = scope == CombatHudScope.Party && member.Stats is not null ? ++rank : null;
+            _body.Children.Add(Space(CombatRow(current, rows, member, place, minimal, detailed, font, damage), minimal ? 2 : 5));
+        }
         if (rows.Count == 0)
         {
             _body.Children.Add(Ink(Text(Loc.T("Ожидание вашего персонажа"), font, "Text", true)));
         }
         if (minimal)
         {
-            var area = SystemParameters.WorkArea;
+            var area = WorkAreaAt(Left, Top);
             var height = Math.Clamp(43 + (font * 1.35 + 3) * Math.Max(1, rows.Count), MinHeight, Math.Max(MinHeight, area.Height));
             if (Height != height)
             {
@@ -389,10 +414,10 @@ public sealed class HudWindow : Window
     }
 
     private FrameworkElement CombatRow(FightAnalysis current, IReadOnlyList<PartyCombatRow> rows,
-        PartyCombatRow member, bool minimal, bool detailed, int font, long damage)
+        PartyCombatRow member, int? place, bool minimal, bool detailed, int font, long damage)
     {
         var memberName = PartyCombat.Label(rows, member);
-        var name = Ink(Text(memberName, font, bold: true));
+        var name = Ink(Text(place is { } rank ? $"{rank}.  {memberName}" : memberName, font, bold: true));
         name.Foreground = member.Color;
         name.TextWrapping = TextWrapping.NoWrap;
         name.TextTrimming = TextTrimming.CharacterEllipsis;
@@ -407,6 +432,24 @@ public sealed class HudWindow : Window
         DockPanel.SetDock(rate, Dock.Right);
         line.Children.Add(rate);
         line.Children.Add(name);
+        if (member.Stats is { } reportPlayer)
+        {
+            var reportLabel = Loc.T("Открыть отчёт по навыкам участника");
+            var report = new Button
+            {
+                Content = name, Padding = new Thickness(0), BorderThickness = new Thickness(0),
+                Background = Brushes.Transparent, HorizontalContentAlignment = HorizontalAlignment.Left,
+                ToolTip = reportLabel
+            };
+            report.Template = new ControlTemplate(typeof(Button))
+            {
+                VisualTree = new FrameworkElementFactory(typeof(ContentPresenter))
+            };
+            System.Windows.Automation.AutomationProperties.SetName(report, $"{reportLabel} · {memberName}");
+            report.Click += (_, _) => App.CurrentApp.ShowCombatReport(current.Fight, reportPlayer);
+            line.Children.Remove(name);
+            line.Children.Add(report);
+        }
         if (minimal) return line;
         var content = Stack(line);
         if (detailed && member.Stats is { } player)

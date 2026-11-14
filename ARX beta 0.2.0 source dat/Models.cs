@@ -225,6 +225,8 @@ public sealed record SessionTask(Guid Id, Guid SessionId, string Text, bool Done
 public sealed record KinaEntry(Guid Id, Guid SessionId, DateTimeOffset Date, string Note, long Amount);
 public sealed record MapPin(Guid Id, string Zone, double X, double Y, string Category, string Name, bool Found, string? Layer = null);
 public sealed record HudLayout(double Left, double Top, double Width, double Height, double Opacity, HudDensity? Density = null);
+public sealed record HudPreset(Dictionary<string, HudLayout> Windows, HashSet<HudKind> Visible,
+    HudDensity CombatDensity, double? CombatOpacity, Dictionary<HudDensity, double> CombatHeights);
 
 public sealed record CharacterBuild(Guid Id, string Name, string Server, string ClassId, bool Solo)
 {
@@ -260,7 +262,6 @@ public sealed class Profile
     public double? CombatHudOpacity { get; set; }
     public bool CombatHudLocked { get; set; }
     public int CombatHudTextSize { get; set; } = 15;
-    public bool CombatHudSelfFirst { get; set; } = true;
     public CombatHudScope CombatHudScope { get; set; } = CombatHudScope.Party;
     public Dictionary<HudDensity, double> CombatHudHeights { get; set; } = [];
     public string CombatCharacterHint { get; set; } = "";
@@ -274,6 +275,8 @@ public sealed class Profile
     public bool ReminderSound { get; set; } = true;
     public string? BossHudSelection { get; set; }
     public Dictionary<string, HudLayout> HudLayouts { get; set; } = [];
+    public int? ActiveHudPreset { get; set; }
+    public Dictionary<int, HudPreset> HudPresets { get; set; } = [];
     public string TeamFolder { get; set; } = "";
     public Guid TeamClientId { get; set; } = Guid.NewGuid();
     public TeamSnapshot? Team { get; set; }

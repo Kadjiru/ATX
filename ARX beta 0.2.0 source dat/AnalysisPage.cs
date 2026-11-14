@@ -10,8 +10,20 @@ namespace ArxBeta;
 
 public sealed partial class Dashboard
 {
+    private FrameworkElement? _skillSection;
+
+    internal void OpenCombatReport(Fight fight, PlayerStats player)
+    {
+        _actor = player.ActorId;
+        _player = player.Player;
+        _store.SetFight(fight, false);
+        Navigate("analysis");
+        _skillSection?.BringIntoView();
+    }
+
     private UIElement AnalysisPage()
     {
+        _skillSection = null;
         var result = _store.Analysis;
         var page = Heading(Loc.T("Разбор и история"), Loc.T("Локальные отчёты группы с боевым графиком, вкладом группы и навыками"));
         page.Children.Add(Actions(Button(Loc.T("Снимок живого боя"), () =>
@@ -81,7 +93,8 @@ public sealed partial class Dashboard
             if (skills.Length == 0) detail.Children.Add(Hint(Loc.T("Разбивка по навыкам появляется при импорте событий.")));
             else detail.Children.Add(MakeTable([Loc.T("Навык"), Loc.T("Урон"), "DPS", Loc.T("Лечение"), "HPS", Loc.T("Крит"), Loc.T("Бурст"), Loc.T("Макс.")],
                 skills, skill => StatCells(result, skill, true)));
-            page.Children.Add(Space(Card(detail), 12));
+            _skillSection = Space(Card(detail), 12);
+            page.Children.Add(_skillSection);
         }
 
         var history = Stack(Space(Text(Loc.T("Сохранённые отчёты"), 19, bold: true), 7));

@@ -129,6 +129,7 @@ public sealed partial class Dashboard
             var now = DateTimeOffset.UtcNow;
             riftClock.Text = RiftCountdown(_store.Rift, now);
             eventNotice.Text = App.CurrentApp.EventNotice() ?? "";
+            reminderSound.IsChecked = _store.Profile.ReminderSound;
             foreach (var (rule, label) in clocks)
                 label.Text = rule.Next(now) is { } next ? $"{Clock(next - now)} · {LocalEventTime(next)}"
                     : rule.Enabled ? Loc.T("Завершён") : Loc.T("Выключен");
@@ -302,7 +303,6 @@ public sealed partial class Dashboard
             IsSnapToTickEnabled = true, Value = Math.Clamp(_store.Profile.CombatHudTextSize, 12, 22) };
         var size = Hint(Loc.F($"{font.Value:0} пт"));
         font.ValueChanged += (_, _) => size.Text = Loc.F($"{font.Value:0} пт");
-        var selfFirst = new CheckBox { Content = Loc.T("Мой персонаж сверху"), IsChecked = _store.Profile.CombatHudSelfFirst };
         var scope = Choice([Loc.T("Только мой персонаж"), Loc.T("Я и моя группа")], 175);
         scope.SelectedIndex = _store.Profile.CombatHudScope == CombatHudScope.Self ? 0 : 1;
         var lockHud = new CheckBox
@@ -313,16 +313,19 @@ public sealed partial class Dashboard
         };
         var hotkeys = Hint(app.HotkeyStatus);
         var activeHud = Hint("");
+        var activePreset = app.ActiveHudPreset;
+        var presetStatus = Hint("");
+        var presetOne = Button(Loc.T("Раскладка 1"), () => app.SwitchHudPreset(1));
+        var presetTwo = Button(Loc.T("Раскладка 2"), () => app.SwitchHudPreset(2));
         page.Children.Insert(3, Space(Card(Stack(Space(Label(Loc.T("ОКНО ПОВЕРХ ИГРЫ")), 4),
             Space(Text(Loc.T("Боевой HUD"), 22, bold: true), 7),
             Space(Hint(Loc.T("Пока игра не прислала состав, HUD показывает только вашего персонажа. Прозрачность меняет фон и обводку. В минимальном режиме фон всегда прозрачный.")), 9),
             Actions(Field(Loc.T("Кого показывать"), scope), Field(Loc.T("Режим"), density)),
             Actions(Field(Loc.T("Непрозрачность фона"), opacity), percent, Field(Loc.T("Размер текста"), font), size),
-            Actions(selfFirst, lockHud),
+            Actions(lockHud),
             Actions(Button(Loc.T("Применить HUD"), () =>
             {
                 _store.Profile.CombatHudTextSize = (int)font.Value;
-                _store.Profile.CombatHudSelfFirst = selfFirst.IsChecked == true;
                 app.SetCombatScope(scope.SelectedIndex == 0 ? CombatHudScope.Self : CombatHudScope.Party);
                 app.SetCombatDensity((HudDensity)density.SelectedIndex);
                 app.SetCombatOpacity(opacity.Value / 100);
@@ -332,6 +335,14 @@ public sealed partial class Dashboard
                 Button(Loc.T("Горячие клавиши"), () => Navigate("hotkeys"))),
             Space(activeHud, 6),
             hotkeys)), 12));
+        page.Children.Insert(4, Space(Card(Stack(
+            Space(Text(Loc.T("Раскладки HUD"), 20, bold: true), 6),
+            Space(Hint(Loc.T("Расставьте нужные окна и сохраните раскладку. ARX запоминает изменения при переключении и выходе.")), 7),
+            Actions(presetOne, presetTwo, Button(Loc.T("Сохранить текущую раскладку"), () =>
+            {
+                app.SaveHudPreset();
+                RefreshHudStatus();
+            }, true)), presetStatus)), 12));
         RefreshHudStatus();
         var updateStatus = Text("", 13, "Mint", true);
         var channels = Choice([Loc.T("Стабильный (Stable)"), Loc.T("Бета (Beta)")], 215, localize: false);
@@ -402,6 +413,18 @@ public sealed partial class Dashboard
 
         void RefreshHudStatus()
         {
+            var selected = app.ActiveHudPreset;
+            if (activePreset != selected)
+            {
+                activePreset = selected;
+                density.SelectedIndex = Math.Clamp((int)_store.Profile.CombatHudDensity, 0, 2);
+                opacity.Value = Math.Clamp(app.CombatOpacity * 100, 0, 100);
+            }
+            presetOne.IsEnabled = selected != 1;
+            presetTwo.IsEnabled = selected != 2;
+            presetStatus.Text = _store.Profile.ActiveHudPreset is null
+                ? Loc.T("Сохраните первую раскладку, чтобы восстанавливать окна при запуске.")
+                : Loc.F($"Активна раскладка {selected} · Ctrl+Alt+4");
             var mode = _store.Profile.CombatHudDensity switch { HudDensity.Minimal => Loc.T("минимальный"),
                 HudDensity.Detailed => Loc.T("подробный"), _ => Loc.T("средний") };
             var audience = _store.Profile.CombatHudScope == CombatHudScope.Self ? Loc.T("только вы") : Loc.T("вы и ваша группа");

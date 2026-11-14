@@ -20,7 +20,8 @@ internal sealed class Hotkeys : IDisposable
         new(7, 0x0003, 0x21, "Ctrl+Alt+PgUp", Loc.T("Увеличить непрозрачность фона HUD на 5 п. п.")),
         new(8, 0x0003, 0x22, "Ctrl+Alt+PgDn", Loc.T("Уменьшить непрозрачность фона HUD на 5 п. п.")),
         new(2, 0x0003, 0x4C, "Ctrl+Alt+L", Loc.T("Закрепить HUD с пропуском щелчков или разблокировать")),
-        new(3, 0x0001, 0x52, "Alt+R", Loc.T("Завершить текущий боевой сегмент"))
+        new(3, 0x0001, 0x52, "Alt+R", Loc.T("Завершить текущий боевой сегмент")),
+        new(12, 0x0003, 0x34, "Ctrl+Alt+4", Loc.T("Переключить раскладку HUD"))
     ];
 
     private readonly HwndSource _window = new(new HwndSourceParameters("ARX Hotkeys") { ParentWindow = new IntPtr(-3) });
@@ -31,12 +32,12 @@ internal sealed class Hotkeys : IDisposable
     public static bool IsAltDown => GetAsyncKeyState(0x12) < 0;
 
     public Hotkeys(Action showCombat, Action toggleClickThrough, Action archive,
-        Action<HudDensity> density, Action<double> opacity, Action showBosses, Action showAtlas, Action lockAtlas)
+        Action<HudDensity> density, Action<double> opacity, Action showBosses, Action showAtlas, Action lockAtlas, Action switchPreset)
     {
         _window.AddHook(Handle);
         Action[] actions = [showCombat, toggleClickThrough, archive, () => density(HudDensity.Minimal),
             () => density(HudDensity.Medium), () => density(HudDensity.Detailed), () => opacity(.05), () => opacity(-.05),
-            showBosses, showAtlas, lockAtlas];
+            showBosses, showAtlas, lockAtlas, switchPreset];
         foreach (var shortcut in Shortcuts) Register(shortcut, actions[shortcut.Id - 1]);
     }
 

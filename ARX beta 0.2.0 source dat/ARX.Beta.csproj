@@ -3,6 +3,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ARX.Beta</AssemblyName>
@@ -11,6 +12,8 @@
     <ApplicationIcon>Assets/ARX.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
     <ProjectReference Include="../src/AionMeter.Core/AionMeter.Core.csproj" />
     <Resource Include="Assets/Atreia.jpg" />
     <Resource Include="Assets/ARX.ico" />
