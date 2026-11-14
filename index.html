@@ -8,7 +8,7 @@
   <title>ARX — помощник для Aion 2 Global</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
   <link rel="alternate" hreflang="en" href="en.html">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
   <script src="downloads.js?v=5" defer></script>
 </head>
 <body>
@@ -44,8 +44,8 @@
           <p class="platform"><strong data-release-version="stable">ARX 1.0.9 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
-          <img src="assets/analysis-110-ru.png" width="1340" height="900" alt="Боевой отчёт ARX с графиком урона и статистикой группы">
-          <figcaption><span class="dot"></span> Разбор боя <span class="caption-note">Демонстрация · 1.1.0 Beta</span></figcaption>
+          <img src="assets/analysis-112-ru.png" width="1340" height="900" alt="Боевой отчёт ARX с графиком урона и статистикой группы">
+          <figcaption><span class="dot"></span> Разбор боя <span class="caption-note">Демонстрация · 1.1.2 Beta</span></figcaption>
         </figure>
       </div>
     </section>
@@ -139,6 +139,7 @@
           <li><h3>Подключите боевую статистику</h3><p>Если Npcap отсутствует, установщик ARX предложит установить драйвер. Для портативной версии установите его отдельно. Откройте ARX до входа персонажем или смените локацию, если уже в игре.</p></li>
           <li><h3>Включите HUD</h3><p>Переведите игру в оконный режим без рамки. <kbd>Alt</kbd> + <kbd>F8</kbd> включает боевой HUD, <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F10</kbd> открывает миникарту.</p></li>
         </ol>
+        <p class="setup-note">В Beta мастер первого запуска проверяет Npcap, сетевые адаптеры и обнаружение игры. Повторно открыть его можно в настройках подключения Aion 2.</p>
         <p class="setup-note">В «Настройки → Обновление ARX → Канал обновлений» выберите Stable или Beta. Приложение предложит выпуск выбранного канала. При возврате на Stable номер версии может уменьшиться. Для портативной версии скачайте ZIP нужного канала и распакуйте его целиком.</p>
         <p class="setup-note">Аккаунт ARX не требуется. Боевые отчёты хранятся в локальном профиле.</p>
       </div>
@@ -146,6 +147,32 @@
     <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
       <p class="eyebrow"><span class="dot"></span> ИСТОРИЯ ВЕРСИЙ</p>
       <h2 id="changelog-title">Что нового</h2>
+      <article class="release" id="release-1-1-2">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.1.2 BETA</p>
+            <h3>Боевой HUD, отчёты и планирование</h3>
+          </div>
+          <time datetime="2026-11-14">14 ноября 2026</time>
+        </header>
+        <p>Боевой HUD сортирует участников по общему урону и отмечает вашего персонажа меткой «ВЫ». Добавлены две раскладки HUD, меню в трее и напоминания о событиях. В отчётах доступны сравнение боёв, тренировочные замеры, личные рекорды и экспорт без имён. В сессии появился журнал добычи, а в каталоге питомцев можно планировать запас душ.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.2-beta">Релиз на GitHub <span aria-hidden="true">↗</span></a>
+      </article>
+      <article class="release" id="release-1-1-1">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.1.1 BETA</p>
+            <h3>Мастер подключения и диагностика</h3>
+          </div>
+          <time datetime="2026-11-11">11 ноября 2026</time>
+        </header>
+        <p>При первом запуске мастер проверяет Npcap, сетевые адаптеры и обнаружение игры. Его можно снова открыть в настройках подключения Aion 2. Диагностика объясняет статус, позволяет скопировать сводку и просмотреть JSON.</p>
+        <figure class="reference-shot release-preview">
+          <img src="assets/connection-112-ru.png" width="620" height="620" loading="lazy" alt="Мастер подключения к Aion 2 с открытым предпросмотром диагностики">
+          <figcaption>Диагностика подключения в 1.1.2 Beta</figcaption>
+        </figure>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.1-beta">Релиз на GitHub <span aria-hidden="true">↗</span></a>
+      </article>
       <article class="release" id="release-1-1-0">
         <header class="release-header">
           <div>
@@ -273,12 +300,12 @@
         <article>
           <div>
             <h3>Beta</h3>
-            <p><span data-release-version="beta">ARX 1.1.0 Beta</span> для Windows x64</p>
-            <p>Новые возможности, включая HUD разлома. Возможны ошибки.</p>
+            <p><span data-release-version="beta">ARX 1.1.2 Beta</span> для Windows x64</p>
+            <p>Новые раскладки HUD, сравнение боёв и напоминания о событиях. Возможны ошибки.</p>
           </div>
           <div class="download-actions">
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-Beta-Setup-1.1.0-beta.exe" data-channel="beta" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-1.1.0-beta-win-x64.zip" data-channel="beta" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.2-beta/ARX-Beta-Setup-1.1.2-beta.exe" data-channel="beta" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.2-beta/ARX-1.1.2-beta-win-x64.zip" data-channel="beta" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article id="steam">
@@ -288,10 +315,19 @@
       </div>
     </section>
   </main>
-  <footer class="wrap footer">
+  <footer class="wrap">
+    <section class="site-notice" id="about" aria-labelledby="about-title">
+      <h2 id="about-title">О проекте</h2>
+      <p>ARX — независимое неофициальное фанатское приложение для AION 2.</p>
+      <p>ARX не связано с NCSOFT, не поддерживается, не спонсируется и не одобрено компанией.</p>
+      <p>AION 2 и связанные с игрой товарные знаки принадлежат соответствующим правообладателям.</p>
+      <p>ARX предназначено исключительно для информационных и аналитических целей и не является официальным продуктом NCSOFT.</p>
+    </section>
+    <div class="footer">
     <a class="brand" href="#top" aria-label="ARX, начало страницы"><img src="assets/arx.svg" width="27" height="27" alt=""> ARX</a>
     <p>Приложение для Aion 2 Global · Windows x64</p>
     <a href="#top">Наверх ↑</a>
+    </div>
   </footer>
 </body>
 </html>

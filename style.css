@@ -81,6 +81,7 @@ kbd { padding: .05rem .25rem; background: #233438; border: 1px solid #395053; bo
 .release-header .feature-index { margin-bottom: .5rem; }
 .release-header time { color: var(--muted); font-size: .85rem; }
 .release > p { margin-top: 1rem; color: var(--muted); }
+.release-preview { max-width: 390px; margin-top: 1rem; }
 .release-link { display: inline-block; margin-top: .8rem; color: var(--mint); font-size: .9rem; font-weight: 650; }
 .release-link:hover { text-decoration: underline; }
 .download-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 2rem; }
@@ -91,6 +92,10 @@ kbd { padding: .05rem .25rem; background: #233438; border: 1px solid #395053; bo
 .download-count { margin-top: 1.25rem; color: var(--muted); font-size: .9rem; }
 .download-count output { color: var(--mint); font-weight: 700; font-variant-numeric: tabular-nums; }
 .footer { padding-block: 1.25rem; border-top: 1px solid var(--line); }
+.site-notice { padding-block: 1.5rem; border-top: 1px solid var(--line); }
+.site-notice h2 { margin-bottom: .65rem; font-size: 1rem; letter-spacing: normal; }
+.site-notice p { max-width: 90ch; color: var(--muted); font-size: .875rem; }
+.site-notice p + p { margin-top: .45rem; }
 .footer p, .footer > a:last-child { font-size: .82rem; }
 section[id], article[id] { scroll-margin-top: 1.25rem; }
 

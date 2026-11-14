@@ -8,7 +8,7 @@
   <title>ARX — Aion 2 Global Companion</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
   <link rel="alternate" hreflang="ru" href="./">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
   <script src="downloads.js?v=5" defer></script>
 </head>
 <body>
@@ -44,8 +44,8 @@
           <p class="platform"><strong data-release-version="stable">ARX 1.0.9 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
-          <img src="assets/analysis-110-en.png" width="1340" height="900" alt="ARX combat report with a damage timeline and party statistics">
-          <figcaption><span class="dot"></span> Combat report <span class="caption-note">Demo encounter · 1.1.0 Beta</span></figcaption>
+          <img src="assets/analysis-112-en.png" width="1340" height="900" alt="ARX combat report with a damage timeline and party statistics">
+          <figcaption><span class="dot"></span> Combat report <span class="caption-note">Demo encounter · 1.1.2 Beta</span></figcaption>
         </figure>
       </div>
     </section>
@@ -138,6 +138,7 @@
           <li><h3>Enable combat tracking</h3><p>If Npcap is missing, the ARX installer offers to install it. Install it separately if you use the portable version. Start ARX before logging in with your character, or change zones if you are already in game.</p></li>
           <li><h3>Turn on the overlays</h3><p>Use borderless windowed mode. Press <kbd>Alt</kbd> + <kbd>F8</kbd> for the combat overlay or <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>F10</kbd> for the minimap.</p></li>
         </ol>
+        <p class="setup-note">In Beta, the first-run wizard checks Npcap, network adapters, and game detection. You can reopen it in the Aion 2 connection settings.</p>
         <p class="setup-note">Go to Settings → ARX Update → Update Channel and choose Stable or Beta. ARX offers the release from that channel. Switching back to Stable may install a lower version number. For the portable edition, download the ZIP for your chosen channel and extract it in full.</p>
         <p class="setup-note">ARX works without an account. Combat reports are stored in your local profile.</p>
       </div>
@@ -145,6 +146,32 @@
     <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
       <p class="eyebrow"><span class="dot"></span> RELEASE HISTORY</p>
       <h2 id="changelog-title">What’s new</h2>
+      <article class="release" id="release-1-1-2">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.1.2 BETA</p>
+            <h3>Combat HUD, reports, and planning</h3>
+          </div>
+          <time datetime="2026-11-14">November 14, 2026</time>
+        </header>
+        <p>The combat HUD ranks party members by total damage and marks your character with “YOU”. This release adds two HUD layouts, a system tray menu, and event reminders. Reports add fight comparisons, practice measurements, personal records, and anonymized exports. The session has a loot log, and the pet catalog lets you plan how many souls to save.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.2-beta">View release on GitHub <span aria-hidden="true">↗</span></a>
+      </article>
+      <article class="release" id="release-1-1-1">
+        <header class="release-header">
+          <div>
+            <p class="feature-index">ARX 1.1.1 BETA</p>
+            <h3>Connection wizard and diagnostics</h3>
+          </div>
+          <time datetime="2026-11-11">November 11, 2026</time>
+        </header>
+        <p>The first-run wizard checks Npcap, network adapters, and game detection. Reopen it in the Aion 2 connection settings. Diagnostics explain the current status and let you copy a summary or preview the JSON.</p>
+        <figure class="reference-shot release-preview">
+          <img src="assets/connection-112-en.png" width="620" height="620" loading="lazy" alt="Aion 2 connection wizard with the diagnostics preview open">
+          <figcaption>Connection diagnostics in 1.1.2 Beta</figcaption>
+        </figure>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.1-beta">View release on GitHub <span aria-hidden="true">↗</span></a>
+      </article>
       <article class="release" id="release-1-1-0">
         <header class="release-header">
           <div>
@@ -272,12 +299,12 @@
         <article>
           <div>
             <h3>Beta</h3>
-            <p><span data-release-version="beta">ARX 1.1.0 Beta</span> for Windows x64</p>
-            <p>Try new features, including the Rift HUD. Beta builds may contain bugs.</p>
+            <p><span data-release-version="beta">ARX 1.1.2 Beta</span> for Windows x64</p>
+            <p>New HUD layouts, fight comparisons, and event reminders. Beta builds may contain bugs.</p>
           </div>
           <div class="download-actions">
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-Beta-Setup-1.1.0-beta.exe" data-channel="beta" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.0-beta/ARX-1.1.0-beta-win-x64.zip" data-channel="beta" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.2-beta/ARX-Beta-Setup-1.1.2-beta.exe" data-channel="beta" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.2-beta/ARX-1.1.2-beta-win-x64.zip" data-channel="beta" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article id="steam">
@@ -287,10 +314,18 @@
       </div>
     </section>
   </main>
-  <footer class="wrap footer">
+  <footer class="wrap">
+    <section class="site-notice" id="about" aria-labelledby="about-title">
+      <h2 id="about-title">About ARX</h2>
+      <p>ARX is an independent, unofficial fan-made companion application for AION 2.</p>
+      <p>ARX is not affiliated with, endorsed, sponsored, or approved by NCSOFT. AION 2 and all related trademarks are the property of their respective owners.</p>
+      <p>ARX is provided for informational and analytical purposes only. It is not an official NCSOFT product.</p>
+    </section>
+    <div class="footer">
     <a class="brand" href="#top" aria-label="ARX home"><img src="assets/arx.svg" width="27" height="27" alt=""> ARX</a>
     <p>Aion 2 Global companion · Windows x64</p>
     <a href="#top">Back to top ↑</a>
+    </div>
   </footer>
 </body>
 </html>
