@@ -10,7 +10,8 @@ namespace ArxBeta;
 public sealed record Hit(double Second, string Player, string Skill, long Damage, long Healing, bool Critical);
 public sealed record Totals(string Player, long Damage, long Healing);
 public sealed record Fight(Guid Id, string Name, DateTimeOffset Date, double Duration, string Self,
-    Hit[] Hits, Totals[] Entered, bool Demo = false, FightRecord? Captured = null, string? Build = null)
+    Hit[] Hits, Totals[] Entered, bool Demo = false, FightRecord? Captured = null, string? Build = null,
+    bool Training = false)
 {
     public static Fight Empty { get; } = new(Guid.Empty, Loc.T("Ожидание отчёта"), DateTimeOffset.MinValue, 0, "", [], []);
 }
@@ -223,6 +224,10 @@ public sealed record EventRule(Guid Id, string Name, DateTimeOffset AnchorUtc, i
 
 public sealed record SessionTask(Guid Id, Guid SessionId, string Text, bool Done);
 public sealed record KinaEntry(Guid Id, Guid SessionId, DateTimeOffset Date, string Note, long Amount);
+public sealed record LootEntry(Guid SessionId, string Item, int Quantity, decimal? UnitPrice, DateTimeOffset Date);
+public sealed record PetGoal(int Level, int Souls, int Target);
+public sealed record PersonalRecord(string Character, int ServerId, int BossCode, bool Solo,
+    string Boss, double Dps, long Damage, double Duration, DateTimeOffset Date);
 public sealed record MapPin(Guid Id, string Zone, double X, double Y, string Category, string Name, bool Found, string? Layer = null);
 public sealed record HudLayout(double Left, double Top, double Width, double Height, double Opacity, HudDensity? Density = null);
 public sealed record HudPreset(Dictionary<string, HudLayout> Windows, HashSet<HudKind> Visible,
@@ -244,6 +249,10 @@ public sealed class Profile
     public List<Fight> History { get; set; } = [];
     public List<SessionTask> Tasks { get; set; } = [];
     public List<KinaEntry> Ledger { get; set; } = [];
+    public List<LootEntry> Loot { get; set; } = [];
+    public DateTimeOffset? SessionStarted { get; set; }
+    public Dictionary<int, PetGoal> PetGoals { get; set; } = [];
+    public List<PersonalRecord> PersonalRecords { get; set; } = [];
     public List<MapPin> Pins { get; set; } = [];
     public Dictionary<string, string> AtlasLayers { get; set; } = [];
     public string AtlasZone { get; set; } = "altgard";
@@ -372,6 +381,7 @@ public sealed class LegionStore
         if (Profile.History.Any(f => f.Id == fight.Id)) return;
         Profile.History.Insert(0, fight);
         if (Profile.History.Count > 30) Profile.History.RemoveAt(30);
+        TrackPersonalRecord(fight);
         var started = attachToRun && Profile.CurrentExpedition is { Automatic: true, Segments.Count: 0 };
         if (attachToRun && Profile.CurrentExpedition is { } run)
         {
@@ -392,6 +402,24 @@ public sealed class LegionStore
         Save();
         if (started || confirmedWin) Changed?.Invoke();
         LiveChanged?.Invoke();
+    }
+
+    private void TrackPersonalRecord(Fight fight)
+    {
+        if (fight.Training || fight.Duration <= 0 || fight.Captured?.Summary is not
+            { IsActive: false, Reason: EncounterEndReason.Kill, MostDamageUnsent: false, Boss: { MaxHpKnown: true, Uncounted: 0 } boss } summary ||
+            summary.Combatants.FirstOrDefault(player => player.IsSelf) is not { ServerId: > 0, Damage: > 0 } player ||
+            string.IsNullOrWhiteSpace(player.Name)) return;
+        var solo = summary.PlayerCount == 1;
+        if (!solo && LiveRoster is null) return;
+        var dps = player.Damage / fight.Duration;
+        var index = Profile.PersonalRecords.FindIndex(record => record.ServerId == player.ServerId &&
+            record.BossCode == boss.NpcCode && record.Solo == solo &&
+            string.Equals(record.Character, player.Name, StringComparison.OrdinalIgnoreCase));
+        var record = new PersonalRecord(player.Name, player.ServerId, boss.NpcCode, solo, boss.Name,
+            dps, player.Damage, fight.Duration, fight.Date);
+        if (index < 0) Profile.PersonalRecords.Add(record);
+        else if (Profile.PersonalRecords[index].Dps < dps) Profile.PersonalRecords[index] = record;
     }
 
     public void EndExpedition(bool interrupted)

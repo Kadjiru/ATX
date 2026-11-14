@@ -174,6 +174,7 @@ public sealed partial class Dashboard
             Actions(Button(Loc.T("HUD задач"), () => Hud(HudKind.Tasks), true), Button(Loc.T("Новая сессия"), () =>
             {
                 profile.SessionId = Guid.NewGuid();
+                profile.SessionStarted = DateTimeOffset.Now;
                 _store.Commit();
             })));
         page.Children.Add(Space(Card(summary), 12));
@@ -196,6 +197,7 @@ public sealed partial class Dashboard
                 profile.Ledger.OrderByDescending(e => e.Date).Take(50),
                 e => [e.Note, Number(e.Amount), e.Date.ToLocalTime().ToString("dd.MM HH:mm"), e.SessionId == profile.SessionId ? Loc.T("Текущая") : Loc.T("Прошлая")]));
         page.Children.Add(Card(kina));
+        page.Children.Add(Space(LootPanel(), 8));
         return page;
 
         void AddKina()
@@ -208,6 +210,47 @@ public sealed partial class Dashboard
                 return;
             }
             profile.Ledger.Add(new KinaEntry(Guid.NewGuid(), profile.SessionId, DateTimeOffset.Now, note.Text.Trim(), value));
+            _store.Commit();
+        }
+    }
+
+    private Border LootPanel()
+    {
+        var profile = _store.Profile;
+        var entries = profile.Loot.Where(entry => entry.SessionId == profile.SessionId).ToArray();
+        var item = Input("", 190, 100);
+        var quantity = Input("1", 85, 7);
+        var price = Input("", 105, 14);
+        var notice = Hint("");
+        var estimate = entries.Where(e => e.UnitPrice.HasValue).Sum(e => e.UnitPrice!.Value * e.Quantity);
+        var start = profile.SessionStarted ?? entries.Select(e => (DateTimeOffset?)e.Date).Min();
+        var elapsed = start is { } began ? DateTimeOffset.Now - began : TimeSpan.Zero;
+        var panel = Stack(Space(Text(Loc.T("Добыча за сессию"), 20, bold: true), 6),
+            Space(Hint(Loc.T("Цена вводится вручную. Оценка добычи учитывается отдельно от сделок.")), 6),
+            Hint(Loc.F($"Оценка добычи: {estimate:N2} кина")),
+            Hint(Loc.F($"Время учёта: {Clock(elapsed)}")),
+            Actions(Field(Loc.T("Предмет"), item), Field(Loc.T("Количество"), quantity),
+                Field(Loc.T("Цена за единицу"), price), Button(Loc.T("Добавить добычу"), Add, true)), notice);
+        if (entries.Length > 0)
+            panel.Children.Add(MakeTable([Loc.T("Предмет"), Loc.T("Количество"), Loc.T("В час"), Loc.T("Цена за единицу"), Loc.T("Дата")],
+                entries.Reverse().Take(50), e => [e.Item, Number(e.Quantity),
+                    elapsed.TotalMinutes >= 1 ? (e.Quantity / elapsed.TotalHours).ToString("0.0") : "—",
+                    e.UnitPrice?.ToString("N2") ?? "—", e.Date.ToLocalTime().ToString("dd.MM HH:mm")]));
+        return Card(panel);
+
+        void Add()
+        {
+            decimal parsed = 0;
+            if (string.IsNullOrWhiteSpace(item.Text) || !int.TryParse(quantity.Text, out var count) || count <= 0 ||
+                (!string.IsNullOrWhiteSpace(price.Text) && (!decimal.TryParse(price.Text, out parsed) || parsed < 0)))
+            {
+                notice.Text = Loc.T("Укажите предмет, положительное количество и допустимую цену.");
+                return;
+            }
+            var now = DateTimeOffset.Now;
+            profile.SessionStarted ??= now;
+            profile.Loot.Add(new LootEntry(profile.SessionId, item.Text.Trim(), count,
+                string.IsNullOrWhiteSpace(price.Text) ? null : parsed, now));
             _store.Commit();
         }
     }

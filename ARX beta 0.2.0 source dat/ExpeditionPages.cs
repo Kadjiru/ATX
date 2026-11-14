@@ -168,6 +168,13 @@ public sealed partial class Dashboard
         var character = Input(profile.ProgressCharacter.Length == 0
             ? _store.LiveIdentity ?? profile.Character : profile.ProgressCharacter, 220, 120);
         var task = Input("", 245, 100);
+        var known = profile.Goals.Select(g => g.Character).Append(profile.ProgressCharacter)
+            .Where(name => name.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).Order().ToArray();
+        var characters = Choice(known, 220, localize: false);
+        characters.SelectionChanged += (_, _) =>
+        {
+            if (characters.SelectedItem is string name) character.Text = name;
+        };
         var goal = Input("1", 75, 5);
         var scope = Choice(["Ежедневные", "Еженедельные", "Постоянные"], 155);
         var activities = new ComboBox
@@ -179,6 +186,7 @@ public sealed partial class Dashboard
         var message = Hint("");
         var rows = new StackPanel();
         page.Children.Add(Space(Card(Stack(Actions(Field(Loc.T("Профиль персонажа"), character), Field(Loc.T("Период"), scope)),
+            Actions(Field(Loc.T("Сохранённые персонажи"), characters)),
             Actions(Field(Loc.T("Новая цель"), task), Field(Loc.T("Количество"), goal), Field(Loc.T("Отслеживание"), activities)),
             Actions(Button(Loc.T("Добавить цель"), Add, true), Button(Loc.T("Текущий персонаж"), () =>
                 character.Text = CharacterLabel() ?? profile.Character), hide),
@@ -232,6 +240,9 @@ public sealed partial class Dashboard
         {
             if (scope.SelectedIndex == 2) return;
             var ids = Current().Select(t => t.Id).ToHashSet();
+            if (ids.Count == 0 || MessageBox.Show(this, Loc.F($"Сбросить прогресс выбранного периода для {character.Text.Trim()}?"),
+                    Loc.T("Сбросить выбранный период"), MessageBoxButton.YesNo, MessageBoxImage.Question,
+                    MessageBoxResult.No) != MessageBoxResult.Yes) return;
             for (var i = 0; i < profile.Goals.Count; i++)
                 if (ids.Contains(profile.Goals[i].Id)) profile.Goals[i] = profile.Goals[i] with { Count = 0 };
             _store.Commit();

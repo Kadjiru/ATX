@@ -39,6 +39,23 @@ internal sealed class LiveCombat : IDisposable
     private bool _stopping;
     private Task? _stopTask;
     private string? _error;
+    private DateTimeOffset? _trainingStart;
+    private long _trainingDeadline;
+    private int _trainingSeconds;
+    internal bool TrainingActive => _trainingStart is not null;
+
+    internal bool StartTraining(int seconds)
+    {
+        if (!IsRunning || IsStopping || TrainingActive) return false;
+        FinishSegment();
+        _trainingSeconds = seconds;
+        lock (_sessionGate)
+        {
+            _trainingStart = DateTimeOffset.UtcNow;
+            _trainingDeadline = Environment.TickCount64 + seconds * 1000L;
+        }
+        return true;
+    }
 
     public LiveCombat(LegionStore store)
     {
@@ -110,6 +127,7 @@ internal sealed class LiveCombat : IDisposable
             _source = null;
             _tracker?.Reset();
             Drain();
+            lock (_sessionGate) _trainingStart = null;
             _runs.EndAutomatic();
             _tracker = null;
             _roster = null;
@@ -122,6 +140,7 @@ internal sealed class LiveCombat : IDisposable
     {
         lock (_sessionGate) _tracker?.Reset();
         Drain();
+        lock (_sessionGate) _trainingStart = null;
         Refresh();
     }
 
@@ -144,6 +163,7 @@ internal sealed class LiveCombat : IDisposable
     {
         lock (_sessionGate)
         {
+            if (_trainingStart is not null && Environment.TickCount64 >= _trainingDeadline) return;
             if (e is SelfIdentifiedEvent self && tracker.LocalCharacter is { } previous &&
                 self.Name.Length > 0 && previous.Name.Length > 0 &&
                 (!string.Equals(self.Name, previous.Name, StringComparison.OrdinalIgnoreCase) ||
@@ -169,14 +189,30 @@ internal sealed class LiveCombat : IDisposable
         (uint ActorId, string Name, int ServerId)? local;
         PartyRosterEvent? roster;
         FightRecord? record;
+        var now = DateTimeOffset.UtcNow;
+        var completedTraining = TrainingActive && Environment.TickCount64 >= _trainingDeadline;
         lock (_sessionGate)
         {
-            _tracker?.Tick(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            if (!completedTraining) _tracker?.Tick(now.ToUnixTimeMilliseconds());
             local = _tracker?.LocalCharacter;
             roster = _roster;
             record = _tracker?.Record(null, includeCasts: false);
+            if (completedTraining) _tracker?.Reset();
         }
         Drain();
+        if (completedTraining)
+        {
+            var trainingStart = _trainingStart!.Value;
+            lock (_sessionGate) _trainingStart = null;
+            if (record is not null)
+            {
+                var training = ToFight(record, null, _store.Profile.DeclaredBuild);
+                if (training.Captured!.Summary.Combatants.Any(player => player.IsSelf && player.Damage > 0))
+                    _store.SetFight(training with { Id = Guid.NewGuid(), Training = true, Duration = _trainingSeconds,
+                        Name = Loc.T("Тренировка"), Date = trainingStart }, true);
+            }
+            record = null;
+        }
         var server = local?.ServerId ?? 0;
         var source = _source;
         var character = local is { } p ? new CharacterIdentity(p.ActorId, p.Name, p.ServerId) : null;
@@ -209,7 +245,7 @@ internal sealed class LiveCombat : IDisposable
                 case RecordedFight capture:
                     var fight = ToFight(capture.Record, capture.Roster, _store.Profile.CurrentExpedition?.Build ?? _store.Profile.DeclaredBuild,
                         capture.Player is null ? _store.Profile.CombatCharacterHint : null);
-                    if (fight.Captured!.Summary.Combatants.Any(c => c.Damage > 0 || c.Healing > 0)) _runs.Archive(fight, capture.Player);
+                    if (!TrainingActive && fight.Captured!.Summary.Combatants.Any(c => c.Damage > 0 || c.Healing > 0)) _runs.Archive(fight, capture.Player);
                     break;
             }
         }

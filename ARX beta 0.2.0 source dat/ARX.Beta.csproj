@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ARX.Beta</AssemblyName>
-    <Version>1.1.1-beta</Version>
+    <Version>1.1.2-beta</Version>
     <Product>ARX · Aion 2 Companion</Product>
     <ApplicationIcon>Assets/ARX.ico</ApplicationIcon>
   </PropertyGroup>

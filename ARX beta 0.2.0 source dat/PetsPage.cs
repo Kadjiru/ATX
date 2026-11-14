@@ -71,7 +71,7 @@ public sealed partial class Dashboard
         }
     }
 
-    private static UIElement PetCatalogPanel()
+    private UIElement PetCatalogPanel()
     {
         var families = PetFamilies.ToDictionary(family => family.Id);
         var pets = PetCatalog.Value.Select(pet => new PetCard(pet, families.GetValueOrDefault(pet.Category)))
@@ -153,7 +153,7 @@ public sealed partial class Dashboard
         return new DataTemplate { VisualTree = tile };
     }
 
-    private static UIElement PetDetails(PetCard card)
+    private UIElement PetDetails(PetCard card)
     {
         var pet = card.Pet;
         var headings = Stack(Space(Label(card.FamilyName), 4), Text(card.Name, 25, "Mint", true));
@@ -176,11 +176,19 @@ public sealed partial class Dashboard
         {
             var regions = new WrapPanel { Margin = new Thickness(0, 7, 0, 0) };
             foreach (var zone in pet.Habitats)
+            {
+                var atlas = AtlasZone.All.FirstOrDefault(entry => entry.Name == Loc.T(zone));
+                if (atlas is not null)
+                {
+                    regions.Children.Add(Button(Loc.T(zone), () => OpenAtlas(new AtlasSelection(atlas.Id, null, null))));
+                    continue;
+                }
                 regions.Children.Add(new Border
                 {
                     CornerRadius = new CornerRadius(6), Padding = new Thickness(8, 4, 8, 4),
                     Margin = new Thickness(0, 0, 6, 4), Child = Text(Loc.T(zone), 12, "Mint", true)
                 }.UseBrush(Border.BackgroundProperty, "Raised"));
+            }
             location.Children.Add(regions);
         }
 
@@ -190,12 +198,46 @@ public sealed partial class Dashboard
             { Id: "Special" } => Hint(Loc.T("Отдельное семейство. У этих питомцев нет обычного бонуса характеристик за владение.")),
             _ => Hint(Loc.T("Данные о бонусе отсутствуют."))
         };
-        UIElement progress = pet.HasSoul ? Stack(PetSoulCosts(), Hint(Loc.T("Всего 105 душ до 3-го уровня.")))
+        UIElement progress = pet.HasSoul ? Stack(PetSoulCosts(), Hint(Loc.T("Всего 105 душ до 3-го уровня.")), PetGoalEditor(pet.Id))
             : Hint(Loc.T("В этой записи нет обычной души питомца. Условия открытия и повышения смотрите в игре."));
         return Stack(Space(hero, 9),
             Space(PetSection(PetIcons.Location, Loc.T("Где искать"), location), 8),
             Space(PetSection(card.Icon, Loc.T("Бонус за владение"), bonus), 8),
             PetSection(PetIcons.Levels, Loc.T("Прокачка питомца"), progress));
+    }
+
+    private UIElement PetGoalEditor(int petId)
+    {
+        var goals = _store.Profile.PetGoals;
+        var goal = goals.GetValueOrDefault(petId, new PetGoal(0, 0, 3));
+        var level = Choice(["0", "1", "2", "3"], 75, localize: false);
+        var target = Choice(["1", "2", "3"], 75, localize: false);
+        level.SelectedIndex = Math.Clamp(goal.Level, 0, 3);
+        target.SelectedIndex = Math.Clamp(goal.Target - 1, 0, 2);
+        var souls = Input(goal.Souls.ToString(), 90, 6);
+        var result = Hint("");
+        var costs = new[] { 0, 5, 30, 105 };
+        var save = Button(Loc.T("Сохранить цель"), () =>
+        {
+            if (!Read(out var count)) return;
+            goals[petId] = new PetGoal(level.SelectedIndex, count, target.SelectedIndex + 1);
+            _store.Save();
+        });
+        level.SelectionChanged += (_, _) => Read(out _);
+        target.SelectionChanged += (_, _) => Read(out _);
+        souls.TextChanged += (_, _) => Read(out _);
+        Read(out _);
+        return Stack(Actions(Field(Loc.T("Текущий уровень"), level), Field(Loc.T("Запас душ"), souls),
+            Field(Loc.T("Целевой уровень"), target)), Actions(save), result);
+
+        bool Read(out int count)
+        {
+            var valid = int.TryParse(souls.Text, out count) && count >= 0 && target.SelectedIndex + 1 >= level.SelectedIndex;
+            result.Text = valid
+                ? Loc.F($"Не хватает душ: {Math.Max(0, costs[target.SelectedIndex + 1] - costs[level.SelectedIndex] - count)}")
+                : Loc.T("Проверьте запас душ и целевой уровень.");
+            return valid;
+        }
     }
 
     private static UniformGrid PetSoulCosts() => PetMetrics(
