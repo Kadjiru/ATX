@@ -1,27 +1,27 @@
 [
   {
     "prerelease": false,
-    "tag_name": "v1.0.12",
     "draft": false,
+    "tag_name": "v1.0.12",
     "assets": [
       {
-        "state": "uploaded",
-        "digest": "sha256:456def697b8661418e780227fb9d928431708c8e41ddd3a4dd3ad4dbf7c8d3f8",
+        "size": 63392587,
         "name": "ARX-Setup-1.0.12.exe",
-        "size": 63392587
+        "state": "uploaded",
+        "digest": "sha256:456def697b8661418e780227fb9d928431708c8e41ddd3a4dd3ad4dbf7c8d3f8"
       }
     ]
   },
   {
     "prerelease": true,
-    "tag_name": "v1.1.6-beta",
     "draft": false,
+    "tag_name": "v1.1.7-beta",
     "assets": [
       {
+        "size": 73807862,
+        "name": "ARX-Beta-Setup-1.1.7-beta.exe",
         "state": "uploaded",
-        "digest": "sha256:a592f53589be7446df5ae7ee2b42a5933eb6a4eeac38570547121c098f9e6662",
-        "name": "ARX-Beta-Setup-1.1.6-beta.exe",
-        "size": 73790759
+        "digest": "sha256:cd6aaa5165a3e6b70b1bebb45afc3426c821c115a792e1288bb24d9c68056ada"
       }
     ]
   }
