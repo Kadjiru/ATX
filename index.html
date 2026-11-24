@@ -38,10 +38,10 @@
           <p class="hero-text">Следите за DPS в бою, разбирайте попытки на боссах и отмечайте маршруты в атласе Атреи.</p>
           <p class="download-count">Загрузок ARX на GitHub: <output id="download-count" data-unavailable="временно недоступны">проверяем…</output></p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.11/ARX-Setup-1.0.11.exe" data-channel="stable" data-download="installer">Скачать ARX <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.12/ARX-Setup-1.0.12.exe" data-channel="stable" data-download="installer">Скачать ARX <span aria-hidden="true">↓</span></a>
             <a class="button secondary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Steam-гайд <span aria-hidden="true">↗</span></a>
           </div>
-          <p class="platform"><strong data-release-version="stable">ARX 1.0.11 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
+          <p class="platform"><strong data-release-version="stable">ARX 1.0.12 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
           <img src="assets/analysis-113-ru.png" width="1340" height="900" alt="Боевой отчёт ARX с графиком урона и статистикой группы">
@@ -90,8 +90,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="reference-title">
       <figure class="reference-shot">
-        <img src="assets/pets-110-ru.png" width="1340" height="900" loading="lazy" alt="Карточка питомца с регионами, бонусами и стоимостью улучшений">
-        <figcaption>Карточки питомцев · 1.1.0 Beta</figcaption>
+        <img src="assets/pets-118-ru.png" width="1340" height="900" loading="lazy" alt="Карточка питомца с регионами, бонусами и стоимостью улучшений">
+        <figcaption>Цели и карточки питомцев · 1.1.8 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> СПРАВОЧНИК</p>
@@ -99,8 +99,8 @@
         <dl class="detail-list">
           <div><dt>Билды для восьми классов</dt><dd>PvE-варианты для соло и группы с приоритетами характеристик, навыками, стигмами и первыми действиями в бою.</dd></div>
           <div><dt>Гайды по механикам</dt><dd>Подготовка, сигналы механик, действия по ролям и частые ошибки в экспедициях, Кошмарах, Возвышении, Преодолении и рейде Лудры.</dd></div>
-          <div><dt>Карточки питомцев</dt><dd>Ищите питомцев по имени, региону или семейству. В карточках показаны места обитания, бонусы за владение и стоимость улучшений. Памятка по прокачке разбита на плитки.</dd></div>
-          <div><dt>Мастерская</dt><dd>Смотрите рецепты и рассчитывайте недостающие материалы по локальному справочнику. Дата среза данных указана в приложении.</dd></div>
+          <div><dt>Карточки питомцев</dt><dd>Ищите питомцев по имени, региону или семейству. Сохраняйте цели по душам отдельно для каждого персонажа и включайте фильтр «Только с целью». Прежние записи доступны в «Общие цели».</dd></div>
+          <div><dt>Мастерская</dt><dd>Сохраняйте заметки и рецепты для билдов, собирайте список недостающих материалов и переносите покупки в задачи сессии. Дата среза данных указана в приложении.</dd></div>
         </dl>
       </div>
     </section>
@@ -130,6 +130,18 @@
         <p class="hero-text">В Beta откройте «События» и включите HUD разлома. Он показывает отсчёт и местное время следующего открытия. Расписание можно сверить с сервером и изменить в «Событиях».</p>
       </div>
     </section>
+    <section class="wrap split reference" aria-labelledby="network-title">
+      <figure class="reference-shot">
+        <img src="assets/network-connection-118-ru.png" width="1340" height="900" loading="lazy" alt="Вкладка подключения в ARX 1.1.8 Beta">
+        <figcaption>Подключение · 1.1.8 Beta</figcaption>
+      </figure>
+      <div>
+        <h2 id="network-title">Подключение в Beta</h2>
+        <p class="hero-text">В Beta 1.1.8 доступны SSTP и L2TP/IPsec через встроенные службы Windows, а также SOCKS5 с передачей TCP и UDP. Во вкладке «Подключение» можно выбрать узел, проверить соединение и задать IPv4-адреса для маршрутизации.</p>
+        <p class="hero-text">Вход в Aion 2 через эти подключения пока не подтверждён. Доступность публичных узлов, регион доступа и задержка не гарантируются. Маршруты задаются по адресам, DNS и IPv6 этим списком не перенаправляются. SOCKS5 не добавляет шифрование. Блокировки трафика при обрыве нет, возможен возврат к прямому соединению.</p>
+        <p class="hero-text">Перед подключением приложение запрашивает согласие, Windows отдельно запрашивает права для сетевого компонента. VPN Gate ведёт журналы соединений, включая исходный IP. Для portable распакуйте архив целиком с папкой Components/Socks.</p>
+      </div>
+    </section>
     <section class="setup" id="setup" aria-labelledby="setup-title">
       <div class="wrap">
         <p class="eyebrow"><span class="dot"></span> ПЕРВЫЙ ЗАПУСК</p>
@@ -147,6 +159,46 @@
     <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
       <p class="eyebrow"><span class="dot"></span> ИСТОРИЯ ВЕРСИЙ</p>
       <h2 id="changelog-title">Что нового</h2>
+      <article class="release" id="release-1-1-8">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.8 BETA</p><h3>SOCKS5 с передачей TCP и UDP</h3></div>
+          <time datetime="2026-11-21">21 ноября 2026</time>
+        </header>
+        <p>Во вкладке «Подключение» добавлен SOCKS5. TCP/TLS и UDP/DNS проверяются передачей данных, узлы можно выбрать по стране или указать вручную. Компоненты tun2socks и Wintun входят в сборку. Доступность узлов и вход в игру не гарантируются.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.8-beta">Релиз на GitHub</a>
+      </article>
+      <article class="release" id="release-1-1-7">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.7 BETA</p><h3>Подключение через службы Windows</h3></div>
+          <time datetime="2026-11-21">21 ноября 2026</time>
+        </header>
+        <p>SSTP и L2TP/IPsec используют встроенные службы Windows и узлы VPN Gate. ARX показывает статус подключения, позволяет отменить попытку и направить выбранные IPv4-адреса через туннель. Вход в Aion 2 не подтверждён.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.7-beta">Релиз на GitHub</a>
+      </article>
+      <article class="release" id="release-1-1-6">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.6 BETA</p><h3>Помощник внешних VPN-клиентов</h3></div>
+          <time datetime="2026-11-21">21 ноября 2026</time>
+        </header>
+        <p>В версии 1.1.6 появилась вкладка для настройки hide.me Free и Windscribe Free, запуска клиента и проверки ICMP-отклика. Встроенное управление подключением добавлено следующими выпусками.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.6-beta">Релиз на GitHub</a>
+      </article>
+      <article class="release" id="release-1-1-5">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.5 BETA</p><h3>Цели питомцев и задачи сессии</h3></div>
+          <time datetime="2026-11-17">17 ноября 2026</time>
+        </header>
+        <p>Цели по душам питомцев привязаны к сохранённым персонажам. Прежние записи доступны в «Общие цели». Добавлен фильтр «Только с целью». Недостающие материалы из билда можно перенести в задачи сессии без дубликатов.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.5-beta">Релиз на GitHub</a>
+      </article>
+      <article class="release" id="release-1-0-12">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.0.12 STABLE</p><h3>Цели персонажей и списки покупок</h3></div>
+          <time datetime="2026-11-19">19 ноября 2026</time>
+        </header>
+        <p>В стабильном канале появились цели по душам питомцев для отдельных персонажей, заметки и сохранённые рецепты для билдов. Список покупок объединяет недостающие материалы и переносится в задачи сессии без дубликатов.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.0.12">Релиз на GitHub</a>
+      </article>
       <article class="release" id="release-1-1-4">
         <header class="release-header">
           <div>
@@ -324,23 +376,23 @@
         <article id="download">
           <div>
             <h3>Stable</h3>
-            <p><span data-release-version="stable">ARX 1.0.11 Stable</span> для Windows x64</p>
+            <p><span data-release-version="stable">ARX 1.0.12 Stable</span> для Windows x64</p>
             <p>Стабильный канал для повседневной игры.</p>
           </div>
           <div class="download-actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.11/ARX-Setup-1.0.11.exe" data-channel="stable" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.11/ARX-1.0.11-win-x64.zip" data-channel="stable" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.12/ARX-Setup-1.0.12.exe" data-channel="stable" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.12/ARX-1.0.12-win-x64.zip" data-channel="stable" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article>
           <div>
             <h3>Beta</h3>
-            <p><span data-release-version="beta">ARX 1.1.4 Beta</span> для Windows x64</p>
+            <p><span data-release-version="beta">ARX 1.1.8 Beta</span> для Windows x64</p>
             <p>Фильтры отчётов, быстрые таймеры и голосовые напоминания. Возможны ошибки.</p>
           </div>
           <div class="download-actions">
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.4-beta/ARX-Beta-Setup-1.1.4-beta.exe" data-channel="beta" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.4-beta/ARX-1.1.4-beta-win-x64.zip" data-channel="beta" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.8-beta/ARX-Beta-Setup-1.1.8-beta.exe" data-channel="beta" data-download="installer">Установщик EXE <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.8-beta/ARX-1.1.8-beta-win-x64.zip" data-channel="beta" data-download="portable">Портативный ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article id="steam">

@@ -38,10 +38,10 @@
           <p class="hero-text">Track your DPS in combat, review boss attempts, and plan routes across Atreia.</p>
           <p class="download-count">ARX downloads on GitHub: <output id="download-count" data-unavailable="temporarily unavailable">checking…</output></p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.11/ARX-Setup-1.0.11.exe" data-channel="stable" data-download="installer">Download ARX <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.12/ARX-Setup-1.0.12.exe" data-channel="stable" data-download="installer">Download ARX <span aria-hidden="true">↓</span></a>
             <a class="button secondary" href="https://steamcommunity.com/sharedfiles/filedetails/?id=3837440685">Steam guide <span aria-hidden="true">↗</span></a>
           </div>
-          <p class="platform"><strong data-release-version="stable">ARX 1.0.11 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
+          <p class="platform"><strong data-release-version="stable">ARX 1.0.12 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
           <img src="assets/analysis-113-en.png" width="1340" height="900" alt="ARX combat report with a damage timeline and party statistics">
@@ -90,8 +90,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="reference-title">
       <figure class="reference-shot">
-        <img src="assets/pets-110-en.png" width="1340" height="900" loading="lazy" alt="ARX pet card with habitats, ownership bonuses, and upgrade costs">
-        <figcaption>Pet catalog cards · 1.1.0 Beta</figcaption>
+        <img src="assets/pets-118-en.png" width="1340" height="900" loading="lazy" alt="ARX pet card with habitats, ownership bonuses, and upgrade costs">
+        <figcaption>Pet cards and soul goals · 1.1.8 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> REFERENCE</p>
@@ -99,7 +99,7 @@
         <dl class="detail-list">
           <div><dt>Builds for eight classes</dt><dd>Solo and group PvE builds cover stat priorities, skills, stigmas, and opening moves.</dd></div>
           <div><dt>Encounter guides</dt><dd>Review encounter preparation, mechanic cues, role assignments, and common mistakes across expeditions and other PvE activities.</dd></div>
-          <div><dt>Pets and crafting</dt><dd>Look up pets by name or family and see their bonuses and progression options. The crafting planner shows recipes and calculates which materials you still need.</dd></div>
+          <div><dt>Pets and crafting</dt><dd>Track pet soul goals per saved character and filter the catalog to show tracked pets. Save build notes and recipes, combine missing materials in a shopping list, and add them to session tasks.</dd></div>
         </dl>
       </div>
     </section>
@@ -129,6 +129,18 @@
         <p class="hero-text">In Beta, open Events and enable the Rift HUD. It shows the countdown and local time for the next scheduled opening. You can compare the schedule with your server and edit it in Events.</p>
       </div>
     </section>
+    <section class="wrap split reference" aria-labelledby="network-title">
+      <figure class="reference-shot">
+        <img src="assets/network-connection-118-en.png" width="1340" height="900" loading="lazy" alt="ARX 1.1.8 Beta Connection tab">
+        <figcaption>Connection · 1.1.8 Beta</figcaption>
+      </figure>
+      <div>
+        <h2 id="network-title">Connection options in Beta</h2>
+        <p class="hero-text">Beta 1.1.8 offers SSTP and L2TP/IPsec through Windows services, plus SOCKS5 with TCP and UDP forwarding. The Connection tab lets you select a server, test transport, and choose which IPv4 addresses to route.</p>
+        <p class="hero-text">Aion 2 login through these connections has not been confirmed. Public server availability, access region, and latency are not guaranteed. Routing uses destination addresses, and the selected routes do not redirect DNS or IPv6. SOCKS5 adds no encryption. There is no kill switch, so traffic may return to a direct connection after a disconnect.</p>
+        <p class="hero-text">ARX asks for consent before connecting. Windows requests administrator access separately for the network component. VPN Gate logs connections, including the source IP. Extract the portable archive in full, including Components/Socks.</p>
+      </div>
+    </section>
     <section class="setup" id="setup" aria-labelledby="setup-title">
       <div class="wrap">
         <p class="eyebrow"><span class="dot"></span> FIRST LAUNCH</p>
@@ -146,6 +158,46 @@
     <section class="wrap changelog" id="changelog" aria-labelledby="changelog-title">
       <p class="eyebrow"><span class="dot"></span> RELEASE HISTORY</p>
       <h2 id="changelog-title">What’s new</h2>
+      <article class="release" id="release-1-1-8">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.8 BETA</p><h3>SOCKS5 with TCP and UDP forwarding</h3></div>
+          <time datetime="2026-11-21">November 21, 2026</time>
+        </header>
+        <p>The Connection tab adds SOCKS5. Tests send TCP/TLS and UDP/DNS data through the proxy. Select public nodes by country or enter an address manually. The build includes tun2socks and Wintun. Public node availability and game login are not guaranteed.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.8-beta">View release on GitHub</a>
+      </article>
+      <article class="release" id="release-1-1-7">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.7 BETA</p><h3>Connect through Windows services</h3></div>
+          <time datetime="2026-11-21">November 21, 2026</time>
+        </header>
+        <p>SSTP and L2TP/IPsec use Windows services and VPN Gate servers. ARX shows connection status, supports cancellation, and routes selected IPv4 destinations through the tunnel. Aion 2 login has not been confirmed.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.7-beta">View release on GitHub</a>
+      </article>
+      <article class="release" id="release-1-1-6">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.6 BETA</p><h3>External VPN client setup</h3></div>
+          <time datetime="2026-11-21">November 21, 2026</time>
+        </header>
+        <p>Version 1.1.6 introduced a tab for setting up hide.me Free or Windscribe Free, launching the client, and measuring ICMP response times. Later releases added integrated connection management.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.6-beta">View release on GitHub</a>
+      </article>
+      <article class="release" id="release-1-1-5">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.1.5 BETA</p><h3>Pet goals and session tasks</h3></div>
+          <time datetime="2026-11-17">November 17, 2026</time>
+        </header>
+        <p>Pet soul goals are stored per saved character. Previous entries remain under Shared goals. A goals-only filter helps find tracked pets. Missing build materials can be added to session tasks without duplicates.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.5-beta">View release on GitHub</a>
+      </article>
+      <article class="release" id="release-1-0-12">
+        <header class="release-header">
+          <div><p class="feature-index">ARX 1.0.12 STABLE</p><h3>Character goals and shopping lists</h3></div>
+          <time datetime="2026-11-19">November 19, 2026</time>
+        </header>
+        <p>The Stable channel adds per-character pet soul goals, build notes, and saved recipes. Shopping lists combine missing materials and can be added to session tasks without duplicates.</p>
+        <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.0.12">View release on GitHub</a>
+      </article>
       <article class="release" id="release-1-1-4">
         <header class="release-header">
           <div>
@@ -323,23 +375,23 @@
         <article id="download">
           <div>
             <h3>Stable</h3>
-            <p><span data-release-version="stable">ARX 1.0.11 Stable</span> for Windows x64</p>
+            <p><span data-release-version="stable">ARX 1.0.12 Stable</span> for Windows x64</p>
             <p>The stable channel for everyday play.</p>
           </div>
           <div class="download-actions">
-            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.11/ARX-Setup-1.0.11.exe" data-channel="stable" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.11/ARX-1.0.11-win-x64.zip" data-channel="stable" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button primary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.12/ARX-Setup-1.0.12.exe" data-channel="stable" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.0.12/ARX-1.0.12-win-x64.zip" data-channel="stable" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article>
           <div>
             <h3>Beta</h3>
-            <p><span data-release-version="beta">ARX 1.1.4 Beta</span> for Windows x64</p>
+            <p><span data-release-version="beta">ARX 1.1.8 Beta</span> for Windows x64</p>
             <p>Report filters, quick timers, and voice reminders. Beta builds may contain bugs.</p>
           </div>
           <div class="download-actions">
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.4-beta/ARX-Beta-Setup-1.1.4-beta.exe" data-channel="beta" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
-            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.4-beta/ARX-1.1.4-beta-win-x64.zip" data-channel="beta" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.8-beta/ARX-Beta-Setup-1.1.8-beta.exe" data-channel="beta" data-download="installer">EXE installer <span aria-hidden="true">↓</span></a>
+            <a class="button secondary" href="https://github.com/Kadjiru/ATX/releases/download/v1.1.8-beta/ARX-1.1.8-beta-win-x64.zip" data-channel="beta" data-download="portable">Portable ZIP <span aria-hidden="true">↓</span></a>
           </div>
         </article>
         <article id="steam">
