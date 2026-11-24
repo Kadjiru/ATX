@@ -8,7 +8,7 @@
   <title>ARX — Aion 2 Global Companion</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
   <link rel="alternate" hreflang="ru" href="./">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <script src="downloads.js?v=5" defer></script>
 </head>
 <body>
@@ -44,8 +44,8 @@
           <p class="platform"><strong data-release-version="stable">ARX 1.0.12 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
-          <img src="assets/analysis-113-en.png" width="1340" height="900" alt="ARX combat report with a damage timeline and party statistics">
-          <figcaption><span class="dot"></span> Combat report <span class="caption-note">Demo encounter · 1.1.3 Beta</span></figcaption>
+          <img src="assets/analysis-118-full-en.png" width="1340" height="900" alt="ARX combat report with a damage timeline and party statistics">
+          <figcaption><span class="dot"></span> Combat report <span class="caption-note">Demo encounter · 1.1.8 Beta</span></figcaption>
         </figure>
       </div>
     </section>
@@ -82,15 +82,15 @@
           </dl>
         </div>
         <figure class="map-shots">
-          <img class="atlas" src="assets/atlas-110-en.png" width="1340" height="900" loading="lazy" alt="The ARX atlas with teleport markers in Altgard">
-          <img class="minimap" src="assets/hud-atlas-110-en.png" width="388" height="500" loading="lazy" alt="The minimap overlay with a selected marker in Altgard">
-          <figcaption>Atlas and minimap overlay · 1.1.0 Beta</figcaption>
+          <img class="atlas" src="assets/atlas-118-full-en.png" width="1340" height="900" loading="lazy" alt="The ARX atlas with teleport markers in Altgard">
+          <img class="minimap" src="assets/hud-atlas-118-full-en.png" width="388" height="500" loading="lazy" alt="The minimap overlay with a selected marker in Altgard">
+          <figcaption>Atlas and minimap overlay · 1.1.8 Beta</figcaption>
         </figure>
       </div>
     </section>
     <section class="wrap split reference" aria-labelledby="reference-title">
       <figure class="reference-shot">
-        <img src="assets/pets-118-en.png" width="1340" height="900" loading="lazy" alt="ARX pet card with habitats, ownership bonuses, and upgrade costs">
+        <img src="assets/pets-118-full-en.png" width="1340" height="900" loading="lazy" alt="ARX pet card with habitats, ownership bonuses, and upgrade costs">
         <figcaption>Pet cards and soul goals · 1.1.8 Beta</figcaption>
       </figure>
       <div>
@@ -105,8 +105,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="appearance-title">
       <figure class="reference-shot">
-        <img src="assets/settings-110-en.png" width="1340" height="900" loading="lazy" alt="ARX settings with appearance, language, and combat HUD controls">
-        <figcaption>Appearance, language, and HUD settings · 1.1.0 Beta</figcaption>
+        <img src="assets/settings-118-full-en.png" width="1340" height="900" loading="lazy" alt="ARX settings with appearance, language, and combat HUD controls">
+        <figcaption>Appearance, language, and HUD settings · 1.1.8 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> SETTINGS</p>
@@ -120,8 +120,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="rift-title">
       <figure class="reference-shot">
-        <img src="assets/hud-rift-110-en.png" width="365" height="193" loading="lazy" alt="Dimensional Rift HUD showing a sample countdown and opening time">
-        <figcaption>Sample scheduled countdown · 1.1.0 Beta</figcaption>
+        <img src="assets/hud-rift-118-full-en.png" width="365" height="193" loading="lazy" alt="Dimensional Rift HUD showing a sample countdown and opening time">
+        <figcaption>Sample scheduled countdown · 1.1.8 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> EVENTS</p>
@@ -131,12 +131,18 @@
     </section>
     <section class="wrap split reference" aria-labelledby="network-title">
       <figure class="reference-shot">
-        <img src="assets/network-connection-118-en.png" width="1340" height="900" loading="lazy" alt="ARX 1.1.8 Beta Connection tab">
+        <img src="assets/network-connection-118-full-en.png" width="1340" height="900" loading="lazy" alt="ARX 1.1.8 Beta Connection tab">
         <figcaption>Connection · 1.1.8 Beta</figcaption>
       </figure>
       <div>
-        <h2 id="network-title">Connection options in Beta</h2>
-        <p class="hero-text">Beta 1.1.8 offers SSTP and L2TP/IPsec through Windows services, plus SOCKS5 with TCP and UDP forwarding. The Connection tab lets you select a server, test transport, and choose which IPv4 addresses to route.</p>
+        <h2 id="network-title">SOCKS5 inside ARX Beta</h2>
+        <p class="network-copy">Beta 1.1.8 forwards TCP and UDP over SOCKS5 using bundled tun2socks and Wintun components. The Connection tab provides Proxifly’s public node list, a country filter, and manual IPv4 and port entry for proxies without a username or password.</p>
+        <ol class="network-steps">
+          <li>Open Connection and choose “SOCKS5 · TCP + UDP”.</li>
+          <li>Refresh the free nodes, select a country and node, or enter an address manually. Node selection tests up to six addresses at a time.</li>
+          <li>Test TCP/TLS and UDP/DNS traffic, enter the game’s IPv4 addresses, and confirm consent.</li>
+          <li>Disconnect Windows VPN, enable routes, and approve the separate Windows permission request for the network component.</li>
+        </ol>
         <p class="hero-text">Aion 2 login through these connections has not been confirmed. Public server availability, access region, and latency are not guaranteed. Routing uses destination addresses, and the selected routes do not redirect DNS or IPv6. SOCKS5 adds no encryption. There is no kill switch, so traffic may return to a direct connection after a disconnect.</p>
         <p class="hero-text">ARX asks for consent before connecting. Windows requests administrator access separately for the network component. VPN Gate logs connections, including the source IP. Extract the portable archive in full, including Components/Socks.</p>
       </div>
@@ -254,8 +260,8 @@
         </header>
         <p>The first-run wizard checks Npcap, network adapters, and game detection. Reopen it in the Aion 2 connection settings. Diagnostics explain the current status and let you copy a summary or preview the JSON.</p>
         <figure class="reference-shot release-preview">
-          <img src="assets/connection-112-en.png" width="620" height="620" loading="lazy" alt="Aion 2 connection wizard with the diagnostics preview open">
-          <figcaption>Connection diagnostics in 1.1.2 Beta</figcaption>
+          <img src="assets/connection-118-full-en.png" width="620" height="620" loading="lazy" alt="Aion 2 connection wizard with the diagnostics preview open">
+          <figcaption>Connection diagnostics in 1.1.8 Beta</figcaption>
         </figure>
         <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.1-beta">View release on GitHub <span aria-hidden="true">↗</span></a>
       </article>

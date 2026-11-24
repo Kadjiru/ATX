@@ -8,7 +8,7 @@
   <title>ARX — помощник для Aion 2 Global</title>
   <link rel="icon" href="assets/arx.svg" type="image/svg+xml">
   <link rel="alternate" hreflang="en" href="en.html">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <script src="downloads.js?v=5" defer></script>
 </head>
 <body>
@@ -44,8 +44,8 @@
           <p class="platform"><strong data-release-version="stable">ARX 1.0.12 Stable</strong> <span></span> WINDOWS x64 <span></span> GPL-3.0</p>
         </div>
         <figure class="hero-shot">
-          <img src="assets/analysis-113-ru.png" width="1340" height="900" alt="Боевой отчёт ARX с графиком урона и статистикой группы">
-          <figcaption><span class="dot"></span> Разбор боя <span class="caption-note">Демонстрация · 1.1.3 Beta</span></figcaption>
+          <img src="assets/analysis-118-full-ru.png" width="1340" height="900" alt="Боевой отчёт ARX с графиком урона и статистикой группы">
+          <figcaption><span class="dot"></span> Разбор боя <span class="caption-note">Демонстрация · 1.1.8 Beta</span></figcaption>
         </figure>
       </div>
     </section>
@@ -82,15 +82,15 @@
           </dl>
         </div>
         <figure class="map-shots">
-          <img class="atlas" src="assets/atlas-110-ru.png" width="1340" height="900" loading="lazy" alt="Атлас ARX с телепортами Альтгарда">
-          <img class="minimap" src="assets/hud-atlas-110-ru.png" width="388" height="500" loading="lazy" alt="Миникарта ARX с выбранной точкой в Альтгарде">
-          <figcaption>Атлас и миникарта · 1.1.0 Beta</figcaption>
+          <img class="atlas" src="assets/atlas-118-full-ru.png" width="1340" height="900" loading="lazy" alt="Атлас ARX с телепортами Альтгарда">
+          <img class="minimap" src="assets/hud-atlas-118-full-ru.png" width="388" height="500" loading="lazy" alt="Миникарта ARX с выбранной точкой в Альтгарде">
+          <figcaption>Атлас и миникарта · 1.1.8 Beta</figcaption>
         </figure>
       </div>
     </section>
     <section class="wrap split reference" aria-labelledby="reference-title">
       <figure class="reference-shot">
-        <img src="assets/pets-118-ru.png" width="1340" height="900" loading="lazy" alt="Карточка питомца с регионами, бонусами и стоимостью улучшений">
+        <img src="assets/pets-118-full-ru.png" width="1340" height="900" loading="lazy" alt="Карточка питомца с регионами, бонусами и стоимостью улучшений">
         <figcaption>Цели и карточки питомцев · 1.1.8 Beta</figcaption>
       </figure>
       <div>
@@ -106,8 +106,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="appearance-title">
       <figure class="reference-shot">
-        <img src="assets/settings-110-ru.png" width="1340" height="900" loading="lazy" alt="Настройки ARX с выбором темы, языка и параметров боевого HUD">
-        <figcaption>Оформление, язык и HUD · 1.1.0 Beta</figcaption>
+        <img src="assets/settings-118-full-ru.png" width="1340" height="900" loading="lazy" alt="Настройки ARX с выбором темы, языка и параметров боевого HUD">
+        <figcaption>Оформление, язык и HUD · 1.1.8 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> НАСТРОЙКИ</p>
@@ -121,8 +121,8 @@
     </section>
     <section class="wrap split reference" aria-labelledby="rift-title">
       <figure class="reference-shot">
-        <img src="assets/hud-rift-110-ru.png" width="365" height="193" loading="lazy" alt="HUD пространственного разлома с примером отсчёта и времени открытия">
-        <figcaption>Пример отсчёта по расписанию · 1.1.0 Beta</figcaption>
+        <img src="assets/hud-rift-118-full-ru.png" width="365" height="193" loading="lazy" alt="HUD пространственного разлома с примером отсчёта и времени открытия">
+        <figcaption>Пример отсчёта по расписанию · 1.1.8 Beta</figcaption>
       </figure>
       <div>
         <p class="eyebrow"><span class="dot"></span> СОБЫТИЯ</p>
@@ -132,12 +132,18 @@
     </section>
     <section class="wrap split reference" aria-labelledby="network-title">
       <figure class="reference-shot">
-        <img src="assets/network-connection-118-ru.png" width="1340" height="900" loading="lazy" alt="Вкладка подключения в ARX 1.1.8 Beta">
+        <img src="assets/network-connection-118-full-ru.png" width="1340" height="900" loading="lazy" alt="Вкладка подключения в ARX 1.1.8 Beta">
         <figcaption>Подключение · 1.1.8 Beta</figcaption>
       </figure>
       <div>
-        <h2 id="network-title">Подключение в Beta</h2>
-        <p class="hero-text">В Beta 1.1.8 доступны SSTP и L2TP/IPsec через встроенные службы Windows, а также SOCKS5 с передачей TCP и UDP. Во вкладке «Подключение» можно выбрать узел, проверить соединение и задать IPv4-адреса для маршрутизации.</p>
+        <h2 id="network-title">SOCKS5 внутри ARX Beta</h2>
+        <p class="network-copy">В Beta 1.1.8 SOCKS5 передаёт TCP и UDP через встроенные tun2socks и Wintun. Во вкладке «Подключение» доступны бесплатный список Proxifly, выбор страны и ручной ввод IPv4 и порта для узлов без логина и пароля.</p>
+        <ol class="network-steps">
+          <li>Откройте «Подключение» и выберите «SOCKS5 · TCP + UDP».</li>
+          <li>Нажмите «Обновить бесплатные узлы», выберите страну и узел либо введите адрес вручную. Подбор проверяет до шести адресов за раз.</li>
+          <li>Проверьте передачу TCP/TLS и UDP/DNS. Укажите IPv4-адреса игры и подтвердите согласие.</li>
+          <li>Отключите VPN Windows, нажмите «Включить маршруты» и подтвердите отдельный запрос Windows для сетевого компонента.</li>
+        </ol>
         <p class="hero-text">Вход в Aion 2 через эти подключения пока не подтверждён. Доступность публичных узлов, регион доступа и задержка не гарантируются. Маршруты задаются по адресам, DNS и IPv6 этим списком не перенаправляются. SOCKS5 не добавляет шифрование. Блокировки трафика при обрыве нет, возможен возврат к прямому соединению.</p>
         <p class="hero-text">Перед подключением приложение запрашивает согласие, Windows отдельно запрашивает права для сетевого компонента. VPN Gate ведёт журналы соединений, включая исходный IP. Для portable распакуйте архив целиком с папкой Components/Socks.</p>
       </div>
@@ -255,8 +261,8 @@
         </header>
         <p>При первом запуске мастер проверяет Npcap, сетевые адаптеры и обнаружение игры. Его можно снова открыть в настройках подключения Aion 2. Диагностика объясняет статус, позволяет скопировать сводку и просмотреть JSON.</p>
         <figure class="reference-shot release-preview">
-          <img src="assets/connection-112-ru.png" width="620" height="620" loading="lazy" alt="Мастер подключения к Aion 2 с открытым предпросмотром диагностики">
-          <figcaption>Диагностика подключения в 1.1.2 Beta</figcaption>
+          <img src="assets/connection-118-full-ru.png" width="620" height="620" loading="lazy" alt="Мастер подключения к Aion 2 с открытым предпросмотром диагностики">
+          <figcaption>Диагностика подключения в 1.1.8 Beta</figcaption>
         </figure>
         <a class="release-link" href="https://github.com/Kadjiru/ATX/releases/tag/v1.1.1-beta">Релиз на GitHub <span aria-hidden="true">↗</span></a>
       </article>
